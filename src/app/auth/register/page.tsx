@@ -84,7 +84,7 @@ function RegisterForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("OTP sent via call");
+      toast.success("OTP sent");
       setStep("otp");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send OTP");
@@ -186,7 +186,7 @@ function RegisterForm() {
                 <button type="submit" disabled={loading}
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
                   style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}>
-                  <Phone className="w-4 h-4" />{loading ? "Sending..." : "Send OTP via Call"}
+                  <Phone className="w-4 h-4" />{loading ? "Sending..." : "Send OTP"}
                 </button>
               </form>
             </motion.div>
@@ -196,7 +196,7 @@ function RegisterForm() {
           {step === "otp" && (
             <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass rounded-2xl p-6">
               <h2 className="font-semibold mb-1" style={{ color: "#f0eeff" }}>Enter OTP</h2>
-              <p className="text-xs mb-4" style={{ color: "#9b98c8" }}>Sent via call to +91 {phone}</p>
+              <p className="text-xs mb-4" style={{ color: "#9b98c8" }}>Sent to +91 {phone}</p>
               <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
                 <input type="text" inputMode="numeric" maxLength={6} placeholder="• • • • • •" value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}

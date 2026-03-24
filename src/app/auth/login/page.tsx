@@ -31,7 +31,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("OTP sent via call");
+      toast.success("OTP sent");
       setStep("otp");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send OTP");
@@ -123,7 +123,7 @@ export default function LoginPage() {
                 style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}
               >
                 <Phone className="w-4 h-4" />
-                {loading ? "Sending..." : "Send OTP via Call"}
+                {loading ? "Sending..." : "Send OTP"}
               </button>
             </form>
           ) : (

@@ -1,8 +1,12 @@
 "use client";
 
 import { motion, Variants } from "framer-motion";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowRight, Heart, Lock, Zap } from "lucide-react";
+
+const AbstractBackground = dynamic(() => import("@/components/remotion/AbstractBackground"), { ssr: false });
+const ConfessionPlayer = dynamic(() => import("@/components/remotion/ConfessionPlayer"), { ssr: false });
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -36,6 +40,7 @@ const features = [
 export default function LandingPage() {
   return (
     <main className="flex flex-col items-center min-h-screen px-4">
+      <AbstractBackground />
       {/* Nav */}
       <nav className="w-full max-w-6xl flex items-center justify-between py-6">
         <motion.span
@@ -144,51 +149,23 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* Floating confession preview */}
+      {/* Remotion animated confession preview */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-md mb-32"
+        transition={{ delay: 0.5, duration: 0.8 }}
+        className="relative w-full max-w-lg mb-32 flex justify-center"
       >
+        {/* Stacked ghost cards behind */}
         <div
-          className="absolute inset-x-4 -top-3 h-full rounded-2xl border"
-          style={{ background: "rgba(18,18,42,0.5)", borderColor: "rgba(30,30,63,0.5)" }}
+          className="absolute inset-x-6 -top-3 h-full rounded-2xl"
+          style={{ background: "rgba(18,18,42,0.4)", border: "1px solid rgba(30,30,63,0.4)" }}
         />
         <div
-          className="absolute inset-x-2 -top-1.5 h-full rounded-2xl border"
-          style={{ background: "rgba(13,13,31,0.7)", borderColor: "rgba(30,30,63,0.6)" }}
+          className="absolute inset-x-3 -top-1.5 h-full rounded-2xl"
+          style={{ background: "rgba(13,13,31,0.6)", border: "1px solid rgba(30,30,63,0.5)" }}
         />
-        <div className="confession-card rounded-2xl p-6 relative">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
-              >
-                A
-              </div>
-              <span className="text-xs" style={{ color: "#4a4870" }}>
-                Anonymous · College
-              </span>
-            </div>
-            <span className="text-xs px-2 py-0.5 rounded-full status-delivered">Delivered</span>
-          </div>
-          <p className="text-sm leading-relaxed mb-4" style={{ color: "#f0eeff" }}>
-            &quot;I see you every morning at the library. You always have your headphones on and you
-            look so focused. I&apos;ve wanted to say hi for months but never had the courage. You
-            make my mornings better just by being there.&quot;
-          </p>
-          <div
-            className="flex items-center gap-2 pt-3"
-            style={{ borderTop: "1px solid #1e1e3f" }}
-          >
-            <Heart className="w-3.5 h-3.5" style={{ color: "#f472b6" }} />
-            <span className="text-xs" style={{ color: "#4a4870" }}>
-              CSE · 2026 · XYZ University
-            </span>
-          </div>
-        </div>
+        <ConfessionPlayer />
       </motion.div>
 
       {/* Features */}

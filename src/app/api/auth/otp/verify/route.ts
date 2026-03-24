@@ -3,15 +3,23 @@ import { prisma } from "@/lib/prisma";
 import { signToken, COOKIE_NAME_EXPORT } from "@/lib/auth";
 import { formatPhone } from "@/lib/utils";
 
+// Max wrong OTP attempts before the session is invalidated
+const MAX_WRONG_ATTEMPTS = 5;
+
 export async function POST(req: NextRequest) {
   try {
     const { phone, otp } = await req.json();
+
+    if (!phone || !otp) {
+      return NextResponse.json({ error: "Phone and OTP are required" }, { status: 400 });
+    }
+
     const formattedPhone = formatPhone(phone);
 
+    // Find the latest valid (unexpired, unverified) session
     const session = await prisma.otpSession.findFirst({
       where: {
         phone: formattedPhone,
-        otp,
         verified: false,
         expiresAt: { gt: new Date() },
       },
@@ -19,15 +27,47 @@ export async function POST(req: NextRequest) {
     });
 
     if (!session) {
-      return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 });
+      return NextResponse.json(
+        { error: "OTP expired or not found. Please request a new one." },
+        { status: 400 }
+      );
     }
 
+    // Wrong OTP — count recent failed attempts to prevent brute force
+    if (session.otp !== otp) {
+      const recentFailed = await prisma.otpSession.count({
+        where: {
+          phone: formattedPhone,
+          verified: false,
+          createdAt: { gte: new Date(Date.now() - 15 * 60 * 1000) },
+        },
+      });
+
+      if (recentFailed >= MAX_WRONG_ATTEMPTS) {
+        // Expire the current session immediately
+        await prisma.otpSession.update({
+          where: { id: session.id },
+          data: { expiresAt: new Date() },
+        });
+        return NextResponse.json(
+          { error: "Too many failed attempts. Please request a new OTP." },
+          { status: 429 }
+        );
+      }
+
+      return NextResponse.json({ error: "Invalid OTP. Please try again." }, { status: 400 });
+    }
+
+    // OTP is correct — mark as verified
     await prisma.otpSession.update({
       where: { id: session.id },
       data: { verified: true },
     });
 
-    const existingUser = await prisma.user.findUnique({ where: { phone: formattedPhone } });
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+      where: { phone: formattedPhone },
+    });
 
     if (existingUser) {
       const token = signToken(existingUser.id);
@@ -42,9 +82,10 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
+    // New user — send them to registration
     return NextResponse.json({ success: true, isNewUser: true });
   } catch (err) {
-    console.error(err);
+    console.error("[OTP Verify Error]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
