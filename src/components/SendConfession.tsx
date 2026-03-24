@@ -1,0 +1,315 @@
+"use client";
+
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Phone, ArrowRight, Clock, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
+
+type LocationCategory = "COLLEGE" | "SCHOOL" | "WORKPLACE" | "GYM" | "NEIGHBOURHOOD";
+type FlowType = "profile" | "phone";
+
+const statusColors: Record<string, string> = {
+  PENDING: "#94a3b8", DELIVERED: "#60a5fa", OPENED: "#a78bfa",
+  REPLIED: "#34d399", GHOSTED: "#f87171", EXPIRED: "#6b7280",
+};
+
+const locationFields: Record<LocationCategory, { key: string; label: string; type?: string; options?: string[] }[]> = {
+  COLLEGE: [
+    { key: "collegeName", label: "College Name" },
+    { key: "pinCode", label: "Pin Code" },
+    { key: "course", label: "Course (e.g. B.Tech)" },
+    { key: "branch", label: "Branch (e.g. CSE)" },
+    { key: "yearOfPassing", label: "Year of Passing", type: "number" },
+    { key: "section", label: "Section" },
+    { key: "fullName", label: "Their Full Name" },
+  ],
+  SCHOOL: [
+    { key: "schoolName", label: "School Name" },
+    { key: "pinCode", label: "Pin Code" },
+    { key: "board", label: "Board", options: ["CBSE", "ICSE", "State Board", "IB", "IGCSE"] },
+    { key: "yearOfCompletion", label: "Year of Completion", type: "number" },
+    { key: "section", label: "Section" },
+    { key: "fullName", label: "Their Full Name" },
+  ],
+  WORKPLACE: [
+    { key: "companyName", label: "Company Name" },
+    { key: "department", label: "Department" },
+    { key: "city", label: "City" },
+    { key: "buildingName", label: "Building / Campus Name" },
+    { key: "fullName", label: "Their Full Name" },
+  ],
+  GYM: [
+    { key: "gymName", label: "Gym Name" },
+    { key: "city", label: "City" },
+    { key: "pinCode", label: "Pin Code" },
+    { key: "timing", label: "Their Timing", options: ["MORNING", "EVENING", "BOTH"] },
+    { key: "fullName", label: "Their Full Name" },
+  ],
+  NEIGHBOURHOOD: [
+    { key: "state", label: "State" },
+    { key: "city", label: "City" },
+    { key: "pinCode", label: "Pin Code" },
+    { key: "premisesName", label: "Society / Premises Name" },
+    { key: "fullName", label: "Their Full Name" },
+  ],
+};
+
+const categories: { id: LocationCategory; label: string; emoji: string }[] = [
+  { id: "COLLEGE", label: "College / University", emoji: "🎓" },
+  { id: "SCHOOL", label: "School (past)", emoji: "🏫" },
+  { id: "WORKPLACE", label: "Workplace / Office", emoji: "🏢" },
+  { id: "GYM", label: "Gym", emoji: "💪" },
+  { id: "NEIGHBOURHOOD", label: "Neighbourhood", emoji: "🏘️" },
+];
+
+export default function SendConfession({
+  sentCount,
+  recentSent,
+}: {
+  sentCount: number;
+  recentSent: {
+    id: string; status: string; location: string;
+    createdAt: string; expiresAt: string; mutualDetected: boolean; reply: string | null;
+  }[];
+}) {
+  const [flow, setFlow] = useState<FlowType>("profile");
+  const [selectedCategory, setSelectedCategory] = useState<LocationCategory | null>(null);
+  const [matchDetails, setMatchDetails] = useState<Record<string, string>>({});
+  const [targetPhone, setTargetPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const isFree = sentCount === 0;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!message.trim()) { toast.error("Write your confession first"); return; }
+    if (flow === "profile" && !selectedCategory) { toast.error("Select a location category"); return; }
+    if (flow === "phone" && !/^\d{10}$/.test(targetPhone)) { toast.error("Enter a valid 10-digit number"); return; }
+
+    setLoading(true);
+    try {
+      const body = flow === "profile"
+        ? { flow: "profile", location: selectedCategory, matchDetails, message }
+        : { flow: "phone", targetPhone: "+91" + targetPhone, message };
+
+      const res = await fetch("/api/confessions/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      if (data.requiresPayment) {
+        // Razorpay will be integrated — for now show a toast
+        toast.info("Payment required. Razorpay coming soon.");
+      } else {
+        setSent(true);
+        toast.success(data.matchFound ? "Confession delivered!" : "Confession queued — we'll notify you when matched.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send confession");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="py-2 flex flex-col items-center justify-center min-h-[60vh]">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200 }}
+          className="text-center"
+        >
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(244,114,182,0.15))", border: "1px solid rgba(192,132,252,0.3)" }}>
+            <Send className="w-8 h-8" style={{ color: "#c084fc" }} />
+          </div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: "#f0eeff" }}>Confession Sent</h2>
+          <p className="text-sm mb-8" style={{ color: "#9b98c8" }}>
+            We&apos;ll keep you updated on every step.
+          </p>
+          <button
+            onClick={() => { setSent(false); setMessage(""); setMatchDetails({}); setSelectedCategory(null); }}
+            className="px-6 py-2.5 rounded-xl text-sm font-medium text-white"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}>
+            Send Another
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-2 max-w-2xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold" style={{ color: "#f0eeff" }}>Send a Confession</h1>
+        <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
+          {isFree ? "Your first confession is free." : "Additional confessions are charged (₹X)."}
+        </p>
+      </div>
+
+      {/* Flow toggle */}
+      <div
+        className="flex gap-1 p-1 rounded-xl mb-6 w-fit"
+        style={{ background: "rgba(30,30,63,0.4)", border: "1px solid #1e1e3f" }}
+      >
+        {(["profile", "phone"] as FlowType[]).map((f) => (
+          <button key={f} onClick={() => setFlow(f)}
+            className="px-5 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{
+              background: flow === f ? "rgba(124,58,237,0.3)" : "transparent",
+              color: flow === f ? "#c084fc" : "#9b98c8",
+              border: flow === f ? "1px solid rgba(192,132,252,0.3)" : "1px solid transparent",
+            }}>
+            {f === "profile" ? "Find by details" : "I have their number"}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <AnimatePresence mode="wait">
+          {flow === "profile" ? (
+            <motion.div key="profile-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="glass rounded-2xl p-5 flex flex-col gap-4">
+              <h3 className="text-sm font-medium" style={{ color: "#9b98c8" }}>Where did you meet them?</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {categories.map((cat) => (
+                  <button key={cat.id} type="button"
+                    onClick={() => { setSelectedCategory(cat.id); setMatchDetails({}); }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"
+                    style={{
+                      background: selectedCategory === cat.id ? "rgba(124,58,237,0.15)" : "rgba(30,30,63,0.3)",
+                      border: `1px solid ${selectedCategory === cat.id ? "rgba(192,132,252,0.4)" : "#1e1e3f"}`,
+                      color: selectedCategory === cat.id ? "#c084fc" : "#9b98c8",
+                    }}>
+                    <span>{cat.emoji}</span><span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {selectedCategory && (
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col gap-3 pt-2 border-t" style={{ borderColor: "#1e1e3f" }}>
+                  <p className="text-xs" style={{ color: "#4a4870" }}>
+                    Fill in what you know — we&apos;ll match against our database.
+                  </p>
+                  {locationFields[selectedCategory].map((field) => (
+                    <div key={field.key}>
+                      <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>{field.label}</label>
+                      {field.options ? (
+                        <select value={matchDetails[field.key] || ""}
+                          onChange={(e) => setMatchDetails((p) => ({ ...p, [field.key]: e.target.value }))}
+                          className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                          style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}>
+                          <option value="">Select…</option>
+                          {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : (
+                        <input type={field.type || "text"} value={matchDetails[field.key] || ""}
+                          onChange={(e) => setMatchDetails((p) => ({ ...p, [field.key]: e.target.value }))}
+                          className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                          style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} />
+                      )}
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div key="phone-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="glass rounded-2xl p-5">
+              <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Their phone number</h3>
+              <div className="flex gap-2">
+                <span className="flex items-center px-3 rounded-xl text-sm border"
+                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#9b98c8" }}>+91</span>
+                <input type="tel" inputMode="numeric" maxLength={10} placeholder="9876543210" value={targetPhone}
+                  onChange={(e) => setTargetPhone(e.target.value.replace(/\D/g, ""))}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} />
+              </div>
+              <p className="text-xs mt-2" style={{ color: "#4a4870" }}>
+                <Phone className="w-3 h-3 inline mr-1" />
+                If they&apos;re not on iConfess, we&apos;ll reach out via WhatsApp.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Message */}
+        <div className="glass rounded-2xl p-5">
+          <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>
+            <MessageSquare className="w-4 h-4 inline mr-1.5" />
+            Your confession
+          </h3>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Write what you've always wanted to say…"
+            rows={5}
+            maxLength={1000}
+            className="w-full px-4 py-3 rounded-xl text-sm border resize-none"
+            style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+          />
+          <p className="text-xs mt-1 text-right" style={{ color: "#4a4870" }}>{message.length}/1000</p>
+        </div>
+
+        <button type="submit" disabled={loading}
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-all"
+          style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}>
+          <Send className="w-4 h-4" />
+          {loading ? "Sending…" : isFree ? "Send Confession (Free)" : "Send Confession (₹X)"}
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </form>
+
+      {/* Past sent confessions */}
+      {recentSent.length > 0 && (
+        <div className="mt-10">
+          <h2 className="font-semibold mb-4" style={{ color: "#f0eeff" }}>Sent Confessions</h2>
+          <div className="flex flex-col gap-3">
+            {recentSent.map((c) => (
+              <div key={c.id} className="glass rounded-xl px-4 py-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ background: statusColors[c.status] || "#9b98c8" }} />
+                    <span className="text-sm" style={{ color: "#f0eeff" }}>
+                      {c.location.charAt(0) + c.location.slice(1).toLowerCase()} Confession
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {c.mutualDetected && (
+                      <span className="text-xs px-2 py-0.5 rounded-full status-mutual">Mutual!</span>
+                    )}
+                    <span className={`text-xs px-2 py-0.5 rounded-full status-${c.status.toLowerCase()}`}>
+                      {c.status.charAt(0) + c.status.slice(1).toLowerCase()}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-xs" style={{ color: "#4a4870" }}>
+                  <span>{new Date(c.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                  {c.status === "PENDING" && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Expires {new Date(c.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </span>
+                  )}
+                </div>
+                {c.reply && (
+                  <div className="mt-3 rounded-lg px-3 py-2"
+                    style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                    <p className="text-xs mb-0.5" style={{ color: "#34d399" }}>They replied:</p>
+                    <p className="text-sm" style={{ color: "#f0eeff" }}>{c.reply}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
