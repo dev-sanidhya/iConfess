@@ -37,6 +37,13 @@ const features = [
   },
 ];
 
+const footerLinks = [
+  { href: "/terms-and-conditions", label: "Terms & Conditions" },
+  { href: "/privacy-policy", label: "Privacy Policy" },
+  { href: "/refund-and-cancellation", label: "Refund Policy" },
+  { href: "/contact", label: "Contact" },
+];
+
 export default function LandingPage() {
   return (
     <main className="flex flex-col items-center min-h-screen px-4 overflow-x-hidden">
@@ -212,11 +219,23 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer
-        className="w-full max-w-6xl py-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-center sm:text-left"
+        className="w-full max-w-6xl py-8 flex flex-col gap-4 text-xs text-center sm:text-left"
         style={{ borderTop: "1px solid #1e1e3f", color: "#4a4870" }}
       >
-        <span className="gradient-text font-semibold">iConfess</span>
-        <span>Anonymous. Private. Yours.</span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span className="gradient-text font-semibold">iConfess</span>
+          <span>Anonymous. Private. Yours.</span>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-start">
+          {footerLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="transition-colors hover:text-[#c084fc]">
+              {link.label}
+            </Link>
+          ))}
+          <a href="mailto:prateekchauhan2512@gmail.com" className="transition-colors hover:text-[#c084fc]">
+            prateekchauhan2512@gmail.com
+          </a>
+        </div>
       </footer>
     </main>
   );
