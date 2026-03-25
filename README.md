@@ -1,48 +1,46 @@
 # iConfess
 
-iConfess is an anonymous confession platform built with Next.js 16, Prisma, and PostgreSQL. Users sign up with OTP verification, create a searchable profile based on real-world contexts like college, school, workplace, gym, or neighbourhood, and send anonymous confessions either by phone number or by profile matching.
+iConfess is a production-oriented anonymous confession platform built with Next.js, Prisma, and PostgreSQL. It allows users to create structured, discoverable profiles across real-world contexts such as college, school, workplace, gym, and neighbourhood, then send anonymous confessions by profile matching, phone number, or social handle.
 
-The app is designed around three core ideas:
+The product is designed around three principles:
 
-- anonymous confession delivery
-- profile discovery without direct name search
-- mutual-reveal logic only when both sides consent
+- anonymous communication by default
+- structured discovery instead of open-name lookup
+- consent-based identity reveal only after mutual confirmation
 
-## Product Overview
+## Highlights
 
-Users can:
+- OTP-based onboarding with persistent username/password login
+- multi-profile identity model with one primary category and optional additional categories
+- search by phone number, structured profile details, Instagram handle, or Snapchat handle
+- anonymous confession delivery with reply flow
+- mutual confession detection and gated identity reveal
+- paid unlock hooks for inbox and search insight experiences
+- responsive dashboard and mobile-friendly navigation
 
-- register with phone OTP
-- set a username and password for future logins
-- create a primary profile category and optional additional categories
-- add Instagram and Snapchat handles
-- search people by phone number, structured profile details, or social handle
-- send anonymous confessions
-- receive confessions and reply
-- unlock confession content and reveal identity through payment flows
+## Core Product Flows
 
-## Main Flows
+### 1. Authentication
 
-### Authentication
-
-- Signup starts with phone OTP verification.
-- New users must provide:
+- New users verify their phone number using OTP.
+- After verification, they create an account with:
   - full name
   - gender
   - username
   - password
   - Instagram handle
   - Snapchat handle
-- Gender is fixed at signup and cannot be changed later.
-- Existing users log in with username and password. OTP is not required on every login.
+- Returning users sign in with username and password.
+- Gender is fixed after signup.
+- Phone number changes are not directly editable and must go through verification.
 
-### Profile Model
+### 2. Profile System
 
 Each user has:
 
 - one required `primaryCategory`
-- zero or more additional categories
-- category-specific details for each selected place
+- zero or more additional profile categories
+- category-specific details for each selected category
 
 Supported categories:
 
@@ -52,26 +50,27 @@ Supported categories:
 - Gym
 - Neighbourhood
 
-This allows one user to be discoverable across multiple contexts at once.
+The system supports people who are discoverable in multiple places at once, for example college plus gym plus workplace.
 
-### Search
+### 3. Search
 
-Search does not allow direct free-text name lookup.
+The platform does not support direct name search as a primary discovery method.
 
 Supported search modes:
 
 - phone number
 - structured profile details
-- social handle search via Instagram or Snapchat
+- social media handle
 
-Search results only show the context relevant to the query instead of exposing all stored profile data.
+Search results intentionally show only relevant context from the search input, not the user’s full stored profile.
 
-### Sending Confessions
+### 4. Sending Confessions
 
-There are two sending modes:
+Confessions can be sent through:
 
-- by phone number
-- by structured profile matching
+- profile matching
+- phone number
+- social handle lookup
 
 When sending a confession:
 
@@ -79,24 +78,53 @@ When sending a confession:
 - last name is optional
 - message is required
 
-For testing, repeat confessions can be temporarily allowed for tightly scoped test profiles without changing the rule for general users.
+### 5. Mutual Reveal
 
-## Tech Stack
+When two users have confessed each other:
+
+- the system marks the pair as mutual
+- both users can independently submit reveal consent
+- once both consent, the anonymous identifier is replaced with the real name
+- only the confession-relevant context is shown after reveal, not the entire profile
+
+## Architecture
+
+### Frontend
+
+- Next.js App Router
+- React 19
+- Tailwind CSS 4
+- Framer Motion
+- responsive dashboard UI with mobile drawer navigation
+
+### Backend
+
+- Next.js route handlers under `src/app/api`
+- JWT cookie-based session auth
+- Prisma ORM
+- Neon PostgreSQL
+
+### Integrations
+
+- 2factor.in for OTP delivery
+- Razorpay integration points for paid unlock flows
+
+## Technology Stack
 
 - Next.js 16.2.1
 - React 19
 - TypeScript
-- Prisma ORM
-- Neon PostgreSQL
+- Prisma
+- PostgreSQL
+- Neon
 - Tailwind CSS 4
 - Framer Motion
-- JWT cookie auth
-- 2factor.in for OTP delivery
-- Razorpay placeholders for monetization flows
+- JWT
+- bcryptjs
+- 2factor.in
+- Razorpay
 
-## Project Structure
-
-High-level app layout:
+## Repository Structure
 
 ```text
 src/
@@ -121,32 +149,39 @@ prisma/
   schema.prisma
 ```
 
-Important areas:
+Important directories:
 
-- [`src/app/api`](/C:/Users/shish/Desktop/iConfess/src/app/api): route handlers for auth, users, confessions, and payments
-- [`src/app/auth`](/C:/Users/shish/Desktop/iConfess/src/app/auth): login and signup pages
+- [`src/app/api`](/C:/Users/shish/Desktop/iConfess/src/app/api): backend route handlers
+- [`src/app/auth`](/C:/Users/shish/Desktop/iConfess/src/app/auth): public auth pages
 - [`src/app/dashboard`](/C:/Users/shish/Desktop/iConfess/src/app/dashboard): authenticated product UI
-- [`src/components`](/C:/Users/shish/Desktop/iConfess/src/components): reusable client/server UI components
-- [`src/lib`](/C:/Users/shish/Desktop/iConfess/src/lib): auth, Prisma, matching, utilities, and profile sync logic
+- [`src/components`](/C:/Users/shish/Desktop/iConfess/src/components): reusable UI components
+- [`src/lib`](/C:/Users/shish/Desktop/iConfess/src/lib): auth helpers, matching logic, Prisma client, utilities
 - [`prisma/schema.prisma`](/C:/Users/shish/Desktop/iConfess/prisma/schema.prisma): database schema
 
-## Database
+## Data Model Overview
 
-The project now uses PostgreSQL in production and local development can also point to PostgreSQL.
+The core schema includes:
 
-Current Prisma datasource:
+- `User`
+- `Confession`
+- `UnlockedCard`
+- `UnlockedProfileInsight`
+- `OtpSession`
+- category-specific profile tables:
+  - `CollegeProfile`
+  - `SchoolProfile`
+  - `WorkplaceProfile`
+  - `GymProfile`
+  - `NeighbourhoodProfile`
 
-- `provider = "postgresql"`
-- `url = env("DATABASE_URL")`
-- `directUrl = env("DIRECT_URL")`
+The app uses PostgreSQL via Prisma with:
 
-Recommended production provider:
-
-- Neon PostgreSQL
+- `DATABASE_URL` for pooled runtime access
+- `DIRECT_URL` for direct database access during schema operations
 
 ## Environment Variables
 
-Create a `.env` file with the following values:
+Create a local `.env` file with at least the following values:
 
 ```env
 DATABASE_URL="postgresql://..."
@@ -165,10 +200,10 @@ TEST_REPEAT_CONFESSION_PHONES=""
 
 Notes:
 
-- `DATABASE_URL` should use the pooled PostgreSQL connection string.
-- `DIRECT_URL` should use the direct PostgreSQL connection string.
+- `DATABASE_URL` should use the pooled Neon connection string.
+- `DIRECT_URL` should use the direct Neon connection string.
 - `OTP_DELIVERY_MODE` supports `sms`, `voice`, and `mock`.
-- Instagram and Snapchat handles are required at signup. If unavailable, users can enter `NA Handle`.
+- `NA Handle` is accepted for social handles and normalized as unavailable.
 
 ## Local Development
 
@@ -178,25 +213,25 @@ Install dependencies:
 npm install
 ```
 
-Prisma Client is generated automatically via `postinstall`, but can also be generated manually:
+Generate Prisma Client:
 
 ```bash
 npx prisma generate
 ```
 
-Push the current schema to the configured database:
+Sync the schema to the configured database:
 
 ```bash
 npx prisma db push
 ```
 
-Start development:
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-The app runs on:
+Local default URL:
 
 ```text
 http://localhost:3000
@@ -204,22 +239,29 @@ http://localhost:3000
 
 ## Production Deployment
 
-This app is intended to be deployed on Vercel with a hosted PostgreSQL database such as Neon.
+The application is intended to run on Vercel with Neon PostgreSQL.
 
-### Required production setup
+### Recommended Production Setup
 
-1. Create a hosted PostgreSQL database.
-2. Set `DATABASE_URL` and `DIRECT_URL` in Vercel.
-3. Set all auth and provider secrets in Vercel:
+1. Provision a Neon PostgreSQL database.
+2. Configure the following environment variables in Vercel:
+   - `DATABASE_URL`
+   - `DIRECT_URL`
    - `JWT_SECRET`
    - `TWOFACTOR_API_KEY`
    - `OTP_DELIVERY_MODE`
-   - payment keys if enabled
-4. Redeploy the app.
+   - Razorpay keys, if monetization is enabled
+3. Deploy the application.
+4. Sync schema changes to the target database.
 
-### Why local SQLite was removed
+### Why PostgreSQL
 
-SQLite with a local file works on a laptop but is not a stable production model for serverless deployments. Production requires a real hosted database because route handlers and API requests cannot rely on a local writable file database.
+The project originally used a local SQLite-style development setup, which is not appropriate for production serverless environments. PostgreSQL provides:
+
+- durable hosted storage
+- concurrent access safety
+- production-grade operational support
+- compatibility with Neon and Prisma in a serverless deployment model
 
 ## Prisma Commands
 
@@ -231,7 +273,7 @@ npx prisma db push
 npx prisma studio
 ```
 
-If you later move to migration-based deploys instead of schema pushes:
+If you later standardize on migration-driven deploys:
 
 ```bash
 npx prisma migrate dev
@@ -241,42 +283,38 @@ npx prisma migrate deploy
 ## Current Business Rules
 
 - Gender is required at signup and cannot be edited later.
-- Phone number changes must go through verification, not direct profile editing.
 - Direct name search is not supported.
-- Confession sending requires first name.
-- Last name during confession sending is optional.
+- First name is required when sending a confession.
+- Last name is optional when sending a confession.
 - Username and social handles must remain unique.
-- Social handles accept `NA Handle`, which is normalized as not available.
+- Search insight unlocks do not expose full confession content.
+- Identity reveal only happens after mutual confession plus explicit consent from both users.
 
-## Matching Logic
+## Important Internal Modules
 
-Profile matching is shared between confession sending and search so both systems operate on the same structured profile rules.
-
-The matching layer lives in:
+Matching logic:
 
 - [`src/lib/matching.ts`](/C:/Users/shish/Desktop/iConfess/src/lib/matching.ts)
 
-Profile category persistence logic lives in:
+Profile category synchronization:
 
 - [`src/lib/profile-details.ts`](/C:/Users/shish/Desktop/iConfess/src/lib/profile-details.ts)
 
-## OTP Delivery
+Auth/session helpers:
 
-OTP sending is handled through:
+- [`src/lib/auth.ts`](/C:/Users/shish/Desktop/iConfess/src/lib/auth.ts)
 
-- [`src/app/api/auth/otp/send/route.ts`](/C:/Users/shish/Desktop/iConfess/src/app/api/auth/otp/send/route.ts)
+Confession send flow:
 
-Supported modes:
+- [`src/app/api/confessions/send/route.ts`](/C:/Users/shish/Desktop/iConfess/src/app/api/confessions/send/route.ts)
 
-- `sms`
-- `voice`
-- `mock`
+Mutual reveal flow:
 
-The current recommended production setup is SMS through 2factor.in because voice OTP depends on separate voice balance.
+- [`src/app/api/confessions/reveal-consent/route.ts`](/C:/Users/shish/Desktop/iConfess/src/app/api/confessions/reveal-consent/route.ts)
 
 ## Build And Verification
 
-Build the app:
+Run a production build:
 
 ```bash
 npm run build
@@ -290,19 +328,20 @@ npm run start
 
 ## Security Notes
 
-- Do not commit live secrets.
-- Rotate any secret that has been pasted into logs, screenshots, or chats.
-- Use a strong production `JWT_SECRET`.
-- Use hosted PostgreSQL instead of local file-based SQLite in production.
-- Restrict provider credentials to the deployment environment.
+- Never commit production secrets.
+- Rotate any credential that has been pasted into logs, screenshots, chats, or shared documents.
+- Use a strong `JWT_SECRET` in production.
+- Keep database credentials only in deployment environment variables.
+- Use hosted PostgreSQL, not local file-backed storage, in production.
 
-## Known Future Work
+## Roadmap / Future Work
 
-- full Razorpay payment validation
-- production-grade phone-number change flow
-- migration history cleanup after the SQLite-to-Postgres transition
-- stronger observability and error reporting for production
+- full Razorpay payment verification
+- stronger production observability and alerting
+- dedicated change-phone verification flow
+- improved auditability for paid unlock events
+- migration-history cleanup and standardization
 
 ## License
 
-This repository is currently private/internal unless a separate license is added.
+This repository is currently private/internal unless a separate license is explicitly added.
