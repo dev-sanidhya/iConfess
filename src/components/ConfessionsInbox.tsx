@@ -20,6 +20,9 @@ type Confession = {
   targetRevealConsent: boolean;
   revealedAt: string | null;
   isUnlocked: boolean;
+  counterpartAnonymousId: string;
+  counterpartName: string | null;
+  counterpartContext: string | null;
 };
 
 type TabKey = "received" | "sent";
@@ -58,6 +61,14 @@ function ConfessionCard({
   const isReceived = confession.direction === "received";
   const canRead = !isReceived || (pageUnlocked && confession.isUnlocked);
   const hasConsented = isReceived ? confession.targetRevealConsent : confession.senderRevealConsent;
+  const identityLabel = confession.revealedAt && confession.counterpartName
+    ? confession.counterpartName
+    : confession.counterpartAnonymousId;
+  const identityMeta = confession.revealedAt
+    ? confession.counterpartContext
+    : isReceived
+      ? "Anonymous sender"
+      : "Anonymous recipient";
 
   async function submitReply(e: React.FormEvent) {
     e.preventDefault();
@@ -112,8 +123,16 @@ function ConfessionCard({
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs font-medium" style={{ color: "#f0eeff" }}>
-              {isReceived ? "Received anonymously" : "Sent anonymously"}
+              {isReceived ? "From" : "To"}
             </p>
+            <p className="text-sm font-semibold mt-1" style={{ color: "#f0eeff" }}>
+              {identityLabel}
+            </p>
+            {identityMeta && (
+              <p className="text-xs mt-1" style={{ color: "#9b98c8" }}>
+                {identityMeta}
+              </p>
+            )}
             <p className="text-xs" style={{ color: "#4a4870" }}>
               {new Date(confession.createdAt).toLocaleDateString("en-IN", {
                 day: "numeric",
