@@ -6,6 +6,7 @@ type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction"
 export async function syncUserProfiles(
   tx: Tx,
   userId: string,
+  fullName: string,
   selectedCategories: LocationCategory[],
   profileDetailsByCategory: Partial<Record<LocationCategory, Record<string, string>>>
 ) {
@@ -22,7 +23,7 @@ export async function syncUserProfiles(
         branch: profile.branch,
         yearOfPassing: parseInt(profile.yearOfPassing),
         section: profile.section,
-        fullName: profile.fullName,
+        fullName,
       },
       create: {
         userId,
@@ -32,7 +33,7 @@ export async function syncUserProfiles(
         branch: profile.branch,
         yearOfPassing: parseInt(profile.yearOfPassing),
         section: profile.section,
-        fullName: profile.fullName,
+        fullName,
       },
     });
   } else {
@@ -49,7 +50,7 @@ export async function syncUserProfiles(
         board: profile.board,
         yearOfCompletion: parseInt(profile.yearOfCompletion),
         section: profile.section,
-        fullName: profile.fullName,
+        fullName,
       },
       create: {
         userId,
@@ -58,7 +59,7 @@ export async function syncUserProfiles(
         board: profile.board,
         yearOfCompletion: parseInt(profile.yearOfCompletion),
         section: profile.section,
-        fullName: profile.fullName,
+        fullName,
       },
     });
   } else {
@@ -74,7 +75,7 @@ export async function syncUserProfiles(
         department: profile.department,
         city: profile.city,
         buildingName: profile.buildingName,
-        fullName: profile.fullName,
+        fullName,
       },
       create: {
         userId,
@@ -82,7 +83,7 @@ export async function syncUserProfiles(
         department: profile.department,
         city: profile.city,
         buildingName: profile.buildingName,
-        fullName: profile.fullName,
+        fullName,
       },
     });
   } else {
@@ -98,7 +99,7 @@ export async function syncUserProfiles(
         city: profile.city,
         pinCode: profile.pinCode,
         timing: profile.timing as "MORNING" | "EVENING" | "BOTH",
-        fullName: profile.fullName,
+        fullName,
       },
       create: {
         userId,
@@ -106,7 +107,7 @@ export async function syncUserProfiles(
         city: profile.city,
         pinCode: profile.pinCode,
         timing: profile.timing as "MORNING" | "EVENING" | "BOTH",
-        fullName: profile.fullName,
+        fullName,
       },
     });
   } else {
@@ -122,7 +123,7 @@ export async function syncUserProfiles(
         city: profile.city,
         pinCode: profile.pinCode,
         premisesName: profile.premisesName,
-        fullName: profile.fullName,
+        fullName,
       },
       create: {
         userId,
@@ -130,7 +131,7 @@ export async function syncUserProfiles(
         city: profile.city,
         pinCode: profile.pinCode,
         premisesName: profile.premisesName,
-        fullName: profile.fullName,
+        fullName,
       },
     });
   } else {

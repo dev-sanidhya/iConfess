@@ -2,26 +2,16 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Phone, ArrowRight, Clock, MessageSquare } from "lucide-react";
+import { Send, Phone, ArrowRight, MessageSquare, AtSign } from "lucide-react";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 import { toast } from "sonner";
 
-type FlowType = "profile" | "phone";
-
-const statusColors: Record<string, string> = {
-  PENDING: "#94a3b8", DELIVERED: "#60a5fa", OPENED: "#a78bfa",
-  REPLIED: "#34d399", GHOSTED: "#f87171", EXPIRED: "#6b7280",
-};
+type FlowType = "profile" | "phone" | "social";
 
 export default function SendConfession({
   sentCount,
-  recentSent,
 }: {
   sentCount: number;
-  recentSent: {
-    id: string; status: string; location: string;
-    createdAt: string; expiresAt: string; mutualDetected: boolean; reply: string | null;
-  }[];
 }) {
   const [flow, setFlow] = useState<FlowType>("profile");
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | null>(null);
@@ -29,6 +19,8 @@ export default function SendConfession({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [targetPhone, setTargetPhone] = useState("");
+  const [socialPlatform, setSocialPlatform] = useState<"instagram" | "snapchat">("instagram");
+  const [socialHandle, setSocialHandle] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -40,6 +32,7 @@ export default function SendConfession({
     if (!firstName.trim()) { toast.error("First name is required"); return; }
     if (flow === "profile" && !selectedCategory) { toast.error("Select a location category"); return; }
     if (flow === "phone" && !/^\d{10}$/.test(targetPhone)) { toast.error("Enter a valid 10-digit number"); return; }
+    if (flow === "social" && !socialHandle.trim()) { toast.error("Enter a valid social handle"); return; }
 
     setLoading(true);
     try {
@@ -53,7 +46,16 @@ export default function SendConfession({
             lastName: lastName.trim(),
             message,
           }
-        : { flow: "phone", targetPhone: "+91" + targetPhone, firstName: firstName.trim(), lastName: lastName.trim(), message };
+        : flow === "phone"
+          ? { flow: "phone", targetPhone: "+91" + targetPhone, firstName: firstName.trim(), lastName: lastName.trim(), message }
+          : {
+              flow: "social",
+              platform: socialPlatform,
+              handle: socialHandle.trim(),
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              message,
+            };
 
       const res = await fetch("/api/confessions/send", {
         method: "POST",
@@ -103,6 +105,7 @@ export default function SendConfession({
               setFirstName("");
               setLastName("");
               setTargetPhone("");
+              setSocialHandle("");
             }}
             className="px-6 py-2.5 rounded-xl text-sm font-medium text-white"
             style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}>
@@ -127,7 +130,7 @@ export default function SendConfession({
         className="flex gap-1 p-1 rounded-xl mb-6 w-fit"
         style={{ background: "rgba(30,30,63,0.4)", border: "1px solid #1e1e3f" }}
       >
-        {(["profile", "phone"] as FlowType[]).map((f) => (
+        {(["profile", "phone", "social"] as FlowType[]).map((f) => (
           <button key={f} onClick={() => setFlow(f)}
             className="px-5 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
@@ -135,7 +138,7 @@ export default function SendConfession({
               color: flow === f ? "#c084fc" : "#9b98c8",
               border: flow === f ? "1px solid rgba(192,132,252,0.3)" : "1px solid transparent",
             }}>
-            {f === "profile" ? "Find by details" : "I have their number"}
+            {f === "profile" ? "Find by details" : f === "phone" ? "I have their number" : "Social Media"}
           </button>
         ))}
       </div>
@@ -178,7 +181,7 @@ export default function SendConfession({
         </div>
 
         <AnimatePresence mode="wait">
-          {flow === "profile" ? (
+          {flow === "profile" && (
             <motion.div key="profile-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="glass rounded-2xl p-5 flex flex-col gap-4">
               <h3 className="text-sm font-medium" style={{ color: "#9b98c8" }}>Where did you meet them?</h3>
@@ -203,7 +206,7 @@ export default function SendConfession({
                   <p className="text-xs" style={{ color: "#4a4870" }}>
                     Fill in what you know — we&apos;ll match against our database.
                   </p>
-                  {locationFields[selectedCategory].filter((field) => field.key !== "fullName").map((field) => (
+                  {locationFields[selectedCategory].map((field) => (
                     <div key={field.key}>
                       <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>{field.label}</label>
                       {field.options ? (
@@ -225,7 +228,9 @@ export default function SendConfession({
                 </motion.div>
               )}
             </motion.div>
-          ) : (
+          )}
+
+          {flow === "phone" && (
             <motion.div key="phone-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="glass rounded-2xl p-5">
               <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Their phone number</h3>
@@ -241,6 +246,41 @@ export default function SendConfession({
                 <Phone className="w-3 h-3 inline mr-1" />
                 If they&apos;re not on iConfess, we&apos;ll reach out via WhatsApp.
               </p>
+            </motion.div>
+          )}
+
+          {flow === "social" && (
+            <motion.div key="social-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="glass rounded-2xl p-5">
+              <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Find them by social media</h3>
+              <div className="flex gap-2 mb-3">
+                {(["instagram", "snapchat"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setSocialPlatform(value)}
+                    className="px-4 py-2 rounded-lg text-sm"
+                    style={{
+                      background: socialPlatform === value ? "rgba(124,58,237,0.3)" : "rgba(30,30,63,0.3)",
+                      color: socialPlatform === value ? "#c084fc" : "#9b98c8",
+                      border: `1px solid ${socialPlatform === value ? "rgba(192,132,252,0.3)" : "#1e1e3f"}`,
+                    }}
+                  >
+                    {value === "instagram" ? "Instagram" : "Snapchat"}
+                  </button>
+                ))}
+              </div>
+              <div className="relative">
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b98c8" }} />
+                <input
+                  type="text"
+                  placeholder={socialPlatform === "instagram" ? "instagram_handle" : "snapchat_handle"}
+                  value={socialHandle}
+                  onChange={(e) => setSocialHandle(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -272,50 +312,6 @@ export default function SendConfession({
         </button>
       </form>
 
-      {/* Past sent confessions */}
-      {recentSent.length > 0 && (
-        <div className="mt-10">
-          <h2 className="font-semibold mb-4" style={{ color: "#f0eeff" }}>Sent Confessions</h2>
-          <div className="flex flex-col gap-3">
-            {recentSent.map((c) => (
-              <div key={c.id} className="glass rounded-xl px-4 py-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ background: statusColors[c.status] || "#9b98c8" }} />
-                    <span className="text-sm" style={{ color: "#f0eeff" }}>
-                      {c.location.charAt(0) + c.location.slice(1).toLowerCase()} Confession
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {c.mutualDetected && (
-                      <span className="text-xs px-2 py-0.5 rounded-full status-mutual">Mutual!</span>
-                    )}
-                    <span className={`text-xs px-2 py-0.5 rounded-full status-${c.status.toLowerCase()}`}>
-                      {c.status.charAt(0) + c.status.slice(1).toLowerCase()}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 text-xs" style={{ color: "#4a4870" }}>
-                  <span>{new Date(c.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
-                  {c.status === "PENDING" && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Expires {new Date(c.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                    </span>
-                  )}
-                </div>
-                {c.reply && (
-                  <div className="mt-3 rounded-lg px-3 py-2"
-                    style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.15)" }}>
-                    <p className="text-xs mb-0.5" style={{ color: "#34d399" }}>They replied:</p>
-                    <p className="text-sm" style={{ color: "#f0eeff" }}>{c.reply}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

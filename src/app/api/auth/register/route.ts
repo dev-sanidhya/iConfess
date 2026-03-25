@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
           primaryCategory: primaryCategory as LocationCategory,
         },
       });
-      await syncUserProfiles(tx, newUser.id, chosenCategories, profileDetailsByCategory ?? {});
+      await syncUserProfiles(tx, newUser.id, newUser.name, chosenCategories, profileDetailsByCategory ?? {});
 
       return newUser;
     });

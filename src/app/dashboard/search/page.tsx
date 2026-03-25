@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, User, Heart, ArrowRight, Phone, AtSign } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 
 type SearchMode = "profile" | "phone" | "social";
@@ -14,13 +15,28 @@ type SearchResult = {
   username: string | null;
   instagramHandle: string | null;
   snapchatHandle: string | null;
+  primaryCategory: string;
+  gender: "MALE" | "FEMALE" | "OTHER";
   matchContext: string[];
   confessionCount: number;
+  hasUnlockedInsights: boolean;
   college: string | null;
   school: string | null;
   workplace: string | null;
   gym: string | null;
   neighbourhood: string | null;
+};
+
+type ProfileInsight = {
+  id: string;
+  message: string;
+  location: string;
+  createdAt: string;
+  sender: {
+    firstName: string;
+    gender: "MALE" | "FEMALE" | "OTHER";
+    primaryCategory: string;
+  };
 };
 
 export default function SearchPage() {
@@ -31,6 +47,8 @@ export default function SearchPage() {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | null>(null);
   const [profileDetails, setProfileDetails] = useState<Record<string, string>>({});
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [insightsByUser, setInsightsByUser] = useState<Record<string, ProfileInsight[]>>({});
+  const [loadingInsightsFor, setLoadingInsightsFor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
@@ -67,6 +85,34 @@ export default function SearchPage() {
       setSearched(true);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadInsights(targetUserId: string, alreadyUnlocked: boolean) {
+    setLoadingInsightsFor(targetUserId);
+    try {
+      if (!alreadyUnlocked) {
+        const unlockRes = await fetch("/api/payments/unlock-profile-insights", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetUserId }),
+        });
+        const unlockData = await unlockRes.json();
+        if (!unlockRes.ok) throw new Error(unlockData.error);
+        setResults((current) => current.map((result) => (
+          result.id === targetUserId ? { ...result, hasUnlockedInsights: true } : result
+        )));
+      }
+
+      const res = await fetch(`/api/users/search/insights?targetUserId=${targetUserId}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setInsightsByUser((current) => ({ ...current, [targetUserId]: data.insights ?? [] }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load insights";
+      throw new Error(message);
+    } finally {
+      setLoadingInsightsFor(null);
     }
   }
 
@@ -307,16 +353,80 @@ export default function SearchPage() {
                     </div>
                   </div>
                 </div>
-                <Link
-                  href={`/dashboard/send?target=${result.id}&name=${encodeURIComponent(result.name)}`}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white flex-shrink-0"
-                  style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
-                >
-                  Confess
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                <div className="flex items-center gap-2">
+                  {result.confessionCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await loadInsights(result.id, result.hasUnlockedInsights);
+                        } catch (error) {
+                          const message = error instanceof Error ? error.message : "Failed to load insights";
+                          toast.error(message);
+                        }
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-medium"
+                      style={{
+                        background: "rgba(244,114,182,0.12)",
+                        border: "1px solid rgba(244,114,182,0.18)",
+                        color: "#f472b6",
+                      }}
+                    >
+                      {loadingInsightsFor === result.id
+                        ? "Loading..."
+                        : result.hasUnlockedInsights
+                          ? "View insights"
+                          : "View confessions (₹X)"}
+                    </button>
+                  )}
+                  <Link
+                    href={`/dashboard/send?target=${result.id}&name=${encodeURIComponent(result.name)}`}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white flex-shrink-0"
+                    style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                  >
+                    Confess
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               </motion.div>
             ))}
+            {results.map((result) => {
+              const insights = insightsByUser[result.id];
+              if (!insights) return null;
+
+              return (
+                <div
+                  key={`${result.id}-insights`}
+                  className="glass rounded-2xl p-5 -mt-1"
+                >
+                  <h3 className="text-sm font-semibold mb-3" style={{ color: "#f0eeff" }}>
+                    Confession insights for {result.name}
+                  </h3>
+                  {insights.length === 0 ? (
+                    <p className="text-xs" style={{ color: "#9b98c8" }}>
+                      No received confessions available to preview.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {insights.map((insight) => (
+                        <div
+                          key={insight.id}
+                          className="rounded-xl p-4"
+                          style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #1e1e3f" }}
+                        >
+                          <p className="text-sm mb-2" style={{ color: "#f0eeff" }}>
+                            &quot;{insight.message}&quot;
+                          </p>
+                          <p className="text-xs" style={{ color: "#9b98c8" }}>
+                            {insight.sender.firstName} • {insight.sender.gender.toLowerCase()} • {insight.sender.primaryCategory.toLowerCase()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>

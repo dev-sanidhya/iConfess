@@ -276,7 +276,7 @@ function RegisterForm() {
                 <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Where can people find you?</h2>
               </div>
               <p className="text-xs mb-5" style={{ color: "#9b98c8" }}>
-                Pick your main category, then add any additional places where people may know you.
+                You can add multiple profiles here, like college plus gym plus workplace. Choose one as primary and we will reuse your full name automatically across all of them.
               </p>
 
               {/* Category selector */}
@@ -329,7 +329,7 @@ function RegisterForm() {
                 <form onSubmit={handleRegister} className="flex flex-col gap-3">
                   <div className="h-px mb-1" style={{ background: "#1e1e3f" }} />
                   <p className="text-xs mb-2" style={{ color: "#9b98c8" }}>
-                    Select one primary category and fill details for every added category.
+                    Select one primary category and fill the place details only. Your name will be pulled from the identity step, so you do not need to type it again for each profile.
                   </p>
                   {selectedCategories.map((category) => (
                     <div key={category} className="rounded-xl p-4" style={{ background: "rgba(30,30,63,0.22)", border: "1px solid #1e1e3f" }}>

@@ -17,20 +17,50 @@ export async function POST(req: NextRequest) {
     const isTarget = confession.targetId === user.id;
     if (!isSender && !isTarget) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-    const update = isSender
-      ? { senderRevealConsent: true }
-      : { targetRevealConsent: true };
-
-    const updated = await prisma.confession.update({
-      where: { id: confessionId },
-      data: update,
+    const reverse = await prisma.confession.findFirst({
+      where: {
+        senderId: confession.targetId ?? undefined,
+        targetId: confession.senderId,
+      },
     });
 
-    // Check if both consented
-    if (updated.senderRevealConsent && updated.targetRevealConsent) {
-      await prisma.confession.update({
+    const updates: Promise<unknown>[] = [];
+    if (isSender) {
+      updates.push(prisma.confession.update({
         where: { id: confessionId },
-        data: { revealedAt: new Date() },
+        data: { senderRevealConsent: true },
+      }));
+      if (reverse) {
+        updates.push(prisma.confession.update({
+          where: { id: reverse.id },
+          data: { targetRevealConsent: true },
+        }));
+      }
+    } else {
+      updates.push(prisma.confession.update({
+        where: { id: confessionId },
+        data: { targetRevealConsent: true },
+      }));
+      if (reverse) {
+        updates.push(prisma.confession.update({
+          where: { id: reverse.id },
+          data: { senderRevealConsent: true },
+        }));
+      }
+    }
+
+    await Promise.all(updates);
+
+    const refreshed = await prisma.confession.findUnique({
+      where: { id: confessionId },
+    });
+
+    if (refreshed?.senderRevealConsent && refreshed.targetRevealConsent) {
+      const revealTime = new Date();
+      const ids = [confessionId, reverse?.id].filter(Boolean) as string[];
+      await prisma.confession.updateMany({
+        where: { id: { in: ids } },
+        data: { revealedAt: revealTime },
       });
 
       // Fetch both users' contact info to share
@@ -40,10 +70,22 @@ export async function POST(req: NextRequest) {
       // In production: send each user the other's contact details via notification
       console.log(`[DEV] Reveal: ${sender?.name} (${sender?.phone}) ↔ ${target?.name} (${target?.phone})`);
 
-      return NextResponse.json({ success: true, revealed: true });
+      return NextResponse.json({
+        success: true,
+        revealed: true,
+        senderRevealConsent: true,
+        targetRevealConsent: true,
+        revealedAt: revealTime.toISOString(),
+      });
     }
 
-    return NextResponse.json({ success: true, revealed: false });
+    return NextResponse.json({
+      success: true,
+      revealed: false,
+      senderRevealConsent: refreshed?.senderRevealConsent ?? confession.senderRevealConsent,
+      targetRevealConsent: refreshed?.targetRevealConsent ?? confession.targetRevealConsent,
+      revealedAt: refreshed?.revealedAt?.toISOString() ?? null,
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

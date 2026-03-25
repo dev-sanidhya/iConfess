@@ -106,7 +106,7 @@ export async function PATCH(req: NextRequest) {
           primaryCategory: primaryCategory as LocationCategory,
         },
       });
-      await syncUserProfiles(tx, session.id, chosenCategories, profileDetailsByCategory ?? {});
+      await syncUserProfiles(tx, session.id, name.trim(), chosenCategories, profileDetailsByCategory ?? {});
     });
 
     return NextResponse.json({ success: true });

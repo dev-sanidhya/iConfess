@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Heart, MapPin, MessageSquare, Sparkles } from "lucide-react";
+import { Heart, Inbox, Lock, MessageSquare, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 type Confession = {
   id: string;
+  direction: "sent" | "received";
   location: string;
   matchDetails: Record<string, string>;
   message: string;
@@ -21,18 +22,42 @@ type Confession = {
   isUnlocked: boolean;
 };
 
-function ConfessionCard({ confession, pageUnlocked, onReply, onRevealConsent }: {
+type TabKey = "received" | "sent";
+
+function EmptyState({ tab }: { tab: TabKey }) {
+  return (
+    <div className="text-center py-24">
+      {tab === "received" ? (
+        <Inbox className="w-10 h-10 mx-auto mb-4" style={{ color: "#1e1e3f" }} />
+      ) : (
+        <Send className="w-10 h-10 mx-auto mb-4" style={{ color: "#1e1e3f" }} />
+      )}
+      <p className="font-medium" style={{ color: "#4a4870" }}>
+        {tab === "received" ? "No received confessions yet" : "No sent confessions yet"}
+      </p>
+    </div>
+  );
+}
+
+function ConfessionCard({
+  confession,
+  pageUnlocked,
+  onUnlockCard,
+  onReply,
+  onRevealConsent,
+}: {
   confession: Confession;
   pageUnlocked: boolean;
+  onUnlockCard: (id: string) => Promise<void>;
   onReply: (id: string, reply: string) => Promise<void>;
   onRevealConsent: (id: string) => Promise<void>;
 }) {
-  const [replyText, setReplyText] = useState("");
   const [showReply, setShowReply] = useState(false);
+  const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const isVisible = pageUnlocked && confession.isUnlocked;
-
-  const locationLabel = confession.location.charAt(0) + confession.location.slice(1).toLowerCase();
+  const isReceived = confession.direction === "received";
+  const canRead = !isReceived || (pageUnlocked && confession.isUnlocked);
+  const hasConsented = isReceived ? confession.targetRevealConsent : confession.senderRevealConsent;
 
   async function submitReply(e: React.FormEvent) {
     e.preventDefault();
@@ -51,7 +76,6 @@ function ConfessionCard({ confession, pageUnlocked, onReply, onRevealConsent }: 
       animate={{ opacity: 1, y: 0 }}
       className="confession-card rounded-2xl overflow-hidden"
     >
-      {/* Mutual banner */}
       {confession.mutualDetected && (
         <div
           className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium"
@@ -62,7 +86,7 @@ function ConfessionCard({ confession, pageUnlocked, onReply, onRevealConsent }: 
         >
           <Sparkles className="w-4 h-4" style={{ color: "#f472b6" }} />
           <span style={{ color: "#f472b6" }}>Mutual confession detected!</span>
-          {!confession.targetRevealConsent && !confession.revealedAt && (
+          {!hasConsented && !confession.revealedAt && (
             <button
               onClick={() => onRevealConsent(confession.id)}
               className="ml-auto text-xs px-3 py-1 rounded-lg font-medium"
@@ -71,63 +95,66 @@ function ConfessionCard({ confession, pageUnlocked, onReply, onRevealConsent }: 
               Reveal identity
             </button>
           )}
-          {confession.targetRevealConsent && !confession.revealedAt && (
-            <span className="ml-auto text-xs" style={{ color: "#9b98c8" }}>Waiting for other person…</span>
+          {hasConsented && !confession.revealedAt && (
+            <span className="ml-auto text-xs" style={{ color: "#9b98c8" }}>
+              Waiting for other person...
+            </span>
+          )}
+          {confession.revealedAt && (
+            <span className="ml-auto text-xs" style={{ color: "#9b98c8" }}>
+              Identity revealed
+            </span>
           )}
         </div>
       )}
 
       <div className="p-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
-            >
-              ?
-            </div>
-            <div>
-              <p className="text-xs font-medium" style={{ color: "#f0eeff" }}>Anonymous</p>
-              <p className="text-xs" style={{ color: "#4a4870" }}>
-                {new Date(confession.createdAt).toLocaleDateString("en-IN", {
-                  day: "numeric", month: "short", year: "numeric",
-                })}
-              </p>
-            </div>
+          <div>
+            <p className="text-xs font-medium" style={{ color: "#f0eeff" }}>
+              {isReceived ? "Received anonymously" : "Sent anonymously"}
+            </p>
+            <p className="text-xs" style={{ color: "#4a4870" }}>
+              {new Date(confession.createdAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
           </div>
           <span className={`text-xs px-2 py-0.5 rounded-full status-${confession.status.toLowerCase()}`}>
             {confession.status.charAt(0) + confession.status.slice(1).toLowerCase()}
           </span>
         </div>
 
-        {/* Location */}
-        <div className="flex items-center gap-1.5 mb-4">
-          <MapPin className="w-3.5 h-3.5" style={{ color: "#4a4870" }} />
-          <span className="text-xs" style={{ color: "#4a4870" }}>{locationLabel}</span>
-        </div>
-
-        {/* Message — locked or visible */}
-        {isVisible ? (
-          <p className="text-sm leading-relaxed mb-5" style={{ color: "#f0eeff" }}>
+        {canRead ? (
+          <p className="text-sm leading-relaxed mb-4" style={{ color: "#f0eeff" }}>
             &quot;{confession.message}&quot;
           </p>
         ) : (
           <div
-            className="rounded-xl px-4 py-6 mb-5 text-center"
+            className="rounded-xl px-4 py-6 mb-4 text-center"
             style={{ background: "rgba(30,30,63,0.4)", border: "1px dashed #1e1e3f" }}
           >
             <Lock className="w-5 h-5 mx-auto mb-2" style={{ color: "#4a4870" }} />
             <p className="text-sm" style={{ color: "#4a4870" }}>
-              {!pageUnlocked
-                ? "Unlock your confession page to read this"
-                : "Unlock this card individually to read"}
+              {!pageUnlocked ? "Unlock your confession page to read this" : "Unlock this card individually to read"}
             </p>
           </div>
         )}
 
-        {/* Reply section */}
-        {isVisible && !confession.reply && !showReply && (
+        {isReceived && pageUnlocked && !confession.isUnlocked && (
+          <button
+            onClick={() => onUnlockCard(confession.id)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-white"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            Unlock this card (₹Y)
+          </button>
+        )}
+
+        {canRead && isReceived && !confession.reply && !showReply && (
           <button
             onClick={() => setShowReply(true)}
             className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-all"
@@ -143,20 +170,28 @@ function ConfessionCard({ confession, pageUnlocked, onReply, onRevealConsent }: 
             <textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Write your reply…"
+              placeholder="Write your reply..."
               rows={3}
               maxLength={500}
               className="w-full px-4 py-3 rounded-xl text-sm border resize-none"
               style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
             />
             <div className="flex gap-2">
-              <button type="button" onClick={() => setShowReply(false)}
+              <button
+                type="button"
+                onClick={() => setShowReply(false)}
                 className="px-4 py-2 rounded-lg text-xs border"
-                style={{ borderColor: "#1e1e3f", color: "#9b98c8" }}>Cancel</button>
-              <button type="submit" disabled={submitting}
+                style={{ borderColor: "#1e1e3f", color: "#9b98c8" }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
                 className="px-4 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}>
-                {submitting ? "Sending…" : "Send Reply"}
+                style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+              >
+                {submitting ? "Sending..." : "Send Reply"}
               </button>
             </div>
           </form>
@@ -164,10 +199,12 @@ function ConfessionCard({ confession, pageUnlocked, onReply, onRevealConsent }: 
 
         {confession.reply && (
           <div
-            className="mt-2 rounded-xl px-4 py-3"
+            className="mt-3 rounded-xl px-4 py-3"
             style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.15)" }}
           >
-            <p className="text-xs mb-1" style={{ color: "#34d399" }}>Your reply</p>
+            <p className="text-xs mb-1" style={{ color: "#34d399" }}>
+              {isReceived ? "Your reply" : "They replied"}
+            </p>
             <p className="text-sm" style={{ color: "#f0eeff" }}>{confession.reply}</p>
           </div>
         )}
@@ -177,15 +214,23 @@ function ConfessionCard({ confession, pageUnlocked, onReply, onRevealConsent }: 
 }
 
 export default function ConfessionsInbox({
-  confessions,
+  receivedConfessions,
+  sentConfessions,
   pageUnlocked,
 }: {
-  confessions: Confession[];
+  receivedConfessions: Confession[];
+  sentConfessions: Confession[];
   pageUnlocked: boolean;
 }) {
-  const [items, setItems] = useState(confessions);
+  const [activeTab, setActiveTab] = useState<TabKey>("received");
+  const [receivedItems, setReceivedItems] = useState(receivedConfessions);
+  const [sentItems, setSentItems] = useState(sentConfessions);
   const [unlockingPage, setUnlockingPage] = useState(false);
-  const [unlockingCard, setUnlockingCard] = useState<string | null>(null);
+
+  const visibleItems = useMemo(
+    () => (activeTab === "received" ? receivedItems : sentItems),
+    [activeTab, receivedItems, sentItems]
+  );
 
   async function handleUnlockPage() {
     setUnlockingPage(true);
@@ -203,7 +248,6 @@ export default function ConfessionsInbox({
   }
 
   async function handleUnlockCard(confessionId: string) {
-    setUnlockingCard(confessionId);
     try {
       const res = await fetch("/api/payments/unlock-card", {
         method: "POST",
@@ -213,11 +257,9 @@ export default function ConfessionsInbox({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success("Card unlocked!");
-      setItems((prev) => prev.map((c) => c.id === confessionId ? { ...c, isUnlocked: true } : c));
+      setReceivedItems((prev) => prev.map((item) => item.id === confessionId ? { ...item, isUnlocked: true, status: "OPENED" } : item));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Payment failed");
-    } finally {
-      setUnlockingCard(null);
     }
   }
 
@@ -231,7 +273,7 @@ export default function ConfessionsInbox({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success("Reply sent!");
-      setItems((prev) => prev.map((c) => c.id === confessionId ? { ...c, reply, status: "REPLIED" } : c));
+      setReceivedItems((prev) => prev.map((item) => item.id === confessionId ? { ...item, reply, status: "REPLIED" } : item));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send reply");
     }
@@ -246,8 +288,8 @@ export default function ConfessionsInbox({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success(data.revealed ? "Identities revealed! Check your profile." : "Consent recorded. Waiting for the other person.");
-      setItems((prev) => prev.map((c) => c.id === confessionId ? { ...c, targetRevealConsent: true } : c));
+      toast.success(data.revealed ? "Identities revealed!" : "Consent recorded. Waiting for the other person.");
+      window.location.reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     }
@@ -259,10 +301,10 @@ export default function ConfessionsInbox({
         <div>
           <h1 className="text-3xl font-bold" style={{ color: "#f0eeff" }}>My Confessions</h1>
           <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
-            {confessions.length} confession{confessions.length !== 1 ? "s" : ""} received
+            Track both the confessions you sent and the ones you received.
           </p>
         </div>
-        {!pageUnlocked && (
+        {!pageUnlocked && receivedItems.length > 0 && (
           <button
             onClick={handleUnlockPage}
             disabled={unlockingPage}
@@ -270,46 +312,62 @@ export default function ConfessionsInbox({
             style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
           >
             <Lock className="w-4 h-4" />
-            {unlockingPage ? "Processing…" : "Unlock Page (₹X)"}
+            {unlockingPage ? "Processing..." : "Unlock Page (₹X)"}
           </button>
         )}
       </div>
 
-      {confessions.length === 0 ? (
-        <div className="text-center py-24">
-          <Heart className="w-10 h-10 mx-auto mb-4" style={{ color: "#1e1e3f" }} />
-          <p className="font-medium" style={{ color: "#4a4870" }}>No confessions yet</p>
-          <p className="text-sm mt-1" style={{ color: "#4a4870" }}>
-            Complete your profile so people can find you.
-          </p>
-        </div>
+      <div
+        className="flex gap-1 p-1 rounded-xl mb-6 w-fit"
+        style={{ background: "rgba(30,30,63,0.4)", border: "1px solid #1e1e3f" }}
+      >
+        {([
+          { key: "received", label: `Received (${receivedItems.length})` },
+          { key: "sent", label: `Sent (${sentItems.length})` },
+        ] as const).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className="px-5 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{
+              background: activeTab === tab.key ? "rgba(124,58,237,0.3)" : "transparent",
+              color: activeTab === tab.key ? "#c084fc" : "#9b98c8",
+              border: activeTab === tab.key ? "1px solid rgba(192,132,252,0.3)" : "1px solid transparent",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {visibleItems.length === 0 ? (
+        <EmptyState tab={activeTab} />
       ) : (
         <div className="flex flex-col gap-5">
           <AnimatePresence>
-            {items.map((confession) => (
-              <div key={confession.id}>
-                <ConfessionCard
-                  confession={confession}
-                  pageUnlocked={pageUnlocked}
-                  onReply={handleReply}
-                  onRevealConsent={handleRevealConsent}
-                />
-                {pageUnlocked && !confession.isUnlocked && (
-                  <div className="flex justify-center mt-3">
-                    <button
-                      onClick={() => handleUnlockCard(confession.id)}
-                      disabled={unlockingCard === confession.id}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-white disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
-                    >
-                      <Lock className="w-3.5 h-3.5" />
-                      {unlockingCard === confession.id ? "Processing…" : "Unlock this card (₹Y)"}
-                    </button>
-                  </div>
-                )}
-              </div>
+            {visibleItems.map((confession) => (
+              <ConfessionCard
+                key={confession.id}
+                confession={confession}
+                pageUnlocked={pageUnlocked}
+                onUnlockCard={handleUnlockCard}
+                onReply={handleReply}
+                onRevealConsent={handleRevealConsent}
+              />
             ))}
           </AnimatePresence>
+        </div>
+      )}
+
+      {!pageUnlocked && receivedItems.length > 0 && (
+        <div
+          className="rounded-2xl p-4 flex items-start gap-3 mt-6"
+          style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.15)" }}
+        >
+          <Heart className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#c084fc" }} />
+          <p className="text-xs leading-relaxed" style={{ color: "#9b98c8" }}>
+            Unlock the received tab to read anonymous messages and reply. Sent confessions remain visible without the page unlock.
+          </p>
         </div>
       )}
     </div>

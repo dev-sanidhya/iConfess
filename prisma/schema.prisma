@@ -32,6 +32,8 @@ model User {
 
   confessionPageUnlocked Boolean      @default(false)
   unlockedCards          UnlockedCard[]
+  profileInsightsViewed  UnlockedProfileInsight[] @relation("ProfileInsightViewer")
+  profileInsightsOwned   UnlockedProfileInsight[] @relation("ProfileInsightTarget")
   otpSessions            OtpSession[]
 }
 
@@ -125,6 +127,17 @@ model UnlockedCard {
   unlockedAt   DateTime   @default(now())
 
   @@unique([userId, confessionId])
+}
+
+model UnlockedProfileInsight {
+  id           String   @id @default(cuid())
+  viewerId     String
+  viewer       User     @relation("ProfileInsightViewer", fields: [viewerId], references: [id])
+  targetUserId String
+  targetUser   User     @relation("ProfileInsightTarget", fields: [targetUserId], references: [id])
+  unlockedAt   DateTime @default(now())
+
+  @@unique([viewerId, targetUserId])
 }
 
 model OtpSession {

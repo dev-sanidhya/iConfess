@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, normalizeSocialHandle } from "@/lib/auth";
 import { findMatches } from "@/lib/matching";
 import { prisma } from "@/lib/prisma";
 import { addDays } from "@/lib/utils";
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { flow, location, matchDetails, message, targetPhone, firstName, lastName } = body;
+    const { flow, location, matchDetails, message, targetPhone, firstName, lastName, platform, handle } = body;
 
     if (!message?.trim()) {
       return NextResponse.json({ error: "Message required" }, { status: 400 });
@@ -83,6 +83,66 @@ export async function POST(req: NextRequest) {
       console.log(`[DEV] WhatsApp to ${targetPhone}: Someone has a confession for you on iConfess!`);
 
       return NextResponse.json({ success: true, matchFound: false, confessionId: confession.id, isFree });
+    }
+
+    if (flow === "social") {
+      const normalizedHandle = normalizeSocialHandle(typeof handle === "string" ? handle : "");
+
+      if (!normalizedHandle || (platform !== "instagram" && platform !== "snapchat")) {
+        return NextResponse.json({ error: "Invalid social handle" }, { status: 400 });
+      }
+
+      const existingUser = await prisma.user.findFirst({
+        where: platform === "instagram"
+          ? { instagramHandle: normalizedHandle }
+          : { snapchatHandle: normalizedHandle },
+      });
+
+      if (!existingUser) {
+        const confession = await prisma.confession.create({
+          data: {
+            senderId: user.id,
+            message,
+            location: "COLLEGE",
+            matchDetails: {
+              ...normalizedMatchDetails,
+              platform,
+              handle: normalizedHandle,
+            },
+            status: "PENDING",
+            expiresAt,
+          },
+        });
+
+        return NextResponse.json({ success: true, matchFound: false, confessionId: confession.id, isFree });
+      }
+
+      if (existingUser.id === user.id) {
+        return NextResponse.json({ error: "You cannot confess yourself" }, { status: 400 });
+      }
+
+      const alreadySent = await hasExistingConfession(user.id, existingUser.id);
+      const canRepeat = await canRepeatConfessForTesting(user, existingUser);
+      if (alreadySent && !canRepeat) {
+        return NextResponse.json({ error: "You've already confessed this person" }, { status: 400 });
+      }
+
+      const confession = await createAndCheckMutual(
+        user.id,
+        existingUser.id,
+        null,
+        "COLLEGE",
+        {
+          ...normalizedMatchDetails,
+          platform,
+          handle: normalizedHandle,
+        },
+        message,
+        expiresAt,
+        "DELIVERED"
+      );
+
+      return NextResponse.json({ success: true, matchFound: true, confessionId: confession.id, isFree });
     }
 
     // ── Flow 1: Profile matching ─────────────────────────────────

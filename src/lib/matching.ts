@@ -18,7 +18,6 @@ export const locationFields: Record<
     { key: "branch", label: "Branch (e.g. CSE)" },
     { key: "yearOfPassing", label: "Year of Passing", type: "number" },
     { key: "section", label: "Section" },
-    { key: "fullName", label: "Full Name" },
   ],
   SCHOOL: [
     { key: "schoolName", label: "School Name" },
@@ -26,28 +25,24 @@ export const locationFields: Record<
     { key: "board", label: "Board", options: ["CBSE", "ICSE", "State Board", "IB", "IGCSE"] },
     { key: "yearOfCompletion", label: "Year of Completion", type: "number" },
     { key: "section", label: "Section" },
-    { key: "fullName", label: "Full Name" },
   ],
   WORKPLACE: [
     { key: "companyName", label: "Company Name" },
     { key: "department", label: "Department" },
     { key: "city", label: "City" },
     { key: "buildingName", label: "Building / Campus Name" },
-    { key: "fullName", label: "Full Name" },
   ],
   GYM: [
     { key: "gymName", label: "Gym Name" },
     { key: "city", label: "City" },
     { key: "pinCode", label: "Pin Code" },
     { key: "timing", label: "Timing", options: ["MORNING", "EVENING", "BOTH"] },
-    { key: "fullName", label: "Full Name" },
   ],
   NEIGHBOURHOOD: [
     { key: "state", label: "State" },
     { key: "city", label: "City" },
     { key: "pinCode", label: "Pin Code" },
     { key: "premisesName", label: "Society / Premises Name" },
-    { key: "fullName", label: "Full Name" },
   ],
 };
 
@@ -65,13 +60,13 @@ export async function findMatches(location: string, details: Record<string, stri
   if (location === "COLLEGE") {
     const profiles = await prisma.collegeProfile.findMany({
       where: {
-        ...(details.collegeName && { collegeName: { contains: details.collegeName } }),
+        ...(details.collegeName && { collegeName: { contains: details.collegeName, mode: "insensitive" } }),
         ...(details.pinCode && { pinCode: details.pinCode }),
-        ...(details.course && { course: { contains: details.course } }),
-        ...(details.branch && { branch: { contains: details.branch } }),
+        ...(details.course && { course: { contains: details.course, mode: "insensitive" } }),
+        ...(details.branch && { branch: { contains: details.branch, mode: "insensitive" } }),
         ...(details.yearOfPassing && { yearOfPassing: parseInt(details.yearOfPassing) }),
-        ...(details.section && { section: { contains: details.section } }),
-        ...(fullName && { fullName: { contains: fullName } }),
+        ...(details.section && { section: { contains: details.section, mode: "insensitive" } }),
+        ...(fullName && { fullName: { contains: fullName, mode: "insensitive" } }),
       },
       include: { user: true },
     });
@@ -81,12 +76,12 @@ export async function findMatches(location: string, details: Record<string, stri
   if (location === "SCHOOL") {
     const profiles = await prisma.schoolProfile.findMany({
       where: {
-        ...(details.schoolName && { schoolName: { contains: details.schoolName } }),
+        ...(details.schoolName && { schoolName: { contains: details.schoolName, mode: "insensitive" } }),
         ...(details.pinCode && { pinCode: details.pinCode }),
-        ...(details.board && { board: details.board }),
+        ...(details.board && { board: { equals: details.board, mode: "insensitive" } }),
         ...(details.yearOfCompletion && { yearOfCompletion: parseInt(details.yearOfCompletion) }),
-        ...(details.section && { section: { contains: details.section } }),
-        ...(fullName && { fullName: { contains: fullName } }),
+        ...(details.section && { section: { contains: details.section, mode: "insensitive" } }),
+        ...(fullName && { fullName: { contains: fullName, mode: "insensitive" } }),
       },
       include: { user: true },
     });
@@ -96,11 +91,11 @@ export async function findMatches(location: string, details: Record<string, stri
   if (location === "WORKPLACE") {
     const profiles = await prisma.workplaceProfile.findMany({
       where: {
-        ...(details.companyName && { companyName: { contains: details.companyName } }),
-        ...(details.department && { department: { contains: details.department } }),
-        ...(details.city && { city: { contains: details.city } }),
-        ...(details.buildingName && { buildingName: { contains: details.buildingName } }),
-        ...(fullName && { fullName: { contains: fullName } }),
+        ...(details.companyName && { companyName: { contains: details.companyName, mode: "insensitive" } }),
+        ...(details.department && { department: { contains: details.department, mode: "insensitive" } }),
+        ...(details.city && { city: { contains: details.city, mode: "insensitive" } }),
+        ...(details.buildingName && { buildingName: { contains: details.buildingName, mode: "insensitive" } }),
+        ...(fullName && { fullName: { contains: fullName, mode: "insensitive" } }),
       },
       include: { user: true },
     });
@@ -110,11 +105,11 @@ export async function findMatches(location: string, details: Record<string, stri
   if (location === "GYM") {
     const profiles = await prisma.gymProfile.findMany({
       where: {
-        ...(details.gymName && { gymName: { contains: details.gymName } }),
-        ...(details.city && { city: { contains: details.city } }),
+        ...(details.gymName && { gymName: { contains: details.gymName, mode: "insensitive" } }),
+        ...(details.city && { city: { contains: details.city, mode: "insensitive" } }),
         ...(details.pinCode && { pinCode: details.pinCode }),
         ...(details.timing && { timing: details.timing as "MORNING" | "EVENING" | "BOTH" }),
-        ...(fullName && { fullName: { contains: fullName } }),
+        ...(fullName && { fullName: { contains: fullName, mode: "insensitive" } }),
       },
       include: { user: true },
     });
@@ -124,11 +119,11 @@ export async function findMatches(location: string, details: Record<string, stri
   if (location === "NEIGHBOURHOOD") {
     const profiles = await prisma.neighbourhoodProfile.findMany({
       where: {
-        ...(details.state && { state: { contains: details.state } }),
-        ...(details.city && { city: { contains: details.city } }),
+        ...(details.state && { state: { contains: details.state, mode: "insensitive" } }),
+        ...(details.city && { city: { contains: details.city, mode: "insensitive" } }),
         ...(details.pinCode && { pinCode: details.pinCode }),
-        ...(details.premisesName && { premisesName: { contains: details.premisesName } }),
-        ...(fullName && { fullName: { contains: fullName } }),
+        ...(details.premisesName && { premisesName: { contains: details.premisesName, mode: "insensitive" } }),
+        ...(fullName && { fullName: { contains: fullName, mode: "insensitive" } }),
       },
       include: { user: true },
     });
@@ -145,12 +140,28 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string)
     where: {
       id: { in: ids, not: currentUserId },
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      instagramHandle: true,
+      snapchatHandle: true,
       college: { select: { collegeName: true, branch: true, yearOfPassing: true } },
       workplace: { select: { companyName: true, city: true } },
       gym: { select: { gymName: true, city: true } },
       neighbourhood: { select: { city: true, premisesName: true } },
       school: { select: { schoolName: true, yearOfCompletion: true } },
+      primaryCategory: true,
+      gender: true,
+      receivedConfessions: {
+        select: {
+          id: true,
+        },
+      },
+      profileInsightsOwned: {
+        where: { viewerId: currentUserId },
+        select: { id: true },
+      },
       _count: { select: { receivedConfessions: true } },
     },
   });
@@ -166,7 +177,10 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string)
       username: u.username,
       instagramHandle: u.instagramHandle,
       snapchatHandle: u.snapchatHandle,
+      primaryCategory: u.primaryCategory,
+      gender: u.gender,
       confessionCount: u._count.receivedConfessions,
+      hasUnlockedInsights: u.profileInsightsOwned.length > 0,
       college: u.college
         ? `${u.college.collegeName} · ${u.college.branch} · ${u.college.yearOfPassing}`
         : null,

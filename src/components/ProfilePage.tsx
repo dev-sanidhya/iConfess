@@ -77,7 +77,6 @@ function getProfileDetailsByCategory(user: UserProfile): Partial<Record<Location
             branch: user.college.branch,
             yearOfPassing: String(user.college.yearOfPassing),
             section: user.college.section,
-            fullName: user.college.fullName,
           },
         }
       : {}),
@@ -89,7 +88,6 @@ function getProfileDetailsByCategory(user: UserProfile): Partial<Record<Location
             board: user.school.board,
             yearOfCompletion: String(user.school.yearOfCompletion),
             section: user.school.section,
-            fullName: user.school.fullName,
           },
         }
       : {}),
@@ -100,7 +98,6 @@ function getProfileDetailsByCategory(user: UserProfile): Partial<Record<Location
             department: user.workplace.department,
             city: user.workplace.city,
             buildingName: user.workplace.buildingName,
-            fullName: user.workplace.fullName,
           },
         }
       : {}),
@@ -111,7 +108,6 @@ function getProfileDetailsByCategory(user: UserProfile): Partial<Record<Location
             city: user.gym.city,
             pinCode: user.gym.pinCode,
             timing: user.gym.timing,
-            fullName: user.gym.fullName,
           },
         }
       : {}),
@@ -122,7 +118,6 @@ function getProfileDetailsByCategory(user: UserProfile): Partial<Record<Location
             city: user.neighbourhood.city,
             pinCode: user.neighbourhood.pinCode,
             premisesName: user.neighbourhood.premisesName,
-            fullName: user.neighbourhood.fullName,
           },
         }
       : {}),
@@ -370,7 +365,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
 
           <div className="flex flex-col gap-3">
             <p className="text-xs" style={{ color: "#4a4870" }}>
-              Keep one main category, then add any other valid places where people can identify you.
+              Your full name is stored once from your identity profile and reused across all selected places.
             </p>
             {selectedCategories.map((category) => (
               <div
