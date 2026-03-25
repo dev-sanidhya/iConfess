@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { signToken, COOKIE_NAME_EXPORT } from "@/lib/auth";
 import { formatPhone } from "@/lib/utils";
 
 // Max wrong OTP attempts before the session is invalidated
@@ -70,16 +69,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingUser) {
-      const token = signToken(existingUser.id);
-      const response = NextResponse.json({ success: true, isNewUser: false });
-      response.cookies.set(COOKIE_NAME_EXPORT, token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 30,
-        path: "/",
+      return NextResponse.json({
+        success: true,
+        isNewUser: false,
+        hasCredentials: Boolean(existingUser.username && existingUser.passwordHash),
       });
-      return response;
     }
 
     // New user — send them to registration

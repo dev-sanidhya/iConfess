@@ -3,64 +3,15 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Phone, ArrowRight, Clock, MessageSquare } from "lucide-react";
+import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 import { toast } from "sonner";
 
-type LocationCategory = "COLLEGE" | "SCHOOL" | "WORKPLACE" | "GYM" | "NEIGHBOURHOOD";
 type FlowType = "profile" | "phone";
 
 const statusColors: Record<string, string> = {
   PENDING: "#94a3b8", DELIVERED: "#60a5fa", OPENED: "#a78bfa",
   REPLIED: "#34d399", GHOSTED: "#f87171", EXPIRED: "#6b7280",
 };
-
-const locationFields: Record<LocationCategory, { key: string; label: string; type?: string; options?: string[] }[]> = {
-  COLLEGE: [
-    { key: "collegeName", label: "College Name" },
-    { key: "pinCode", label: "Pin Code" },
-    { key: "course", label: "Course (e.g. B.Tech)" },
-    { key: "branch", label: "Branch (e.g. CSE)" },
-    { key: "yearOfPassing", label: "Year of Passing", type: "number" },
-    { key: "section", label: "Section" },
-    { key: "fullName", label: "Their Full Name" },
-  ],
-  SCHOOL: [
-    { key: "schoolName", label: "School Name" },
-    { key: "pinCode", label: "Pin Code" },
-    { key: "board", label: "Board", options: ["CBSE", "ICSE", "State Board", "IB", "IGCSE"] },
-    { key: "yearOfCompletion", label: "Year of Completion", type: "number" },
-    { key: "section", label: "Section" },
-    { key: "fullName", label: "Their Full Name" },
-  ],
-  WORKPLACE: [
-    { key: "companyName", label: "Company Name" },
-    { key: "department", label: "Department" },
-    { key: "city", label: "City" },
-    { key: "buildingName", label: "Building / Campus Name" },
-    { key: "fullName", label: "Their Full Name" },
-  ],
-  GYM: [
-    { key: "gymName", label: "Gym Name" },
-    { key: "city", label: "City" },
-    { key: "pinCode", label: "Pin Code" },
-    { key: "timing", label: "Their Timing", options: ["MORNING", "EVENING", "BOTH"] },
-    { key: "fullName", label: "Their Full Name" },
-  ],
-  NEIGHBOURHOOD: [
-    { key: "state", label: "State" },
-    { key: "city", label: "City" },
-    { key: "pinCode", label: "Pin Code" },
-    { key: "premisesName", label: "Society / Premises Name" },
-    { key: "fullName", label: "Their Full Name" },
-  ],
-};
-
-const categories: { id: LocationCategory; label: string; emoji: string }[] = [
-  { id: "COLLEGE", label: "College / University", emoji: "🎓" },
-  { id: "SCHOOL", label: "School (past)", emoji: "🏫" },
-  { id: "WORKPLACE", label: "Workplace / Office", emoji: "🏢" },
-  { id: "GYM", label: "Gym", emoji: "💪" },
-  { id: "NEIGHBOURHOOD", label: "Neighbourhood", emoji: "🏘️" },
-];
 
 export default function SendConfession({
   sentCount,
@@ -177,7 +128,7 @@ export default function SendConfession({
               className="glass rounded-2xl p-5 flex flex-col gap-4">
               <h3 className="text-sm font-medium" style={{ color: "#9b98c8" }}>Where did you meet them?</h3>
               <div className="grid grid-cols-1 gap-2">
-                {categories.map((cat) => (
+                {locationCategories.map((cat) => (
                   <button key={cat.id} type="button"
                     onClick={() => { setSelectedCategory(cat.id); setMatchDetails({}); }}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"

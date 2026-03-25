@@ -5,11 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Phone, User, MapPin } from "lucide-react";
+import { ArrowRight, ArrowLeft, Phone, User, MapPin, LockKeyhole } from "lucide-react";
+import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 
 type Step = "phone" | "otp" | "name" | "profile";
-type LocationCategory = "COLLEGE" | "SCHOOL" | "WORKPLACE" | "GYM" | "NEIGHBOURHOOD";
-
 function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -19,58 +18,17 @@ function RegisterForm() {
   const [phone, setPhone] = useState(prefillPhone);
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [instagramHandle, setInstagramHandle] = useState("");
+  const [snapchatHandle, setSnapchatHandle] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<LocationCategory | null>(null);
-  const [profileData, setProfileData] = useState<Record<string, string>>({});
-
-  const categories: { id: LocationCategory; label: string; emoji: string }[] = [
-    { id: "COLLEGE", label: "College / University", emoji: "🎓" },
-    { id: "SCHOOL", label: "School (past)", emoji: "🏫" },
-    { id: "WORKPLACE", label: "Workplace / Office", emoji: "🏢" },
-    { id: "GYM", label: "Gym", emoji: "💪" },
-    { id: "NEIGHBOURHOOD", label: "Neighbourhood", emoji: "🏘️" },
-  ];
-
-  const profileFields: Record<LocationCategory, { key: string; label: string; type?: string; options?: string[] }[]> = {
-    COLLEGE: [
-      { key: "collegeName", label: "College Name" },
-      { key: "pinCode", label: "Pin Code" },
-      { key: "course", label: "Course (e.g. B.Tech)" },
-      { key: "branch", label: "Branch (e.g. CSE)" },
-      { key: "yearOfPassing", label: "Year of Passing", type: "number" },
-      { key: "section", label: "Section (e.g. A)" },
-      { key: "fullName", label: "Your Full Name (as known in college)" },
-    ],
-    SCHOOL: [
-      { key: "schoolName", label: "School Name" },
-      { key: "pinCode", label: "Pin Code" },
-      { key: "board", label: "Board", options: ["CBSE", "ICSE", "State Board", "IB", "IGCSE"] },
-      { key: "yearOfCompletion", label: "Year of Completion", type: "number" },
-      { key: "section", label: "Section (e.g. A)" },
-      { key: "fullName", label: "Your Full Name (as known in school)" },
-    ],
-    WORKPLACE: [
-      { key: "companyName", label: "Company Name" },
-      { key: "department", label: "Department" },
-      { key: "city", label: "City" },
-      { key: "buildingName", label: "Building / Campus Name" },
-      { key: "fullName", label: "Your Full Name (as known at work)" },
-    ],
-    GYM: [
-      { key: "gymName", label: "Gym Name" },
-      { key: "city", label: "City" },
-      { key: "pinCode", label: "Pin Code" },
-      { key: "timing", label: "Preferred Timing", options: ["MORNING", "EVENING", "BOTH"] },
-      { key: "fullName", label: "Your Full Name" },
-    ],
-    NEIGHBOURHOOD: [
-      { key: "state", label: "State" },
-      { key: "city", label: "City" },
-      { key: "pinCode", label: "Pin Code" },
-      { key: "premisesName", label: "Society / Premises Name" },
-      { key: "fullName", label: "Your Full Name" },
-    ],
-  };
+  const [primaryCategory, setPrimaryCategory] = useState<LocationCategory | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<LocationCategory[]>([]);
+  const [profileDetailsByCategory, setProfileDetailsByCategory] = useState<
+    Partial<Record<LocationCategory, Record<string, string>>>
+  >({});
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -104,6 +62,11 @@ function RegisterForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      if (!data.isNewUser) {
+        toast.error("This phone number already has an account. Sign in instead.");
+        router.push("/auth/login");
+        return;
+      }
       setStep("name");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid OTP");
@@ -114,7 +77,18 @@ function RegisterForm() {
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedCategory) { toast.error("Select at least one location category"); return; }
+    if (selectedCategories.length === 0) { toast.error("Select at least one location category"); return; }
+    if (!primaryCategory || !selectedCategories.includes(primaryCategory)) {
+      toast.error("Choose your primary category");
+      return;
+    }
+    if (username.trim().length < 3) { toast.error("Username must be at least 3 characters"); return; }
+    if (!/^[a-z0-9_]+$/.test(username.trim().toLowerCase())) {
+      toast.error("Username can only use lowercase letters, numbers, and underscores");
+      return;
+    }
+    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    if (password !== confirmPassword) { toast.error("Passwords do not match"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -123,8 +97,13 @@ function RegisterForm() {
         body: JSON.stringify({
           phone,
           name,
-          category: selectedCategory,
-          profileData,
+          username,
+          password,
+          instagramHandle,
+          snapchatHandle,
+          primaryCategory,
+          selectedCategories,
+          profileDetailsByCategory,
         }),
       });
       const data = await res.json();
@@ -217,13 +196,53 @@ function RegisterForm() {
             <motion.div key="name" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <User className="w-4 h-4" style={{ color: "#c084fc" }} />
-                <h2 className="font-semibold" style={{ color: "#f0eeff" }}>What&apos;s your name?</h2>
+                <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Set your account details</h2>
               </div>
-              <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) setStep("profile"); }} className="flex flex-col gap-4">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (!name.trim()) return;
+                if (username.trim().length < 3) {
+                  toast.error("Username must be at least 3 characters");
+                  return;
+                }
+                if (!/^[a-z0-9_]+$/.test(username.trim().toLowerCase())) {
+                  toast.error("Username can only use lowercase letters, numbers, and underscores");
+                  return;
+                }
+                if (password.length < 8) {
+                  toast.error("Password must be at least 8 characters");
+                  return;
+                }
+                if (password !== confirmPassword) {
+                  toast.error("Passwords do not match");
+                  return;
+                }
+                setStep("profile");
+              }} className="flex flex-col gap-4">
                 <input type="text" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-                <p className="text-xs" style={{ color: "#4a4870" }}>This is your display name on iConfess.</p>
+                <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                <div className="relative">
+                  <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b98c8" }} />
+                  <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border"
+                    style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                </div>
+                <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                <input type="text" placeholder="Instagram handle or NA Handle" value={instagramHandle} onChange={(e) => setInstagramHandle(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                <input type="text" placeholder="Snapchat handle or NA Handle" value={snapchatHandle} onChange={(e) => setSnapchatHandle(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                <p className="text-xs" style={{ color: "#4a4870" }}>
+                  This is your display name on iConfess. If you do not use a platform, enter `NA Handle`.
+                </p>
                 <button type="submit"
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90"
                   style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}>
@@ -241,46 +260,119 @@ function RegisterForm() {
                 <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Where can people find you?</h2>
               </div>
               <p className="text-xs mb-5" style={{ color: "#9b98c8" }}>
-                This helps us match confessions to you. Pick one that applies most.
+                Pick your main category, then add any additional places where people may know you.
               </p>
 
               {/* Category selector */}
               <div className="grid grid-cols-1 gap-2 mb-5">
-                {categories.map((cat) => (
+                {locationCategories.map((cat) => {
+                  const isSelected = selectedCategories.includes(cat.id);
+                  const isPrimary = primaryCategory === cat.id;
+                  return (
                   <button key={cat.id} type="button"
-                    onClick={() => { setSelectedCategory(cat.id); setProfileData({}); }}
+                    onClick={() => {
+                      setSelectedCategories((current) =>
+                        current.includes(cat.id)
+                          ? current.filter((item) => item !== cat.id)
+                          : [...current, cat.id]
+                      );
+                      setProfileDetailsByCategory((current) => ({
+                        ...current,
+                        [cat.id]: current[cat.id] ?? {},
+                      }));
+                      setPrimaryCategory((current) => {
+                        if (current === cat.id && isSelected) return null;
+                        if (!current) return cat.id;
+                        return current;
+                      });
+                    }}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"
                     style={{
-                      background: selectedCategory === cat.id ? "rgba(124,58,237,0.15)" : "rgba(30,30,63,0.3)",
-                      border: `1px solid ${selectedCategory === cat.id ? "rgba(192,132,252,0.4)" : "#1e1e3f"}`,
-                      color: selectedCategory === cat.id ? "#c084fc" : "#9b98c8",
+                      background: isSelected ? "rgba(124,58,237,0.15)" : "rgba(30,30,63,0.3)",
+                      border: `1px solid ${isSelected ? "rgba(192,132,252,0.4)" : "#1e1e3f"}`,
+                      color: isSelected ? "#c084fc" : "#9b98c8",
                     }}>
                     <span>{cat.emoji}</span>
-                    <span>{cat.label}</span>
+                    <span className="flex-1">{cat.label}</span>
+                    {isSelected && (
+                      <span
+                        className="text-[10px] px-2 py-0.5 rounded-full"
+                        style={{
+                          background: isPrimary ? "rgba(244,114,182,0.18)" : "rgba(124,58,237,0.18)",
+                          color: isPrimary ? "#f472b6" : "#c084fc",
+                        }}
+                      >
+                        {isPrimary ? "Primary" : "Added"}
+                      </span>
+                    )}
                   </button>
-                ))}
+                )})}
               </div>
 
-              {/* Fields for selected category */}
-              {selectedCategory && (
+              {selectedCategories.length > 0 && (
                 <form onSubmit={handleRegister} className="flex flex-col gap-3">
                   <div className="h-px mb-1" style={{ background: "#1e1e3f" }} />
-                  {profileFields[selectedCategory].map((field) => (
-                    <div key={field.key}>
-                      <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>{field.label}</label>
-                      {field.options ? (
-                        <select value={profileData[field.key] || ""} onChange={(e) => setProfileData((p) => ({ ...p, [field.key]: e.target.value }))}
-                          className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                          style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required>
-                          <option value="">Select...</option>
-                          {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                      ) : (
-                        <input type={field.type || "text"} value={profileData[field.key] || ""}
-                          onChange={(e) => setProfileData((p) => ({ ...p, [field.key]: e.target.value }))}
-                          className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                          style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-                      )}
+                  <p className="text-xs mb-2" style={{ color: "#9b98c8" }}>
+                    Select one primary category and fill details for every added category.
+                  </p>
+                  {selectedCategories.map((category) => (
+                    <div key={category} className="rounded-xl p-4" style={{ background: "rgba(30,30,63,0.22)", border: "1px solid #1e1e3f" }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium" style={{ color: "#f0eeff" }}>
+                          {locationCategories.find((item) => item.id === category)?.label}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setPrimaryCategory(category)}
+                          className="text-[11px] px-2 py-1 rounded-full"
+                          style={{
+                            background: primaryCategory === category ? "rgba(244,114,182,0.18)" : "rgba(124,58,237,0.18)",
+                            color: primaryCategory === category ? "#f472b6" : "#c084fc",
+                          }}
+                        >
+                          {primaryCategory === category ? "Primary" : "Set Primary"}
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {locationFields[category].map((field) => (
+                          <div key={`${category}-${field.key}`}>
+                            <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>{field.label}</label>
+                            {field.options ? (
+                              <select
+                                value={profileDetailsByCategory[category]?.[field.key] || ""}
+                                onChange={(e) => setProfileDetailsByCategory((current) => ({
+                                  ...current,
+                                  [category]: {
+                                    ...(current[category] ?? {}),
+                                    [field.key]: e.target.value,
+                                  },
+                                }))}
+                                className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                                style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                                required
+                              >
+                                <option value="">Select...</option>
+                                {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                              </select>
+                            ) : (
+                              <input
+                                type={field.type || "text"}
+                                value={profileDetailsByCategory[category]?.[field.key] || ""}
+                                onChange={(e) => setProfileDetailsByCategory((current) => ({
+                                  ...current,
+                                  [category]: {
+                                    ...(current[category] ?? {}),
+                                    [field.key]: e.target.value,
+                                  },
+                                }))}
+                                className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                                style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                                required
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                   <div className="flex gap-2 mt-2">

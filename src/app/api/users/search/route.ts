@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, normalizeSocialHandle } from "@/lib/auth";
+import {
+  buildProfileMatchContext,
+  getSearchResultByIds,
+  findMatches,
+  type LocationCategory,
+} from "@/lib/matching";
 import { prisma } from "@/lib/prisma";
+import { formatPhone } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,47 +15,75 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get("q")?.trim();
+    const mode = searchParams.get("mode");
 
-    if (!query || query.length < 2) {
-      return NextResponse.json({ results: [] });
+    if (mode === "phone") {
+      const phone = searchParams.get("phone")?.trim();
+      if (!phone || !/^\d{10}$/.test(phone)) {
+        return NextResponse.json({ results: [] });
+      }
+
+      const target = await prisma.user.findUnique({
+        where: { phone: formatPhone(phone) },
+      });
+
+      const results = (await getSearchResultByIds(target ? [target.id] : [], user.id)).map((result) => ({
+        ...result,
+        matchContext: ["Matched by phone number"],
+      }));
+      return NextResponse.json({ results });
     }
 
-    // SQLite uses LIKE (case-insensitive by default for ASCII), no mode:"insensitive"
-    const users = await prisma.user.findMany({
-      where: {
-        id: { not: user.id },
-        name: { contains: query },
-      },
-      include: {
-        college:       { select: { collegeName: true, branch: true, yearOfPassing: true } },
-        workplace:     { select: { companyName: true, city: true } },
-        gym:           { select: { gymName: true, city: true } },
-        neighbourhood: { select: { city: true, premisesName: true } },
-        _count:        { select: { receivedConfessions: true } },
-      },
-      take: 20,
-    });
+    if (mode === "social") {
+      const platform = searchParams.get("platform");
+      const handle = normalizeSocialHandle(searchParams.get("handle") ?? "");
 
-    const results = users.map((u) => ({
-      id:              u.id,
-      name:            u.name,
-      confessionCount: u._count.receivedConfessions,
-      college:         u.college
-        ? `${u.college.collegeName} · ${u.college.branch} · ${u.college.yearOfPassing}`
-        : null,
-      workplace: u.workplace
-        ? `${u.workplace.companyName} · ${u.workplace.city}`
-        : null,
-      gym: u.gym
-        ? `${u.gym.gymName} · ${u.gym.city}`
-        : null,
-      neighbourhood: u.neighbourhood
-        ? `${u.neighbourhood.premisesName} · ${u.neighbourhood.city}`
-        : null,
-    }));
+      if (!handle || (platform !== "instagram" && platform !== "snapchat")) {
+        return NextResponse.json({ results: [] });
+      }
 
-    return NextResponse.json({ results });
+      const target = await prisma.user.findFirst({
+        where: {
+          ...(platform === "instagram"
+            ? { instagramHandle: handle }
+            : { snapchatHandle: handle }),
+        },
+      });
+
+      const results = (await getSearchResultByIds(target ? [target.id] : [], user.id)).map((result) => ({
+        ...result,
+        matchContext: [
+          platform === "instagram"
+            ? `Instagram: @${result.instagramHandle ?? handle}`
+            : `Snapchat: @${result.snapchatHandle ?? handle}`,
+        ],
+      }));
+      return NextResponse.json({ results });
+    }
+
+    if (mode === "profile") {
+      const location = searchParams.get("location");
+      if (!location) {
+        return NextResponse.json({ results: [] });
+      }
+
+      const details: Record<string, string> = {};
+      for (const [key, value] of searchParams.entries()) {
+        if (key !== "mode" && key !== "location" && value.trim()) {
+          details[key] = value.trim();
+        }
+      }
+
+      const matches = await findMatches(location, details);
+      const uniqueIds = [...new Set(matches.map((match) => match.id))];
+      const results = (await getSearchResultByIds(uniqueIds, user.id)).map((result) => ({
+        ...result,
+        matchContext: buildProfileMatchContext(location as LocationCategory, details, result),
+      }));
+      return NextResponse.json({ results });
+    }
+
+    return NextResponse.json({ results: [] });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

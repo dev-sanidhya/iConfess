@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { findMatches } from "@/lib/matching";
 import { prisma } from "@/lib/prisma";
 import { addDays } from "@/lib/utils";
 
@@ -114,86 +115,6 @@ export async function POST(req: NextRequest) {
     console.error("[Confession Send Error]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
-
-// ── Profile matching — SQLite compatible (no mode: "insensitive") ──
-async function findMatches(location: string, details: Record<string, string>) {
-  const fullName = details.fullName?.trim();
-
-  if (location === "COLLEGE") {
-    const profiles = await prisma.collegeProfile.findMany({
-      where: {
-        ...(details.collegeName  && { collegeName:   { contains: details.collegeName  } }),
-        ...(details.pinCode      && { pinCode:        details.pinCode                  }),
-        ...(details.course       && { course:         { contains: details.course       } }),
-        ...(details.branch       && { branch:         { contains: details.branch       } }),
-        ...(details.yearOfPassing && { yearOfPassing: parseInt(details.yearOfPassing)  }),
-        ...(details.section      && { section:        { contains: details.section      } }),
-        ...(fullName             && { fullName:       { contains: fullName             } }),
-      },
-      include: { user: true },
-    });
-    return profiles.map((p) => p.user);
-  }
-
-  if (location === "SCHOOL") {
-    const profiles = await prisma.schoolProfile.findMany({
-      where: {
-        ...(details.schoolName      && { schoolName:      { contains: details.schoolName      } }),
-        ...(details.pinCode         && { pinCode:          details.pinCode                      }),
-        ...(details.board           && { board:            details.board                        }),
-        ...(details.yearOfCompletion && { yearOfCompletion: parseInt(details.yearOfCompletion) }),
-        ...(details.section         && { section:          { contains: details.section         } }),
-        ...(fullName                && { fullName:         { contains: fullName                } }),
-      },
-      include: { user: true },
-    });
-    return profiles.map((p) => p.user);
-  }
-
-  if (location === "WORKPLACE") {
-    const profiles = await prisma.workplaceProfile.findMany({
-      where: {
-        ...(details.companyName  && { companyName:  { contains: details.companyName  } }),
-        ...(details.department   && { department:   { contains: details.department   } }),
-        ...(details.city         && { city:         { contains: details.city         } }),
-        ...(details.buildingName && { buildingName: { contains: details.buildingName } }),
-        ...(fullName             && { fullName:     { contains: fullName             } }),
-      },
-      include: { user: true },
-    });
-    return profiles.map((p) => p.user);
-  }
-
-  if (location === "GYM") {
-    const profiles = await prisma.gymProfile.findMany({
-      where: {
-        ...(details.gymName && { gymName: { contains: details.gymName } }),
-        ...(details.city    && { city:    { contains: details.city    } }),
-        ...(details.pinCode && { pinCode:  details.pinCode             }),
-        ...(details.timing  && { timing:   details.timing as "MORNING" | "EVENING" | "BOTH" }),
-        ...(fullName        && { fullName: { contains: fullName       } }),
-      },
-      include: { user: true },
-    });
-    return profiles.map((p) => p.user);
-  }
-
-  if (location === "NEIGHBOURHOOD") {
-    const profiles = await prisma.neighbourhoodProfile.findMany({
-      where: {
-        ...(details.state        && { state:        { contains: details.state        } }),
-        ...(details.city         && { city:         { contains: details.city         } }),
-        ...(details.pinCode      && { pinCode:       details.pinCode                  }),
-        ...(details.premisesName && { premisesName: { contains: details.premisesName } }),
-        ...(fullName             && { fullName:     { contains: fullName             } }),
-      },
-      include: { user: true },
-    });
-    return profiles.map((p) => p.user);
-  }
-
-  return [];
 }
 
 // ── Create confession + auto-detect mutual ────────────────────────

@@ -11,21 +11,57 @@ export default async function Profile() {
         id: user.id,
         name: user.name,
         phone: user.phone,
+        primaryCategory: user.primaryCategory,
+        username: user.username,
+        instagramHandle: user.instagramHandle,
+        snapchatHandle: user.snapchatHandle,
         college: user.college
           ? {
               collegeName: user.college.collegeName,
+              pinCode: user.college.pinCode,
               course: user.college.course,
               branch: user.college.branch,
               yearOfPassing: user.college.yearOfPassing,
               section: user.college.section,
+              fullName: user.college.fullName,
+            }
+          : null,
+        school: user.school
+          ? {
+              schoolName: user.school.schoolName,
+              pinCode: user.school.pinCode,
+              board: user.school.board,
+              yearOfCompletion: user.school.yearOfCompletion,
+              section: user.school.section,
+              fullName: user.school.fullName,
             }
           : null,
         workplace: user.workplace
-          ? { companyName: user.workplace.companyName, department: user.workplace.department, city: user.workplace.city }
+          ? {
+              companyName: user.workplace.companyName,
+              department: user.workplace.department,
+              city: user.workplace.city,
+              buildingName: user.workplace.buildingName,
+              fullName: user.workplace.fullName,
+            }
           : null,
-        gym: user.gym ? { gymName: user.gym.gymName, city: user.gym.city } : null,
+        gym: user.gym
+          ? {
+              gymName: user.gym.gymName,
+              city: user.gym.city,
+              pinCode: user.gym.pinCode,
+              timing: user.gym.timing,
+              fullName: user.gym.fullName,
+            }
+          : null,
         neighbourhood: user.neighbourhood
-          ? { premisesName: user.neighbourhood.premisesName, city: user.neighbourhood.city }
+          ? {
+              state: user.neighbourhood.state,
+              city: user.neighbourhood.city,
+              pinCode: user.neighbourhood.pinCode,
+              premisesName: user.neighbourhood.premisesName,
+              fullName: user.neighbourhood.fullName,
+            }
           : null,
       }}
     />

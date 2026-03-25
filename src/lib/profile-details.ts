@@ -1,0 +1,139 @@
+import { PrismaClient } from "@prisma/client";
+import type { LocationCategory } from "@/lib/matching";
+
+type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
+
+export async function syncUserProfiles(
+  tx: Tx,
+  userId: string,
+  selectedCategories: LocationCategory[],
+  profileDetailsByCategory: Partial<Record<LocationCategory, Record<string, string>>>
+) {
+  const selected = new Set(selectedCategories);
+
+  if (selected.has("COLLEGE")) {
+    const profile = profileDetailsByCategory.COLLEGE ?? {};
+    await tx.collegeProfile.upsert({
+      where: { userId },
+      update: {
+        collegeName: profile.collegeName,
+        pinCode: profile.pinCode,
+        course: profile.course,
+        branch: profile.branch,
+        yearOfPassing: parseInt(profile.yearOfPassing),
+        section: profile.section,
+        fullName: profile.fullName,
+      },
+      create: {
+        userId,
+        collegeName: profile.collegeName,
+        pinCode: profile.pinCode,
+        course: profile.course,
+        branch: profile.branch,
+        yearOfPassing: parseInt(profile.yearOfPassing),
+        section: profile.section,
+        fullName: profile.fullName,
+      },
+    });
+  } else {
+    await tx.collegeProfile.deleteMany({ where: { userId } });
+  }
+
+  if (selected.has("SCHOOL")) {
+    const profile = profileDetailsByCategory.SCHOOL ?? {};
+    await tx.schoolProfile.upsert({
+      where: { userId },
+      update: {
+        schoolName: profile.schoolName,
+        pinCode: profile.pinCode,
+        board: profile.board,
+        yearOfCompletion: parseInt(profile.yearOfCompletion),
+        section: profile.section,
+        fullName: profile.fullName,
+      },
+      create: {
+        userId,
+        schoolName: profile.schoolName,
+        pinCode: profile.pinCode,
+        board: profile.board,
+        yearOfCompletion: parseInt(profile.yearOfCompletion),
+        section: profile.section,
+        fullName: profile.fullName,
+      },
+    });
+  } else {
+    await tx.schoolProfile.deleteMany({ where: { userId } });
+  }
+
+  if (selected.has("WORKPLACE")) {
+    const profile = profileDetailsByCategory.WORKPLACE ?? {};
+    await tx.workplaceProfile.upsert({
+      where: { userId },
+      update: {
+        companyName: profile.companyName,
+        department: profile.department,
+        city: profile.city,
+        buildingName: profile.buildingName,
+        fullName: profile.fullName,
+      },
+      create: {
+        userId,
+        companyName: profile.companyName,
+        department: profile.department,
+        city: profile.city,
+        buildingName: profile.buildingName,
+        fullName: profile.fullName,
+      },
+    });
+  } else {
+    await tx.workplaceProfile.deleteMany({ where: { userId } });
+  }
+
+  if (selected.has("GYM")) {
+    const profile = profileDetailsByCategory.GYM ?? {};
+    await tx.gymProfile.upsert({
+      where: { userId },
+      update: {
+        gymName: profile.gymName,
+        city: profile.city,
+        pinCode: profile.pinCode,
+        timing: profile.timing as "MORNING" | "EVENING" | "BOTH",
+        fullName: profile.fullName,
+      },
+      create: {
+        userId,
+        gymName: profile.gymName,
+        city: profile.city,
+        pinCode: profile.pinCode,
+        timing: profile.timing as "MORNING" | "EVENING" | "BOTH",
+        fullName: profile.fullName,
+      },
+    });
+  } else {
+    await tx.gymProfile.deleteMany({ where: { userId } });
+  }
+
+  if (selected.has("NEIGHBOURHOOD")) {
+    const profile = profileDetailsByCategory.NEIGHBOURHOOD ?? {};
+    await tx.neighbourhoodProfile.upsert({
+      where: { userId },
+      update: {
+        state: profile.state,
+        city: profile.city,
+        pinCode: profile.pinCode,
+        premisesName: profile.premisesName,
+        fullName: profile.fullName,
+      },
+      create: {
+        userId,
+        state: profile.state,
+        city: profile.city,
+        pinCode: profile.pinCode,
+        premisesName: profile.premisesName,
+        fullName: profile.fullName,
+      },
+    });
+  } else {
+    await tx.neighbourhoodProfile.deleteMany({ where: { userId } });
+  }
+}

@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 
@@ -38,6 +39,29 @@ export async function getSession() {
 
 export function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+export function normalizeUsername(username: string) {
+  return username.trim().toLowerCase();
+}
+
+export function normalizeSocialHandle(handle: string) {
+  const normalized = handle.trim().replace(/^@+/, "").toLowerCase();
+
+  if (!normalized) return null;
+  if (["na", "n/a", "na handle", "notavailable", "not_available"].includes(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+export async function hashPassword(password: string) {
+  return bcrypt.hash(password, 10);
+}
+
+export async function verifyPassword(password: string, passwordHash: string) {
+  return bcrypt.compare(password, passwordHash);
 }
 
 export const COOKIE_NAME_EXPORT = COOKIE_NAME;
