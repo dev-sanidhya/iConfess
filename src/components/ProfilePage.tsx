@@ -11,6 +11,7 @@ type UserProfile = {
   id: string;
   name: string;
   phone: string;
+  gender: "MALE" | "FEMALE" | "OTHER";
   primaryCategory: LocationCategory;
   username: string | null;
   instagramHandle: string | null;
@@ -247,6 +248,13 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
             />
             <input
               type="text"
+              value={user.gender.charAt(0) + user.gender.slice(1).toLowerCase()}
+              disabled
+              className="w-full px-4 py-2.5 rounded-xl text-sm border opacity-70"
+              style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+            />
+            <input
+              type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase())}
               placeholder="Username"
@@ -255,6 +263,9 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
               required
             />
           </div>
+          <p className="text-xs mt-2" style={{ color: "#4a4870" }}>
+            Gender is fixed after signup and cannot be changed from profile editing.
+          </p>
         </div>
 
         <div className="glass rounded-2xl p-5">

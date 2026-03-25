@@ -11,6 +11,7 @@ export default async function Profile() {
         id: user.id,
         name: user.name,
         phone: user.phone,
+        gender: user.gender,
         primaryCategory: user.primaryCategory,
         username: user.username,
         instagramHandle: user.instagramHandle,

@@ -26,6 +26,8 @@ export default function SendConfession({
   const [flow, setFlow] = useState<FlowType>("profile");
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | null>(null);
   const [matchDetails, setMatchDetails] = useState<Record<string, string>>({});
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [targetPhone, setTargetPhone] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,14 +37,23 @@ export default function SendConfession({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!message.trim()) { toast.error("Write your confession first"); return; }
+    if (!firstName.trim()) { toast.error("First name is required"); return; }
     if (flow === "profile" && !selectedCategory) { toast.error("Select a location category"); return; }
     if (flow === "phone" && !/^\d{10}$/.test(targetPhone)) { toast.error("Enter a valid 10-digit number"); return; }
 
     setLoading(true);
     try {
+      const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
       const body = flow === "profile"
-        ? { flow: "profile", location: selectedCategory, matchDetails, message }
-        : { flow: "phone", targetPhone: "+91" + targetPhone, message };
+        ? {
+            flow: "profile",
+            location: selectedCategory,
+            matchDetails: { ...matchDetails, firstName: firstName.trim(), ...(lastName.trim() ? { lastName: lastName.trim() } : {}), fullName },
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            message,
+          }
+        : { flow: "phone", targetPhone: "+91" + targetPhone, firstName: firstName.trim(), lastName: lastName.trim(), message };
 
       const res = await fetch("/api/confessions/send", {
         method: "POST",
@@ -84,7 +95,15 @@ export default function SendConfession({
             We&apos;ll keep you updated on every step.
           </p>
           <button
-            onClick={() => { setSent(false); setMessage(""); setMatchDetails({}); setSelectedCategory(null); }}
+            onClick={() => {
+              setSent(false);
+              setMessage("");
+              setMatchDetails({});
+              setSelectedCategory(null);
+              setFirstName("");
+              setLastName("");
+              setTargetPhone("");
+            }}
             className="px-6 py-2.5 rounded-xl text-sm font-medium text-white"
             style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}>
             Send Another
@@ -122,6 +141,42 @@ export default function SendConfession({
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div className="glass rounded-2xl p-5">
+          <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Who is this for?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>
+                First Name *
+              </label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
+                className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last name (optional)"
+                className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+              />
+            </div>
+          </div>
+          <p className="text-xs mt-2" style={{ color: "#4a4870" }}>
+            First name is mandatory. Last name is optional but helps narrow the profile.
+          </p>
+        </div>
+
         <AnimatePresence mode="wait">
           {flow === "profile" ? (
             <motion.div key="profile-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -148,7 +203,7 @@ export default function SendConfession({
                   <p className="text-xs" style={{ color: "#4a4870" }}>
                     Fill in what you know — we&apos;ll match against our database.
                   </p>
-                  {locationFields[selectedCategory].map((field) => (
+                  {locationFields[selectedCategory].filter((field) => field.key !== "fullName").map((field) => (
                     <div key={field.key}>
                       <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>{field.label}</label>
                       {field.options ? (

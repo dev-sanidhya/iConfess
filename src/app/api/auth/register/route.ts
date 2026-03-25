@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { Gender, PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { type LocationCategory } from "@/lib/matching";
 import { syncUserProfiles } from "@/lib/profile-details";
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       name,
       username,
       password,
+      gender,
       instagramHandle,
       snapchatHandle,
       primaryCategory,
@@ -41,6 +42,10 @@ export async function POST(req: NextRequest) {
 
     if (!name?.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    if (!gender || !Object.values(Gender).includes(gender as Gender)) {
+      return NextResponse.json({ error: "Gender is required" }, { status: 400 });
     }
 
     if (!normalizedUsername || normalizedUsername.length < 3) {
@@ -122,6 +127,7 @@ export async function POST(req: NextRequest) {
           name: name.trim(),
           username: normalizedUsername,
           passwordHash,
+          gender: gender as Gender,
           instagramHandle: normalizedInstagramHandle,
           snapchatHandle: normalizedSnapchatHandle,
           primaryCategory: primaryCategory as LocationCategory,

@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Phone, User, MapPin, LockKeyhole } from "lucide-react";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
+import type { Gender } from "@prisma/client";
 
 type Step = "phone" | "otp" | "name" | "profile";
 function RegisterForm() {
@@ -18,6 +19,7 @@ function RegisterForm() {
   const [phone, setPhone] = useState(prefillPhone);
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
+  const [gender, setGender] = useState<Gender | "">("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -89,6 +91,7 @@ function RegisterForm() {
     }
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     if (password !== confirmPassword) { toast.error("Passwords do not match"); return; }
+    if (!gender) { toast.error("Select your gender"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -99,6 +102,7 @@ function RegisterForm() {
           name,
           username,
           password,
+          gender,
           instagramHandle,
           snapchatHandle,
           primaryCategory,
@@ -213,6 +217,10 @@ function RegisterForm() {
                   toast.error("Password must be at least 8 characters");
                   return;
                 }
+                if (!gender) {
+                  toast.error("Select your gender");
+                  return;
+                }
                 if (password !== confirmPassword) {
                   toast.error("Passwords do not match");
                   return;
@@ -225,6 +233,14 @@ function RegisterForm() {
                 <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                <select value={gender} onChange={(e) => setGender(e.target.value as Gender)}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required>
+                  <option value="">Select gender</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
                 <div className="relative">
                   <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b98c8" }} />
                   <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)}
