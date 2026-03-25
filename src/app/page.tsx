@@ -39,15 +39,15 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <main className="flex flex-col items-center min-h-screen px-4">
+    <main className="flex flex-col items-center min-h-screen px-4 overflow-x-hidden">
       <AbstractBackground />
       {/* Nav */}
-      <nav className="w-full max-w-6xl flex items-center justify-between py-6">
+      <nav className="w-full max-w-6xl flex items-center justify-between gap-3 py-5 sm:py-6">
         <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="text-xl font-semibold tracking-tight gradient-text"
+          className="text-lg sm:text-xl font-semibold tracking-tight gradient-text flex-shrink-0"
         >
           iConfess
         </motion.span>
@@ -55,18 +55,18 @@ export default function LandingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex gap-3"
+          className="flex items-center gap-2 sm:gap-3"
         >
           <Link
             href="/auth/login"
-            className="px-4 py-2 text-sm transition-colors"
+            className="px-3 sm:px-4 py-2 text-sm transition-colors whitespace-nowrap"
             style={{ color: "#9b98c8" }}
           >
             Sign In
           </Link>
           <Link
             href="/auth/register"
-            className="px-4 py-2 text-sm rounded-lg border transition-all"
+            className="px-3 sm:px-4 py-2 text-sm rounded-lg border transition-all whitespace-nowrap"
             style={{
               border: "1px solid #1e1e3f",
               background: "#0d0d1f",
@@ -79,13 +79,13 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="flex flex-col items-center text-center mt-24 mb-32 max-w-3xl">
+      <section className="flex flex-col items-center text-center mt-16 sm:mt-24 mb-20 sm:mb-32 max-w-3xl">
         <motion.div
           custom={0}
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs mb-8"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] sm:text-xs mb-6 sm:mb-8"
           style={{ border: "1px solid #1e1e3f", background: "#0d0d1f", color: "#9b98c8" }}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[#c084fc] animate-pulse" />
@@ -97,7 +97,7 @@ export default function LandingPage() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6"
+          className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-5 sm:mb-6"
           style={{ color: "#f0eeff" }}
         >
           Say what you{" "}
@@ -112,7 +112,7 @@ export default function LandingPage() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="text-lg leading-relaxed mb-10 max-w-xl"
+          className="text-base sm:text-lg leading-relaxed mb-8 sm:mb-10 max-w-xl px-1"
           style={{ color: "#9b98c8" }}
         >
           Confess your feelings to someone you&apos;ve noticed. We find them, deliver your words,
@@ -124,11 +124,11 @@ export default function LandingPage() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="flex gap-4"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto"
         >
           <Link
             href="/auth/register"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:scale-105"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 sm:hover:scale-105 w-full sm:w-auto"
             style={{
               background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%)",
             }}
@@ -138,7 +138,7 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/auth/login"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all hover:border-[#c084fc]/30"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all hover:border-[#c084fc]/30 w-full sm:w-auto"
             style={{
               color: "#9b98c8",
               border: "1px solid #1e1e3f",
@@ -154,7 +154,7 @@ export default function LandingPage() {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.8 }}
-        className="relative w-full max-w-lg mb-32 flex justify-center"
+        className="relative w-full max-w-lg mb-20 sm:mb-32 flex justify-center px-2 sm:px-0"
       >
         {/* Stacked ghost cards behind */}
         <div
@@ -169,18 +169,18 @@ export default function LandingPage() {
       </motion.div>
 
       {/* Features */}
-      <section className="w-full max-w-4xl mb-32">
+      <section className="w-full max-w-4xl mb-20 sm:mb-32">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-3xl font-bold text-center mb-12"
+          className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12"
           style={{ color: "#f0eeff" }}
         >
           How it <span className="gradient-text">works</span>
         </motion.h2>
-        <div className="grid md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
           {features.map((f, i) => (
             <motion.div
               key={f.title}
@@ -212,7 +212,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer
-        className="w-full max-w-6xl py-8 flex items-center justify-between text-xs"
+        className="w-full max-w-6xl py-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-center sm:text-left"
         style={{ borderTop: "1px solid #1e1e3f", color: "#4a4870" }}
       >
         <span className="gradient-text font-semibold">iConfess</span>

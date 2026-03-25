@@ -36,15 +36,15 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex items-center justify-center min-h-screen px-4">
+    <main className="flex items-center justify-center min-h-screen px-4 py-10 sm:py-16">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-sm"
       >
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold gradient-text">
+        <div className="text-center mb-6 sm:mb-8">
+          <Link href="/" className="text-xl sm:text-2xl font-bold gradient-text">
             iConfess
           </Link>
           <p className="text-sm mt-2" style={{ color: "#9b98c8" }}>
@@ -52,7 +52,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="glass rounded-2xl p-6">
+        <div className="glass rounded-2xl p-5 sm:p-6">
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div>
               <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b98c8" }}>
