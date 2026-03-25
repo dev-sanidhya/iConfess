@@ -424,8 +424,14 @@ export default function SearchPage() {
                           className="rounded-xl p-4"
                           style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #1e1e3f" }}
                         >
-                          <p className="text-xs" style={{ color: "#9b98c8" }}>
-                            {insight.sender.organizationName ?? "Organization unavailable"}
+                          <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+                            Confessor Organization
+                          </p>
+                          <p className="text-sm mt-1" style={{ color: "#f0eeff" }}>
+                            {insight.sender.organizationName ?? "Not available"}
+                          </p>
+                          <p className="text-xs mt-2" style={{ color: "#9b98c8" }}>
+                            Source profile type: {insight.sender.primaryCategory.charAt(0) + insight.sender.primaryCategory.slice(1).toLowerCase()}
                           </p>
                         </div>
                       ))}
