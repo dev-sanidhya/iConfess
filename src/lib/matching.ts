@@ -42,6 +42,7 @@ export const locationFields: Record<
     { key: "state", label: "State" },
     { key: "city", label: "City" },
     { key: "pinCode", label: "Pin Code" },
+    { key: "homeNumber", label: "Home Number" },
     { key: "premisesName", label: "Society / Premises Name" },
   ],
 };
@@ -122,6 +123,7 @@ export async function findMatches(location: string, details: Record<string, stri
         ...(details.state && { state: { contains: details.state, mode: "insensitive" } }),
         ...(details.city && { city: { contains: details.city, mode: "insensitive" } }),
         ...(details.pinCode && { pinCode: details.pinCode }),
+        ...(details.homeNumber && { homeNumber: { contains: details.homeNumber, mode: "insensitive" } }),
         ...(details.premisesName && { premisesName: { contains: details.premisesName, mode: "insensitive" } }),
         ...(fullName && { fullName: { contains: fullName, mode: "insensitive" } }),
       },
@@ -149,7 +151,7 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string)
       college: { select: { collegeName: true, branch: true, yearOfPassing: true } },
       workplace: { select: { companyName: true, city: true } },
       gym: { select: { gymName: true, city: true } },
-      neighbourhood: { select: { city: true, premisesName: true } },
+      neighbourhood: { select: { city: true, premisesName: true, homeNumber: true } },
       school: { select: { schoolName: true, yearOfCompletion: true } },
       primaryCategory: true,
       gender: true,
@@ -188,7 +190,7 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string)
       workplace: u.workplace ? `${u.workplace.companyName} · ${u.workplace.city}` : null,
       gym: u.gym ? `${u.gym.gymName} · ${u.gym.city}` : null,
       neighbourhood: u.neighbourhood
-        ? `${u.neighbourhood.premisesName} · ${u.neighbourhood.city}`
+        ? `${u.neighbourhood.premisesName} · ${u.neighbourhood.city} · ${u.neighbourhood.homeNumber}`
         : null,
     }));
 }
@@ -224,9 +226,10 @@ export function buildProfileMatchContext(
   }
 
   if (location === "NEIGHBOURHOOD" && result.neighbourhood) {
-    const [premisesName, city] = result.neighbourhood.split(" · ");
+    const [premisesName, city, homeNumber] = result.neighbourhood.split(" · ");
     if (details.premisesName) entries.push(premisesName);
     if (details.city && city) entries.push(city);
+    if (details.homeNumber && homeNumber) entries.push(homeNumber);
   }
 
   if (details.fullName) entries.push(result.name);

@@ -51,6 +51,7 @@ type UserProfile = {
     state: string;
     city: string;
     pinCode: string;
+    homeNumber: string;
     premisesName: string;
     fullName: string;
   } | null;
@@ -117,6 +118,7 @@ function getProfileDetailsByCategory(user: UserProfile): Partial<Record<Location
             state: user.neighbourhood.state,
             city: user.neighbourhood.city,
             pinCode: user.neighbourhood.pinCode,
+            homeNumber: user.neighbourhood.homeNumber,
             premisesName: user.neighbourhood.premisesName,
           },
         }

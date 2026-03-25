@@ -60,6 +60,7 @@ export default async function Profile() {
               state: user.neighbourhood.state,
               city: user.neighbourhood.city,
               pinCode: user.neighbourhood.pinCode,
+              homeNumber: user.neighbourhood.homeNumber,
               premisesName: user.neighbourhood.premisesName,
               fullName: user.neighbourhood.fullName,
             }

@@ -29,13 +29,9 @@ type SearchResult = {
 
 type ProfileInsight = {
   id: string;
-  message: string;
-  location: string;
-  createdAt: string;
   sender: {
-    firstName: string;
-    gender: "MALE" | "FEMALE" | "OTHER";
     primaryCategory: string;
+    organizationName: string | null;
   };
 };
 
@@ -243,6 +239,20 @@ export default function SearchPage() {
                   <p className="text-xs" style={{ color: "#4a4870" }}>
                     Only fill the details you know. Leave the rest blank.
                   </p>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={profileDetails.fullName || ""}
+                      onChange={(e) =>
+                        setProfileDetails((current) => ({ ...current, fullName: e.target.value }))
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                      style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                    />
+                  </div>
                   {locationFields[selectedCategory].map((field) => (
                     <div key={field.key}>
                       <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>
@@ -414,11 +424,8 @@ export default function SearchPage() {
                           className="rounded-xl p-4"
                           style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #1e1e3f" }}
                         >
-                          <p className="text-sm mb-2" style={{ color: "#f0eeff" }}>
-                            &quot;{insight.message}&quot;
-                          </p>
                           <p className="text-xs" style={{ color: "#9b98c8" }}>
-                            {insight.sender.firstName} • {insight.sender.gender.toLowerCase()} • {insight.sender.primaryCategory.toLowerCase()}
+                            {insight.sender.organizationName ?? "Organization unavailable"}
                           </p>
                         </div>
                       ))}

@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Send, Inbox, Heart, Clock, ArrowRight, Lock } from "lucide-react";
+import { Compass, Heart, Clock, Shield, Sparkles } from "lucide-react";
 
-type Stat = { label: string; value: number; icon: React.ElementType; color: string };
+type Stat = { label: string; value: number; icon: React.ElementType; color: string; note: string };
 type RecentItem = {
   id: string;
   status: string;
@@ -28,21 +28,20 @@ export default function DashboardOverview({
   recentSent,
   confessionPageUnlocked,
 }: {
-  user: { name: string; id: string };
-  stats: { sentCount: number; receivedCount: number; mutualCount: number; pendingCount: number };
+  user: { name: string; id: string; username: string | null; primaryCategory: string; searchablePlaces: number };
+  stats: { sentCount: number; mutualCount: number; pendingCount: number };
   recentSent: RecentItem[];
   confessionPageUnlocked: boolean;
 }) {
   const statCards: Stat[] = [
-    { label: "Confessions Sent", value: stats.sentCount, icon: Send, color: "#a78bfa" },
-    { label: "Received", value: stats.receivedCount, icon: Inbox, color: "#f472b6" },
-    { label: "Mutual", value: stats.mutualCount, icon: Heart, color: "#f472b6" },
-    { label: "Pending", value: stats.pendingCount, icon: Clock, color: "#60a5fa" },
+    { label: "Confessions Sent", value: stats.sentCount, icon: Sparkles, color: "#a78bfa", note: "Total messages you have sent" },
+    { label: "Mutuals", value: stats.mutualCount, icon: Heart, color: "#f472b6", note: "Two-way confession matches" },
+    { label: "Pending", value: stats.pendingCount, icon: Clock, color: "#60a5fa", note: "Still waiting to be opened or matched" },
+    { label: "Searchable Places", value: user.searchablePlaces, icon: Compass, color: "#34d399", note: "Active profile categories linked to you" },
   ];
 
   return (
     <div className="py-2">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -50,14 +49,54 @@ export default function DashboardOverview({
         className="mb-10"
       >
         <h1 className="text-3xl font-bold" style={{ color: "#f0eeff" }}>
-          Hey, {user.name.split(" ")[0]} 👋
+          Hey, {user.name.split(" ")[0]}
         </h1>
         <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
-          Here&apos;s what&apos;s happening with your confessions.
+          Your profile is live through {user.searchablePlaces} place{user.searchablePlaces !== 1 ? "s" : ""}. Keep your details sharp so people can find you accurately.
         </p>
       </motion.div>
 
-      {/* Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08, duration: 0.5 }}
+        className="rounded-2xl p-6 mb-8"
+        style={{
+          background: "linear-gradient(135deg, rgba(124,58,237,0.16) 0%, rgba(14,165,233,0.08) 100%)",
+          border: "1px solid rgba(192,132,252,0.2)",
+        }}
+      >
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "#9b98c8" }}>
+              Profile Snapshot
+            </p>
+            <h2 className="text-2xl font-semibold mt-2" style={{ color: "#f0eeff" }}>
+              @{user.username ?? "profile-incomplete"}
+            </h2>
+            <p className="text-sm mt-2 max-w-xl" style={{ color: "#c7c3ee" }}>
+              Primary profile: {user.primaryCategory.toLowerCase()}. Your confession inbox is {confessionPageUnlocked ? "unlocked" : "still locked"} and your public identity map is currently spread across {user.searchablePlaces} searchable context{user.searchablePlaces !== 1 ? "s" : ""}.
+            </p>
+          </div>
+          <div
+            className="rounded-2xl px-4 py-3 min-w-[180px]"
+            style={{ background: "rgba(10,10,24,0.35)", border: "1px solid rgba(192,132,252,0.14)" }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4" style={{ color: confessionPageUnlocked ? "#34d399" : "#c084fc" }} />
+              <span className="text-sm font-medium" style={{ color: "#f0eeff" }}>
+                Inbox Access
+              </span>
+            </div>
+            <p className="text-xs" style={{ color: "#9b98c8" }}>
+              {confessionPageUnlocked
+                ? "Received confessions can be opened from the inbox."
+                : "Received confessions stay locked until the inbox is unlocked."}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {statCards.map((stat, i) => (
           <motion.div
@@ -77,102 +116,11 @@ export default function DashboardOverview({
               </div>
             </div>
             <p className="text-3xl font-bold" style={{ color: "#f0eeff" }}>{stat.value}</p>
+            <p className="text-xs mt-2 leading-relaxed" style={{ color: "#6f6b98" }}>{stat.note}</p>
           </motion.div>
         ))}
       </div>
 
-      {/* Confession page unlock CTA */}
-      {!confessionPageUnlocked && stats.receivedCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="rounded-2xl p-6 mb-10 flex items-center justify-between"
-          style={{
-            background: "linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(244,114,182,0.1) 100%)",
-            border: "1px solid rgba(192,132,252,0.2)",
-          }}
-        >
-          <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(124,58,237,0.2)" }}
-            >
-              <Lock className="w-5 h-5" style={{ color: "#c084fc" }} />
-            </div>
-            <div>
-              <p className="font-semibold" style={{ color: "#f0eeff" }}>
-                You have {stats.receivedCount} confession{stats.receivedCount > 1 ? "s" : ""} waiting
-              </p>
-              <p className="text-sm" style={{ color: "#9b98c8" }}>
-                Unlock your confession page to read them.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/dashboard/confessions"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
-          >
-            Unlock <ArrowRight className="w-4 h-4" />
-          </Link>
-        </motion.div>
-      )}
-
-      {/* Quick actions */}
-      <div className="grid md:grid-cols-2 gap-5 mb-10">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.5 }}
-        >
-          <Link href="/dashboard/send">
-            <div className="glass glass-hover rounded-2xl p-6 cursor-pointer group">
-              <div className="flex items-center justify-between mb-4">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.2)" }}
-                >
-                  <Send className="w-5 h-5" style={{ color: "#c084fc" }} />
-                </div>
-                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#c084fc" }} />
-              </div>
-              <h3 className="font-semibold mb-1" style={{ color: "#f0eeff" }}>Send a Confession</h3>
-              <p className="text-sm" style={{ color: "#9b98c8" }}>
-                Tell someone how you feel. Completely anonymous.
-              </p>
-            </div>
-          </Link>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.42, duration: 0.5 }}
-        >
-          <Link href="/dashboard/confessions">
-            <div className="glass glass-hover rounded-2xl p-6 cursor-pointer group">
-              <div className="flex items-center justify-between mb-4">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(244,114,182,0.1)", border: "1px solid rgba(244,114,182,0.2)" }}
-                >
-                  <Inbox className="w-5 h-5" style={{ color: "#f472b6" }} />
-                </div>
-                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#f472b6" }} />
-              </div>
-              <h3 className="font-semibold mb-1" style={{ color: "#f0eeff" }}>My Confessions</h3>
-              <p className="text-sm" style={{ color: "#9b98c8" }}>
-                {confessionPageUnlocked
-                  ? "Read confessions sent to you."
-                  : "Unlock to read confessions sent to you."}
-              </p>
-            </div>
-          </Link>
-        </motion.div>
-      </div>
-
-      {/* Recent sent */}
       {recentSent.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -180,8 +128,8 @@ export default function DashboardOverview({
           transition={{ delay: 0.48, duration: 0.5 }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Recently Sent</h2>
-            <Link href="/dashboard/send" className="text-xs gradient-text">View all →</Link>
+            <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Recent Sending Activity</h2>
+            <p className="text-xs" style={{ color: "#6f6b98" }}>Latest outgoing confessions</p>
           </div>
           <div className="flex flex-col gap-3">
             {recentSent.map((c) => (

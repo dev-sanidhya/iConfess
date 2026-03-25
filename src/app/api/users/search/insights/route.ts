@@ -36,9 +36,12 @@ export async function GET(req: NextRequest) {
       include: {
         sender: {
           select: {
-            name: true,
-            gender: true,
             primaryCategory: true,
+            college: { select: { collegeName: true } },
+            school: { select: { schoolName: true } },
+            workplace: { select: { companyName: true } },
+            gym: { select: { gymName: true } },
+            neighbourhood: { select: { premisesName: true } },
           },
         },
       },
@@ -47,13 +50,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       insights: confessions.map((confession) => ({
         id: confession.id,
-        message: confession.message,
-        location: confession.location,
-        createdAt: confession.createdAt.toISOString(),
         sender: {
-          firstName: confession.sender.name.split(" ")[0] ?? confession.sender.name,
-          gender: confession.sender.gender,
           primaryCategory: confession.sender.primaryCategory,
+          organizationName:
+            confession.sender.primaryCategory === "COLLEGE"
+              ? confession.sender.college?.collegeName
+              : confession.sender.primaryCategory === "SCHOOL"
+                ? confession.sender.school?.schoolName
+                : confession.sender.primaryCategory === "WORKPLACE"
+                  ? confession.sender.workplace?.companyName
+                  : confession.sender.primaryCategory === "GYM"
+                    ? confession.sender.gym?.gymName
+                    : confession.sender.neighbourhood?.premisesName,
         },
       })),
     });

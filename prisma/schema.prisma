@@ -91,6 +91,7 @@ model NeighbourhoodProfile {
   state        String
   city         String
   pinCode      String
+  homeNumber   String
   premisesName String
   fullName     String
 }

@@ -6,9 +6,8 @@ export default async function DashboardPage() {
   const user = await getSession();
   if (!user) return null;
 
-  const [sentCount, receivedCount, mutualCount, pendingCount] = await Promise.all([
+  const [sentCount, mutualCount, pendingCount] = await Promise.all([
     prisma.confession.count({ where: { senderId: user.id } }),
-    prisma.confession.count({ where: { targetId: user.id } }),
     prisma.confession.count({ where: { OR: [{ senderId: user.id }, { targetId: user.id }], mutualDetected: true } }),
     prisma.confession.count({ where: { senderId: user.id, status: "PENDING" } }),
   ]);
@@ -22,8 +21,14 @@ export default async function DashboardPage() {
 
   return (
     <DashboardOverview
-      user={{ name: user.name, id: user.id }}
-      stats={{ sentCount, receivedCount, mutualCount, pendingCount }}
+      user={{
+        name: user.name,
+        id: user.id,
+        username: user.username,
+        primaryCategory: user.primaryCategory,
+        searchablePlaces: [user.college, user.school, user.workplace, user.gym, user.neighbourhood].filter(Boolean).length,
+      }}
+      stats={{ sentCount, mutualCount, pendingCount }}
       recentSent={recentSent}
       confessionPageUnlocked={user.confessionPageUnlocked}
     />
