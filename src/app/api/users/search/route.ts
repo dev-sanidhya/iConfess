@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
       }
 
       const matches = await findMatches(location, details);
-      const uniqueIds = [...new Set(matches.map((match) => match.id))];
+      const uniqueIds = [...new Set(matches.map((match: { id: string }) => match.id))];
       const results = (await getSearchResultByIds(uniqueIds, user.id)).map((result) => ({
         ...result,
         matchContext: buildProfileMatchContext(location as LocationCategory, details, result),
