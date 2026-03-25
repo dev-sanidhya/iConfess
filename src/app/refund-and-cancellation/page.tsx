@@ -61,8 +61,8 @@ export default function RefundAndCancellationPage() {
         </h2>
         <p>
           To request a refund, users should email{" "}
-          <a className="text-[#c084fc] underline-offset-4 hover:underline" href="mailto:prateekchauhan2512@gmail.com">
-            prateekchauhan2512@gmail.com
+          <a className="text-[#c084fc] underline-offset-4 hover:underline" href="mailto:rocid003@gmail.com">
+            rocid003@gmail.com
           </a>{" "}
           with transaction details, registered account information, and the reason for the request. Verified eligible refunds, if approved, will be processed within a reasonable period through the original payment method where feasible.
         </p>

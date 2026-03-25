@@ -232,8 +232,8 @@ export default function LandingPage() {
               {link.label}
             </Link>
           ))}
-          <a href="mailto:prateekchauhan2512@gmail.com" className="transition-colors hover:text-[#c084fc]">
-            prateekchauhan2512@gmail.com
+          <a href="mailto:rocid003@gmail.com" className="transition-colors hover:text-[#c084fc]">
+            rocid003@gmail.com
           </a>
         </div>
       </footer>

@@ -18,8 +18,8 @@ export default function ContactPage() {
         </h2>
         <p>
           Email:{" "}
-          <a className="text-[#c084fc] underline-offset-4 hover:underline" href="mailto:prateekchauhan2512@gmail.com">
-            prateekchauhan2512@gmail.com
+          <a className="text-[#c084fc] underline-offset-4 hover:underline" href="mailto:rocid003@gmail.com">
+            rocid003@gmail.com
           </a>
         </p>
         <p>Website: https://iconfess.in</p>
