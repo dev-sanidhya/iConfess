@@ -89,7 +89,7 @@ function ConfessionCard({
     >
       {confession.mutualDetected && (
         <div
-          className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium"
+          className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-2.5 text-sm font-medium"
           style={{
             background: "linear-gradient(90deg, rgba(244,114,182,0.15), rgba(192,132,252,0.1))",
             borderBottom: "1px solid rgba(244,114,182,0.2)",
@@ -119,13 +119,13 @@ function ConfessionCard({
         </div>
       )}
 
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+          <div className="min-w-0">
             <p className="text-xs font-medium" style={{ color: "#f0eeff" }}>
               {isReceived ? "From" : "To"}
             </p>
-            <p className="text-sm font-semibold mt-1" style={{ color: "#f0eeff" }}>
+            <p className="text-sm font-semibold mt-1 break-words" style={{ color: "#f0eeff" }}>
               {identityLabel}
             </p>
             {identityMeta && (
@@ -165,7 +165,7 @@ function ConfessionCard({
         {isReceived && pageUnlocked && !confession.isUnlocked && (
           <button
             onClick={() => onUnlockCard(confession.id)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-white"
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-white w-full sm:w-auto"
             style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
           >
             <Lock className="w-3.5 h-3.5" />
@@ -316,9 +316,9 @@ export default function ConfessionsInbox({
 
   return (
     <div className="py-2">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: "#f0eeff" }}>My Confessions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>My Confessions</h1>
           <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
             Track both the confessions you sent and the ones you received.
           </p>
@@ -327,7 +327,7 @@ export default function ConfessionsInbox({
           <button
             onClick={handleUnlockPage}
             disabled={unlockingPage}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50 w-full sm:w-auto"
             style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
           >
             <Lock className="w-4 h-4" />
@@ -337,7 +337,7 @@ export default function ConfessionsInbox({
       </div>
 
       <div
-        className="flex gap-1 p-1 rounded-xl mb-6 w-fit"
+        className="grid grid-cols-2 gap-1 p-1 rounded-xl mb-6 w-full sm:w-fit"
         style={{ background: "rgba(30,30,63,0.4)", border: "1px solid #1e1e3f" }}
       >
         {([

@@ -48,7 +48,7 @@ export default function DashboardOverview({
         transition={{ duration: 0.5 }}
         className="mb-10"
       >
-        <h1 className="text-3xl font-bold" style={{ color: "#f0eeff" }}>
+        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>
           Hey, {user.name.split(" ")[0]}
         </h1>
         <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
@@ -66,12 +66,12 @@ export default function DashboardOverview({
           border: "1px solid rgba(192,132,252,0.2)",
         }}
       >
-        <div className="flex items-start justify-between gap-6">
+        <div className="flex flex-col lg:flex-row items-start justify-between gap-4 lg:gap-6">
           <div>
             <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "#9b98c8" }}>
               Profile Snapshot
             </p>
-            <h2 className="text-2xl font-semibold mt-2" style={{ color: "#f0eeff" }}>
+            <h2 className="text-xl sm:text-2xl font-semibold mt-2 break-all sm:break-normal" style={{ color: "#f0eeff" }}>
               @{user.username ?? "profile-incomplete"}
             </h2>
             <p className="text-sm mt-2 max-w-xl" style={{ color: "#c7c3ee" }}>
@@ -79,7 +79,7 @@ export default function DashboardOverview({
             </p>
           </div>
           <div
-            className="rounded-2xl px-4 py-3 min-w-[180px]"
+            className="rounded-2xl px-4 py-3 w-full lg:w-auto lg:min-w-[180px]"
             style={{ background: "rgba(10,10,24,0.35)", border: "1px solid rgba(192,132,252,0.14)" }}
           >
             <div className="flex items-center gap-2 mb-2">
@@ -97,7 +97,7 @@ export default function DashboardOverview({
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -127,16 +127,16 @@ export default function DashboardOverview({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.48, duration: 0.5 }}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-4">
             <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Recent Sending Activity</h2>
             <p className="text-xs" style={{ color: "#6f6b98" }}>Latest outgoing confessions</p>
           </div>
           <div className="flex flex-col gap-3">
             {recentSent.map((c) => (
-              <div key={c.id} className="glass rounded-xl px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div key={c.id} className="glass rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-2 h-2 rounded-full" style={{ background: statusColors[c.status] || "#9b98c8" }} />
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm" style={{ color: "#f0eeff" }}>
                       {c.location.charAt(0) + c.location.slice(1).toLowerCase()} Confession
                     </p>
@@ -145,7 +145,7 @@ export default function DashboardOverview({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {c.mutualDetected && (
                     <span className="text-xs px-2 py-0.5 rounded-full status-mutual">Mutual</span>
                   )}

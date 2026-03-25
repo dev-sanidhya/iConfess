@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Heart, Send, Search, User, LogOut, Inbox } from "lucide-react";
+import { Heart, Send, Search, User, LogOut, Inbox, Menu, X } from "lucide-react";
 import { toast } from "sonner";
 
 const navItems = [
@@ -17,6 +18,7 @@ const navItems = [
 export default function DashboardNav({ user }: { user: { id: string; name: string } }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -24,18 +26,13 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
     router.push("/");
   }
 
-  return (
-    <aside
-      className="fixed left-0 top-0 h-screen w-64 flex flex-col py-8 px-4"
-      style={{ background: "rgba(5,5,15,0.95)", borderRight: "1px solid #1e1e3f", backdropFilter: "blur(20px)" }}
-    >
-      {/* Logo */}
-      <div className="px-3 mb-10">
+  const navContent = (
+    <>
+      <div className="px-3 mb-8">
         <span className="text-xl font-bold gradient-text">iConfess</span>
         <p className="text-xs mt-0.5" style={{ color: "#4a4870" }}>Anonymous Confessions</p>
       </div>
 
-      {/* User */}
       <div
         className="flex items-center gap-3 px-3 py-3 rounded-xl mb-6"
         style={{ background: "rgba(30,30,63,0.3)" }}
@@ -52,12 +49,11 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
         </div>
       </div>
 
-      {/* Nav links */}
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
           const active = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
               <motion.div
                 whileHover={{ x: 2 }}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
@@ -82,7 +78,6 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
         })}
       </nav>
 
-      {/* Logout */}
       <button
         onClick={handleLogout}
         className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all w-full"
@@ -91,6 +86,47 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
         <LogOut className="w-4 h-4" />
         Sign Out
       </button>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      <div
+        className="md:hidden fixed top-0 inset-x-0 z-40 px-4 py-3 flex items-center justify-between"
+        style={{ background: "rgba(5,5,15,0.92)", borderBottom: "1px solid #1e1e3f", backdropFilter: "blur(20px)" }}
+      >
+        <div>
+          <span className="text-lg font-bold gradient-text">iConfess</span>
+          <p className="text-[11px] mt-0.5" style={{ color: "#4a4870" }}>{user.name}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setMobileOpen((current) => !current)}
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ background: "rgba(30,30,63,0.45)", border: "1px solid #1e1e3f", color: "#c084fc" }}
+          aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+        >
+          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation overlay"
+          onClick={() => setMobileOpen(false)}
+          className="md:hidden fixed inset-0 z-40 bg-black/55"
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 z-50 h-screen w-[min(82vw,20rem)] md:w-64 flex flex-col py-6 md:py-8 px-4 transition-transform duration-300 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
+        style={{ background: "rgba(5,5,15,0.97)", borderRight: "1px solid #1e1e3f", backdropFilter: "blur(20px)" }}
+      >
+        {navContent}
+      </aside>
+    </>
   );
 }

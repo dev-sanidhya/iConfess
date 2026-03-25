@@ -119,7 +119,7 @@ export default function SendConfession({
   return (
     <div className="py-2 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold" style={{ color: "#f0eeff" }}>Send a Confession</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>Send a Confession</h1>
         <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
           {isFree ? "Your first confession is free." : "Additional confessions are charged (₹X)."}
         </p>
@@ -127,7 +127,7 @@ export default function SendConfession({
 
       {/* Flow toggle */}
       <div
-        className="flex gap-1 p-1 rounded-xl mb-6 w-fit"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-1 p-1 rounded-xl mb-6 w-full sm:w-fit"
         style={{ background: "rgba(30,30,63,0.4)", border: "1px solid #1e1e3f" }}
       >
         {(["profile", "phone", "social"] as FlowType[]).map((f) => (
@@ -144,7 +144,7 @@ export default function SendConfession({
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div className="glass rounded-2xl p-5">
+        <div className="glass rounded-2xl p-4 sm:p-5">
           <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Who is this for?</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
@@ -183,7 +183,7 @@ export default function SendConfession({
         <AnimatePresence mode="wait">
           {flow === "profile" && (
             <motion.div key="profile-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="glass rounded-2xl p-5 flex flex-col gap-4">
+              className="glass rounded-2xl p-4 sm:p-5 flex flex-col gap-4">
               <h3 className="text-sm font-medium" style={{ color: "#9b98c8" }}>Where did you meet them?</h3>
               <div className="grid grid-cols-1 gap-2">
                 {locationCategories.map((cat) => (
@@ -232,7 +232,7 @@ export default function SendConfession({
 
           {flow === "phone" && (
             <motion.div key="phone-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="glass rounded-2xl p-5">
+              className="glass rounded-2xl p-4 sm:p-5">
               <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Their phone number</h3>
               <div className="flex gap-2">
                 <span className="flex items-center px-3 rounded-xl text-sm border"
@@ -251,9 +251,9 @@ export default function SendConfession({
 
           {flow === "social" && (
             <motion.div key="social-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="glass rounded-2xl p-5">
+              className="glass rounded-2xl p-4 sm:p-5">
               <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Find them by social media</h3>
-              <div className="flex gap-2 mb-3">
+              <div className="grid grid-cols-2 gap-2 mb-3">
                 {(["instagram", "snapchat"] as const).map((value) => (
                   <button
                     key={value}
@@ -286,7 +286,7 @@ export default function SendConfession({
         </AnimatePresence>
 
         {/* Message */}
-        <div className="glass rounded-2xl p-5">
+        <div className="glass rounded-2xl p-4 sm:p-5">
           <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>
             <MessageSquare className="w-4 h-4 inline mr-1.5" />
             Your confession

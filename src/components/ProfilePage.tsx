@@ -140,7 +140,7 @@ function SummaryCard({
   return (
     <div className="glass rounded-2xl p-5">
       <h3 className="font-semibold text-sm mb-3" style={{ color: "#f0eeff" }}>{title}</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {values.map((item) => (
           <div key={`${title}-${item.label}`}>
             <p className="text-[11px] uppercase tracking-[0.12em]" style={{ color: "#6f6b98" }}>
@@ -256,9 +256,9 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold" style={{ color: "#f0eeff" }}>Profile</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>Profile</h1>
             <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
               {isEditing ? "Edit your identity, handles, and searchable places." : "View your saved details in a compact summary."}
             </p>
@@ -266,7 +266,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
           <button
             type="button"
             onClick={() => setIsEditing((current) => !current)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium w-full sm:w-auto"
             style={{
               background: isEditing ? "rgba(244,114,182,0.12)" : "rgba(124,58,237,0.16)",
               border: `1px solid ${isEditing ? "rgba(244,114,182,0.18)" : "rgba(192,132,252,0.2)"}`,
@@ -283,7 +283,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05, duration: 0.5 }}
-        className="glass rounded-2xl p-6 mb-5 flex items-center gap-5"
+        className="glass rounded-2xl p-5 sm:p-6 mb-5 flex items-center gap-4 sm:gap-5"
       >
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white flex-shrink-0"

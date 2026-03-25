@@ -115,14 +115,14 @@ export default function SearchPage() {
   return (
     <div className="py-2 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold" style={{ color: "#f0eeff" }}>Search</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>Search</h1>
         <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
           Search by phone, profile details, or social handle.
         </p>
       </div>
 
       <div
-        className="flex gap-1 p-1 rounded-xl mb-6 w-fit"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-1 p-1 rounded-xl mb-6 w-full sm:w-fit"
         style={{ background: "rgba(30,30,63,0.4)", border: "1px solid #1e1e3f" }}
       >
         {(["profile", "phone", "social"] as SearchMode[]).map((entryMode) => (
@@ -149,7 +149,7 @@ export default function SearchPage() {
         ))}
       </div>
 
-      <div className="glass rounded-2xl p-5 mb-8 flex flex-col gap-4">
+      <div className="glass rounded-2xl p-4 sm:p-5 mb-8 flex flex-col gap-4">
         <AnimatePresence mode="wait">
           {mode === "phone" && (
             <motion.div key="phone" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -178,7 +178,7 @@ export default function SearchPage() {
           {mode === "social" && (
             <motion.div key="social" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Search by social handle</h3>
-              <div className="flex gap-2 mb-3">
+              <div className="grid grid-cols-2 gap-2 mb-3">
                 {(["instagram", "snapchat"] as const).map((value) => (
                   <button
                     key={value}
@@ -333,17 +333,17 @@ export default function SearchPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass glass-hover rounded-2xl p-5 flex items-center justify-between"
+                className="glass glass-hover rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-w-0">
                   <div
                     className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
                     style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
                   >
                     {result.name[0].toUpperCase()}
                   </div>
-                  <div>
-                    <p className="font-medium" style={{ color: "#f0eeff" }}>{result.name}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate" style={{ color: "#f0eeff" }}>{result.name}</p>
                     <div className="flex flex-col gap-1 mt-1">
                       {result.matchContext.length > 0 ? (
                         result.matchContext.map((contextItem) => (
@@ -363,7 +363,7 @@ export default function SearchPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                   {result.confessionCount > 0 && (
                     <button
                       type="button"
@@ -375,7 +375,7 @@ export default function SearchPage() {
                           toast.error(message);
                         }
                       }}
-                      className="px-4 py-2 rounded-xl text-xs font-medium"
+                      className="px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto"
                       style={{
                         background: "rgba(244,114,182,0.12)",
                         border: "1px solid rgba(244,114,182,0.18)",
@@ -391,7 +391,7 @@ export default function SearchPage() {
                   )}
                   <Link
                     href={`/dashboard/send?target=${result.id}&name=${encodeURIComponent(result.name)}`}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white flex-shrink-0"
+                    className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white flex-shrink-0 w-full sm:w-auto"
                     style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
                   >
                     Confess
@@ -407,7 +407,7 @@ export default function SearchPage() {
               return (
                 <div
                   key={`${result.id}-insights`}
-                  className="glass rounded-2xl p-5 -mt-1"
+                  className="glass rounded-2xl p-4 sm:p-5 -mt-1"
                 >
                   <h3 className="text-sm font-semibold mb-3" style={{ color: "#f0eeff" }}>
                     Confession insights for {result.name}
