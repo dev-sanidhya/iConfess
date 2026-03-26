@@ -4,7 +4,6 @@ import { motion, Variants } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowRight, Heart, Lock, Zap } from "lucide-react";
-import { formatInr, pricing } from "@/lib/pricing";
 
 const AbstractBackground = dynamic(() => import("@/components/remotion/AbstractBackground"), { ssr: false });
 const ConfessionPlayer = dynamic(() => import("@/components/remotion/ConfessionPlayer"), { ssr: false });
@@ -213,62 +212,6 @@ export default function LandingPage() {
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: "#9b98c8" }}>
                 {f.description}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      <section className="w-full max-w-5xl mb-20 sm:mb-32">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12"
-          style={{ color: "#f0eeff" }}
-        >
-          Pricing <span className="gradient-text">Preview</span>
-        </motion.h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
-          {[
-            {
-              title: "Send a Confession",
-              price: formatInr(pricing.sendConfession),
-              description: "Charged per confession card sent.",
-            },
-            {
-              title: "Read Received Card",
-              price: formatInr(pricing.unlockReceivedConfessionCard),
-              description: "Charged per received confession card.",
-            },
-            {
-              title: "View Insights",
-              price: formatInr(pricing.viewInsights),
-              description: "Covers only confessions available at purchase time.",
-            },
-            {
-              title: "Unlock Received Page",
-              price: formatInr(pricing.unlockReceivedConfessionPage),
-              description: `Unlocks the page for ${pricing.unlockReceivedConfessionPageMonths} months. Cards are separate.`,
-            },
-          ].map((item, i) => (
-            <motion.div
-              key={item.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08, duration: 0.6 }}
-              className="glass rounded-2xl p-6"
-            >
-              <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
-                {item.title}
-              </p>
-              <p className="mt-3 text-3xl font-bold" style={{ color: "#f0eeff" }}>
-                {item.price}
-              </p>
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: "#9b98c8" }}>
-                {item.description}
               </p>
             </motion.div>
           ))}
