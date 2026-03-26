@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Phone, ArrowRight, MessageSquare, AtSign } from "lucide-react";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
@@ -25,6 +25,12 @@ export default function SendConfession({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const categoryFieldsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedCategory) return;
+    categoryFieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedCategory]);
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!message.trim()) { toast.error("Write your confession first"); return; }
@@ -213,6 +219,7 @@ export default function SendConfession({
 
               {selectedCategory && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  ref={categoryFieldsRef}
                   className="flex flex-col gap-3 pt-2 border-t" style={{ borderColor: "#1e1e3f" }}>
                   <p className="text-xs" style={{ color: "#4a4870" }}>
                     Fill in what you know — we&apos;ll match against our database.

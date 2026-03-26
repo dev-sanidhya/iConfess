@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, User, Heart, ArrowRight, Phone, AtSign } from "lucide-react";
 import Link from "next/link";
@@ -48,6 +48,12 @@ export default function SearchPage() {
   const [loadingInsightsFor, setLoadingInsightsFor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const profileFieldsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (mode !== "profile" || !selectedCategory) return;
+    profileFieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [mode, selectedCategory]);
 
   async function runSearch() {
     const params = new URLSearchParams();
@@ -251,7 +257,7 @@ export default function SearchPage() {
               </div>
 
               {selectedCategory && (
-                <div className="flex flex-col gap-3">
+                <div ref={profileFieldsRef} className="flex flex-col gap-3">
                   <p className="text-xs" style={{ color: "#4a4870" }}>
                     Only fill the details you know. Leave the rest blank.
                   </p>

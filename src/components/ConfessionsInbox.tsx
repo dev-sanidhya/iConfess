@@ -142,7 +142,9 @@ function ConfessionCard({
               })}
             </p>
           </div>
-          <span className={`text-xs px-2 py-0.5 rounded-full status-${confession.status.toLowerCase()}`}>
+          <span
+            className={`self-start sm:self-auto text-xs px-2.5 py-1 rounded-full whitespace-nowrap status-${confession.status.toLowerCase()}`}
+          >
             {confession.status.charAt(0) + confession.status.slice(1).toLowerCase()}
           </span>
         </div>
