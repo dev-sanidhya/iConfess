@@ -155,7 +155,7 @@ export default function SendConfession({
               color: flow === f ? "#c084fc" : "#9b98c8",
               border: flow === f ? "1px solid rgba(192,132,252,0.3)" : "1px solid transparent",
             }}>
-            {f === "profile" ? "Find by details" : f === "phone" ? "I have their number" : "Social Media"}
+            {f === "profile" ? "By details" : f === "phone" ? "By phone" : "By Social"}
           </button>
         ))}
       </div>
