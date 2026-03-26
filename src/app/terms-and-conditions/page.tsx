@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/LegalPageShell";
+import { formatInr, pricing } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions | iConfess",
@@ -52,6 +53,12 @@ export default function TermsAndConditionsPage() {
         </h2>
         <p>
           Certain product features may be offered for a fee. Any payment made through the platform is for access to digital product functionality only. Access terms, pricing, and entitlement may change from time to time at the platform&apos;s discretion.
+        </p>
+        <p>
+          The current planned pricing is {formatInr(pricing.sendConfession)} per sent confession card, {formatInr(pricing.unlockReceivedConfessionCard)} per received confession card, {formatInr(pricing.viewInsights)} for profile insights, and {formatInr(pricing.unlockReceivedConfessionPage)} for received confessions page access for {pricing.unlockReceivedConfessionPageMonths} months.
+        </p>
+        <p>
+          Received confessions page access and individual received-card access are separate entitlements. Under the current model, page access expiry may restrict viewing of previously purchased received cards until the page access is renewed.
         </p>
       </section>
 

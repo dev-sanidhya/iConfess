@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Inbox, Lock, MessageSquare, Send, Sparkles } from "lucide-react";
+import { formatInr, getCombinedReceivedUnlockPrice, pricing } from "@/lib/pricing";
 import { toast } from "sonner";
 
 type Confession = {
@@ -157,7 +158,9 @@ function ConfessionCard({
           >
             <Lock className="w-5 h-5 mx-auto mb-2" style={{ color: "#4a4870" }} />
             <p className="text-sm" style={{ color: "#4a4870" }}>
-              {!pageUnlocked ? "Unlock your confession page to read this" : "Unlock this card individually to read"}
+              {!pageUnlocked
+                ? `Unlock your received confessions page for ${pricing.unlockReceivedConfessionPageMonths} months to read this`
+                : "Unlock this card individually to read"}
             </p>
           </div>
         )}
@@ -169,7 +172,7 @@ function ConfessionCard({
             style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
           >
             <Lock className="w-3.5 h-3.5" />
-            Unlock this card (₹Y)
+            {`Unlock this card (${formatInr(pricing.unlockReceivedConfessionCard)})`}
           </button>
         )}
 
@@ -245,6 +248,8 @@ export default function ConfessionsInbox({
   const [receivedItems, setReceivedItems] = useState(receivedConfessions);
   const [sentItems, setSentItems] = useState(sentConfessions);
   const [unlockingPage, setUnlockingPage] = useState(false);
+  const currentReceivedCardCost = pricing.unlockReceivedConfessionCard * receivedItems.length;
+  const combinedReceivedCost = getCombinedReceivedUnlockPrice(receivedItems.length);
 
   const visibleItems = useMemo(
     () => (activeTab === "received" ? receivedItems : sentItems),
@@ -331,10 +336,29 @@ export default function ConfessionsInbox({
             style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
           >
             <Lock className="w-4 h-4" />
-            {unlockingPage ? "Processing..." : "Unlock Page (₹X)"}
+            {unlockingPage ? "Processing..." : `Unlock Page for ${pricing.unlockReceivedConfessionPageMonths} Months (${formatInr(pricing.unlockReceivedConfessionPage)})`}
           </button>
         )}
       </div>
+
+      {!pageUnlocked && activeTab === "received" && (
+        <div
+          className="rounded-2xl p-4 mb-6"
+          style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.15)" }}
+        >
+          <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+            Received confessions pricing
+          </p>
+          <div className="mt-3 flex flex-col gap-1 text-sm" style={{ color: "#f0eeff" }}>
+            <p>{`Page unlock for ${pricing.unlockReceivedConfessionPageMonths} months: ${formatInr(pricing.unlockReceivedConfessionPage)}`}</p>
+            <p>{`${receivedItems.length} card${receivedItems.length === 1 ? "" : "s"} currently in inbox: ${formatInr(currentReceivedCardCost)}`}</p>
+            <p>{`Page + all current cards: ${formatInr(combinedReceivedCost)}`}</p>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed" style={{ color: "#9b98c8" }}>
+            You can unlock only the page first, or later pay separately for individual cards. Under the current model, page access expires after {pricing.unlockReceivedConfessionPageMonths} months and must be renewed to view received cards again, even if those cards were purchased earlier.
+          </p>
+        </div>
+      )}
 
       <div
         className="grid grid-cols-2 gap-1 p-1 rounded-xl mb-6 w-full sm:w-fit"
@@ -385,7 +409,7 @@ export default function ConfessionsInbox({
         >
           <Heart className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#c084fc" }} />
           <p className="text-xs leading-relaxed" style={{ color: "#9b98c8" }}>
-            Unlock the received tab to read anonymous messages and reply. Sent confessions remain visible without the page unlock.
+            Unlock the received tab for {formatInr(pricing.unlockReceivedConfessionPage)} for {pricing.unlockReceivedConfessionPageMonths} months. Individual received cards are priced separately at {formatInr(pricing.unlockReceivedConfessionCard)} each. Sent confessions remain visible without the page unlock.
           </p>
         </div>
       )}

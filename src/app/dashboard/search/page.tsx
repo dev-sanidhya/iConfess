@@ -6,6 +6,7 @@ import { Search, User, Heart, ArrowRight, Phone, AtSign } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
+import { formatInr, pricing } from "@/lib/pricing";
 
 type SearchMode = "profile" | "phone" | "social";
 
@@ -118,6 +119,21 @@ export default function SearchPage() {
         <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>Search</h1>
         <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
           Search by phone, profile details, or social handle.
+        </p>
+      </div>
+
+      <div
+        className="rounded-2xl p-4 mb-6"
+        style={{ background: "rgba(244,114,182,0.08)", border: "1px solid rgba(244,114,182,0.15)" }}
+      >
+        <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#8d5f78" }}>
+          Insights pricing
+        </p>
+        <p className="mt-2 text-sm sm:text-base" style={{ color: "#f0eeff" }}>
+          View profile insights for {formatInr(pricing.viewInsights)}.
+        </p>
+        <p className="mt-1 text-xs leading-relaxed" style={{ color: "#9b98c8" }}>
+          This purchase only covers confessions available at that moment. If newer confessions arrive later, those new items will be locked again and require another insights unlock.
         </p>
       </div>
 
@@ -386,7 +402,7 @@ export default function SearchPage() {
                         ? "Loading..."
                         : result.hasUnlockedInsights
                           ? "View insights"
-                          : "View confessions (₹X)"}
+                          : `View insights (${formatInr(pricing.viewInsights)})`}
                     </button>
                   )}
                   <Link
@@ -394,7 +410,7 @@ export default function SearchPage() {
                     className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white flex-shrink-0 w-full sm:w-auto"
                     style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
                   >
-                    Confess
+                    {`Confess (${formatInr(pricing.sendConfession)})`}
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/LegalPageShell";
+import { formatInr, pricing } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Refund & Cancellation | iConfess",
@@ -18,6 +19,9 @@ export default function RefundAndCancellationPage() {
         </h2>
         <p>
           iConfess provides digital services and feature unlocks. Since these are intangible and electronically delivered, cancellations and refunds are generally limited once access or delivery has been initiated.
+        </p>
+        <p>
+          This includes digital purchases such as {formatInr(pricing.sendConfession)} confession sends, {formatInr(pricing.unlockReceivedConfessionCard)} received-card unlocks, {formatInr(pricing.viewInsights)} insights unlocks, and {formatInr(pricing.unlockReceivedConfessionPage)} received-page access for {pricing.unlockReceivedConfessionPageMonths} months.
         </p>
       </section>
 

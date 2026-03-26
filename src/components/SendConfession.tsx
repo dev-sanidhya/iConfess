@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Phone, ArrowRight, MessageSquare, AtSign } from "lucide-react";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
+import { formatInr, pricing } from "@/lib/pricing";
 import { toast } from "sonner";
 
 type FlowType = "profile" | "phone" | "social";
@@ -24,8 +25,6 @@ export default function SendConfession({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const isFree = sentCount === 0;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!message.trim()) { toast.error("Write your confession first"); return; }
@@ -67,7 +66,7 @@ export default function SendConfession({
 
       if (data.requiresPayment) {
         // Razorpay will be integrated — for now show a toast
-        toast.info("Payment required. Razorpay coming soon.");
+          toast.info(`Payment required: ${formatInr(pricing.sendConfession)}. Razorpay coming soon.`);
       } else {
         setSent(true);
         toast.success(data.matchFound ? "Confession delivered!" : "Confession queued — we'll notify you when matched.");
@@ -121,7 +120,19 @@ export default function SendConfession({
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>Send a Confession</h1>
         <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
-          {isFree ? "Your first confession is free." : "Additional confessions are charged (₹X)."}
+          Each confession card is priced at {formatInr(pricing.sendConfession)}. Payment integration will be enabled once the gateway is approved.
+        </p>
+      </div>
+
+      <div
+        className="rounded-2xl p-4 mb-6"
+        style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.15)" }}
+      >
+        <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+          Current sending price
+        </p>
+        <p className="mt-2 text-xl font-semibold" style={{ color: "#f0eeff" }}>
+          {formatInr(pricing.sendConfession)} per confession card
         </p>
       </div>
 
@@ -307,7 +318,7 @@ export default function SendConfession({
           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-all"
           style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}>
           <Send className="w-4 h-4" />
-          {loading ? "Sending…" : isFree ? "Send Confession (Free)" : "Send Confession (₹X)"}
+          {loading ? "Sending…" : `Send Confession (${formatInr(pricing.sendConfession)})`}
           <ArrowRight className="w-4 h-4" />
         </button>
       </form>

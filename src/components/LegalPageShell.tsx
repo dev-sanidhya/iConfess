@@ -8,6 +8,7 @@ type LegalPageShellProps = {
 };
 
 const legalLinks = [
+  { href: "/pricing", label: "Pricing" },
   { href: "/terms-and-conditions", label: "Terms & Conditions" },
   { href: "/privacy-policy", label: "Privacy Policy" },
   { href: "/refund-and-cancellation", label: "Refund & Cancellation" },
