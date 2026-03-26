@@ -1,5 +1,43 @@
 import { prisma } from "@/lib/prisma";
 
+export const indianCourseOptions = [
+  "B.Tech",
+  "B.E.",
+  "B.Arch",
+  "B.Plan",
+  "BCA",
+  "B.Sc",
+  "B.Sc (Hons)",
+  "B.Com",
+  "B.Com (Hons)",
+  "BA",
+  "BA (Hons)",
+  "BBA",
+  "BMS",
+  "B.Des",
+  "BFA",
+  "B.Pharm",
+  "BPT",
+  "BHM",
+  "B.Ed",
+  "LLB",
+  "Integrated B.Tech + M.Tech",
+  "Integrated MBA",
+  "Integrated Law",
+  "M.Tech",
+  "M.E.",
+  "MBA",
+  "MCA",
+  "M.Sc",
+  "M.Com",
+  "MA",
+  "M.Des",
+  "M.Pharm",
+  "M.Plan",
+  "M.Arch",
+  "PhD",
+] as const;
+
 export type LocationCategory =
   | "COLLEGE"
   | "SCHOOL"
@@ -14,7 +52,7 @@ export const locationFields: Record<
   COLLEGE: [
     { key: "collegeName", label: "College Name" },
     { key: "pinCode", label: "Pin Code" },
-    { key: "course", label: "Course (e.g. B.Tech)" },
+    { key: "course", label: "Course", options: [...indianCourseOptions] },
     { key: "branch", label: "Branch (e.g. CSE)" },
     { key: "yearOfPassing", label: "Year of Passing", type: "number" },
     { key: "section", label: "Section" },

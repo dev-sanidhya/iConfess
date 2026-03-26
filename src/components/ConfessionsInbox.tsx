@@ -23,10 +23,18 @@ type Confession = {
   isUnlocked: boolean;
   counterpartAnonymousId: string;
   counterpartName: string | null;
+  counterpartGender: "MALE" | "FEMALE" | "OTHER" | null;
   counterpartContext: string | null;
 };
 
 type TabKey = "received" | "sent";
+
+function formatGenderLabel(gender: "MALE" | "FEMALE" | "OTHER" | null) {
+  if (!gender) return null;
+  if (gender === "MALE") return "Male";
+  if (gender === "FEMALE") return "Female";
+  return "Other";
+}
 
 function EmptyState({ tab }: { tab: TabKey }) {
   return (
@@ -70,6 +78,7 @@ function ConfessionCard({
     : isReceived
       ? "Anonymous sender"
       : "Anonymous recipient";
+  const previewGender = isReceived && !confession.revealedAt ? formatGenderLabel(confession.counterpartGender) : null;
 
   async function submitReply(e: React.FormEvent) {
     e.preventDefault();
@@ -132,6 +141,11 @@ function ConfessionCard({
             {identityMeta && (
               <p className="text-xs mt-1" style={{ color: "#9b98c8" }}>
                 {identityMeta}
+              </p>
+            )}
+            {previewGender && (
+              <p className="text-xs mt-1" style={{ color: "#c084fc" }}>
+                Sender gender: {previewGender}
               </p>
             )}
             <p className="text-xs" style={{ color: "#4a4870" }}>

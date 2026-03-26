@@ -57,6 +57,7 @@ export default async function ConfessionsPage() {
           select: {
             id: true,
             name: true,
+            gender: true,
             college: { select: { collegeName: true, course: true, branch: true, yearOfPassing: true } },
             school: { select: { schoolName: true, board: true, yearOfCompletion: true } },
             workplace: { select: { companyName: true, department: true, city: true, buildingName: true } },
@@ -74,6 +75,7 @@ export default async function ConfessionsPage() {
           select: {
             id: true,
             name: true,
+            gender: true,
             college: { select: { collegeName: true, course: true, branch: true, yearOfPassing: true } },
             school: { select: { schoolName: true, board: true, yearOfCompletion: true } },
             workplace: { select: { companyName: true, department: true, city: true, buildingName: true } },
@@ -102,6 +104,7 @@ export default async function ConfessionsPage() {
     isUnlocked: c.unlockedBy.length > 0,
     counterpartAnonymousId: buildAnonymousId(c.sender.id),
     counterpartName: c.revealedAt ? c.sender.name : null,
+    counterpartGender: c.sender.gender,
     counterpartContext: c.revealedAt ? buildLocationContext(c.location, c.sender) : null,
   }));
 
@@ -122,6 +125,7 @@ export default async function ConfessionsPage() {
     isUnlocked: true,
     counterpartAnonymousId: c.targetId ? buildAnonymousId(c.targetId) : buildAnonymousId(c.id),
     counterpartName: c.revealedAt ? c.target?.name ?? null : null,
+    counterpartGender: c.target?.gender ?? null,
     counterpartContext: c.revealedAt ? buildLocationContext(c.location, c.target) : null,
   }));
 
