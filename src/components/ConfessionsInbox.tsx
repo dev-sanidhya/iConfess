@@ -130,8 +130,8 @@ function ConfessionCard({
       )}
 
       <div className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-medium" style={{ color: "#f0eeff" }}>
               {isReceived ? "From" : "To"}
             </p>
@@ -157,7 +157,7 @@ function ConfessionCard({
             </p>
           </div>
           <span
-            className={`self-start sm:self-auto text-xs px-2.5 py-1 rounded-full whitespace-nowrap status-${confession.status.toLowerCase()}`}
+            className={`mt-0.5 flex-shrink-0 text-xs px-2.5 py-1 rounded-full whitespace-nowrap status-${confession.status.toLowerCase()}`}
           >
             {confession.status.charAt(0) + confession.status.slice(1).toLowerCase()}
           </span>
