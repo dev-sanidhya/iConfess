@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { AtSign, Lock, Pencil, Phone, Save, Shield, User, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, AtSign, Lock, Pencil, Phone, PlusCircle, Save, Shield, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 import { maskPhone } from "@/lib/utils";
+import { formatInr, pricing } from "@/lib/pricing";
 
 type UserProfile = {
   id: string;
@@ -13,7 +14,6 @@ type UserProfile = {
   phone: string;
   gender: "MALE" | "FEMALE" | "OTHER";
   primaryCategory: LocationCategory;
-  username: string | null;
   instagramHandle: string | null;
   snapchatHandle: string | null;
   college: {
@@ -37,7 +37,6 @@ type UserProfile = {
     companyName: string;
     department: string;
     city: string;
-    buildingName: string;
     fullName: string;
   } | null;
   gym: {
@@ -98,7 +97,6 @@ function getProfileDetailsByCategory(user: UserProfile): Partial<Record<Location
             companyName: user.workplace.companyName,
             department: user.workplace.department,
             city: user.workplace.city,
-            buildingName: user.workplace.buildingName,
           },
         }
       : {}),
@@ -154,13 +152,64 @@ function SummaryCard({
   );
 }
 
+function CompactPlaceCard({
+  title,
+  summary,
+  meta,
+  isPrimary,
+}: {
+  title: string;
+  summary: string;
+  meta: string[];
+  isPrimary: boolean;
+}) {
+  return (
+    <div className="glass rounded-2xl p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-semibold text-sm" style={{ color: "#f0eeff" }}>{title}</h3>
+          <p className="text-base sm:text-lg mt-2 leading-snug break-words" style={{ color: "#c7c3ee" }}>
+            {summary}
+          </p>
+        </div>
+        <span
+          className="text-[10px] px-2.5 py-1 rounded-full whitespace-nowrap"
+          style={{
+            background: isPrimary ? "rgba(244,114,182,0.18)" : "rgba(124,58,237,0.18)",
+            color: isPrimary ? "#f472b6" : "#c084fc",
+          }}
+        >
+          {isPrimary ? "Primary" : "Additional"}
+        </span>
+      </div>
+
+      {meta.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-4">
+          {meta.map((item) => (
+            <span
+              key={`${title}-${item}`}
+              className="text-[11px] px-2.5 py-1 rounded-full"
+              style={{
+                background: "rgba(30,30,63,0.3)",
+                border: "1px solid rgba(192,132,252,0.12)",
+                color: "#9b98c8",
+              }}
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProfilePage({ user }: { user: UserProfile }) {
   const shortId = user.id.slice(-8).toUpperCase();
   const initialSelectedCategories = useMemo(() => getSelectedCategories(user), [user]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user.name);
-  const [username, setUsername] = useState(user.username ?? "");
   const [instagramHandle, setInstagramHandle] = useState(user.instagramHandle ?? "NA Handle");
   const [snapchatHandle, setSnapchatHandle] = useState(user.snapchatHandle ?? "NA Handle");
   const [primaryCategory, setPrimaryCategory] = useState<LocationCategory>(user.primaryCategory);
@@ -169,6 +218,12 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
     Partial<Record<LocationCategory, Record<string, string>>>
   >(getProfileDetailsByCategory(user));
   const [saving, setSaving] = useState(false);
+  const [pendingSelfClaimId, setPendingSelfClaimId] = useState<string | null>(null);
+  const [processingSelfClaim, setProcessingSelfClaim] = useState(false);
+  const missingCategories = useMemo(
+    () => locationCategories.filter((category) => !selectedCategories.includes(category.id)),
+    [selectedCategories]
+  );
 
   const summarySections = useMemo(() => {
     const sections: { title: string; values: { label: string; value: string }[] }[] = [
@@ -176,7 +231,6 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         title: "Identity",
         values: [
           { label: "Full Name", value: name },
-          { label: "Username", value: username || "Not set" },
           { label: "Gender", value: toLabel(user.gender) },
           { label: "Phone", value: maskPhone(user.phone) },
         ],
@@ -184,8 +238,8 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
       {
         title: "Social Handles",
         values: [
-          { label: "Instagram", value: instagramHandle || "NA Handle" },
-          { label: "Snapchat", value: snapchatHandle || "NA Handle" },
+          { label: "Instagram", value: instagramHandle || "NA" },
+          { label: "Snapchat", value: snapchatHandle || "NA" },
         ],
       },
     ];
@@ -208,7 +262,37 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
     });
 
     return sections;
-  }, [instagramHandle, name, primaryCategory, profileDetailsByCategory, selectedCategories, snapchatHandle, user.gender, user.phone, username]);
+  }, [instagramHandle, name, primaryCategory, profileDetailsByCategory, selectedCategories, snapchatHandle, user.gender, user.phone]);
+
+  const compactPlaceSections = useMemo(() => {
+    return selectedCategories.map((category) => {
+      const details = profileDetailsByCategory[category] ?? {};
+      const mainPartsByCategory: Record<LocationCategory, string[]> = {
+        COLLEGE: [details.collegeName, details.course, details.branch, details.yearOfPassing],
+        SCHOOL: [details.schoolName, details.board, details.yearOfCompletion],
+        WORKPLACE: [details.companyName, details.department, details.city],
+        GYM: [details.gymName, details.city, details.timing],
+        NEIGHBOURHOOD: [details.premisesName, details.city, details.homeNumber],
+      };
+      const metaPartsByCategory: Record<LocationCategory, string[]> = {
+        COLLEGE: [details.pinCode ? `PIN ${details.pinCode}` : "", details.section ? `Section ${details.section}` : ""],
+        SCHOOL: [details.pinCode ? `PIN ${details.pinCode}` : "", details.section ? `Section ${details.section}` : ""],
+        WORKPLACE: [],
+        GYM: [details.pinCode ? `PIN ${details.pinCode}` : ""],
+        NEIGHBOURHOOD: [
+          details.state ? `State ${details.state}` : "",
+          details.pinCode ? `PIN ${details.pinCode}` : "",
+        ],
+      };
+
+      return {
+        title: locationCategories.find((item) => item.id === category)?.label ?? category,
+        summary: mainPartsByCategory[category].filter(Boolean).join(" · ") || "Details not provided",
+        meta: metaPartsByCategory[category].filter(Boolean),
+        isPrimary: primaryCategory === category,
+      };
+    });
+  }, [primaryCategory, profileDetailsByCategory, selectedCategories]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -228,7 +312,6 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          username,
           instagramHandle,
           snapchatHandle,
           primaryCategory,
@@ -240,11 +323,38 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
       if (!res.ok) throw new Error(data.error);
 
       toast.success("Profile updated");
+      if (Array.isArray(data.convertedIds) && data.convertedIds.length > 0) {
+        toast.success(`${data.convertedIds.length} pending confession${data.convertedIds.length === 1 ? "" : "s"} moved into your received inbox as Confession to Yourself.`);
+      }
+      if (Array.isArray(data.paymentRequiredIds) && data.paymentRequiredIds.length > 0) {
+        setPendingSelfClaimId(data.paymentRequiredIds[0]);
+      }
       setIsEditing(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update profile");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSelfClaimPayment() {
+    if (!pendingSelfClaimId) return;
+
+    setProcessingSelfClaim(true);
+    try {
+      const res = await fetch("/api/payments/self-confession", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confessionId: pendingSelfClaimId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success("This confession has been converted to Confession to Yourself.");
+      setPendingSelfClaimId(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to process payment");
+    } finally {
+      setProcessingSelfClaim(false);
     }
   }
 
@@ -259,9 +369,6 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>Profile</h1>
-            <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
-              {isEditing ? "Edit your identity, handles, and searchable places." : "View your saved details in a compact summary."}
-            </p>
           </div>
           <button
             type="button"
@@ -274,7 +381,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
             }}
           >
             {isEditing ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
-            {isEditing ? "Close Edit" : "Edit Profile"}
+            {isEditing ? "Close Edit" : "Edit"}
           </button>
         </div>
       </motion.div>
@@ -299,7 +406,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
               style={{
                 background: "rgba(124,58,237,0.15)",
                 color: "#c084fc",
-                border: "1px solid rgba(124,58,237,0.2)",
+                border: "1px solid rgba(192,132,252,0.2)",
               }}
             >
               #{shortId}
@@ -316,14 +423,66 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
 
       {!isEditing ? (
         <div className="flex flex-col gap-4">
-          {summarySections.map((section) => (
+          {summarySections.slice(0, 2).map((section) => (
             <SummaryCard key={section.title} title={section.title} values={section.values} />
           ))}
+          {compactPlaceSections.map((section) => (
+            <CompactPlaceCard
+              key={section.title}
+              title={section.title}
+              summary={section.summary}
+              meta={section.meta}
+              isPrimary={section.isPrimary}
+            />
+          ))}
+
+          {missingCategories.length > 0 && (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.16, duration: 0.5 }}
+              onClick={() => setIsEditing(true)}
+              className="w-full rounded-2xl p-4 sm:p-5 text-left transition-all"
+              style={{
+                background: "linear-gradient(135deg, rgba(124,58,237,0.14) 0%, rgba(14,165,233,0.08) 100%)",
+                border: "1px solid rgba(192,132,252,0.22)",
+              }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PlusCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#c084fc" }} />
+                    <p className="text-xs uppercase tracking-[0.16em]" style={{ color: "#9b98c8" }}>
+                      Complete Your Profile
+                    </p>
+                  </div>
+                  <p className="text-sm sm:text-base font-medium leading-relaxed" style={{ color: "#f0eeff" }}>
+                    Add your remaining {missingCategories.length === 1 ? "field" : "fields"}:
+                    {" "}
+                    <span style={{ color: "#c084fc" }}>
+                      {missingCategories.map((category) => category.label).join(", ")}
+                    </span>
+                  </p>
+                  <p className="text-xs mt-2 leading-relaxed" style={{ color: "#9b98c8" }}>
+                    Tap here to open profile editing and add these searchable places.
+                  </p>
+                </div>
+                <div
+                  className="flex items-center gap-2 rounded-xl px-3 py-2 flex-shrink-0"
+                  style={{ background: "rgba(124,58,237,0.14)", color: "#c084fc" }}
+                >
+                  <span className="text-xs font-medium hidden sm:inline">Add details</span>
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            </motion.button>
+          )}
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+            transition={{ delay: 0.22, duration: 0.5 }}
             className="rounded-2xl p-4 flex items-start gap-3"
             style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.15)" }}
           >
@@ -339,7 +498,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
           >
             <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#f472b6" }} />
             <p className="text-xs leading-relaxed" style={{ color: "#9b98c8" }}>
-              Username and social handles must stay unique. Gender is fixed after signup, and phone changes must go through OTP verification.
+              Social handles must stay unique. Gender is fixed after signup, and phone changes must go through OTP verification.
             </p>
           </div>
         </div>
@@ -367,18 +526,9 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                 className="w-full px-4 py-2.5 rounded-xl text-sm border opacity-70"
                 style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
               />
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                placeholder="Username"
-                className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
-                required
-              />
             </div>
             <p className="text-xs mt-2" style={{ color: "#4a4870" }}>
-              Gender is fixed after signup and cannot be changed from profile editing.
+              Your sign-in phone number and gender cannot be changed directly from profile editing.
             </p>
           </div>
 
@@ -392,7 +542,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                 type="text"
                 value={instagramHandle}
                 onChange={(e) => setInstagramHandle(e.target.value)}
-                placeholder="Instagram handle or NA Handle"
+                placeholder="Instagram handle or NA"
                 className="w-full px-4 py-2.5 rounded-xl text-sm border"
                 style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
                 required
@@ -401,7 +551,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                 type="text"
                 value={snapchatHandle}
                 onChange={(e) => setSnapchatHandle(e.target.value)}
-                placeholder="Snapchat handle or NA Handle"
+                placeholder="Snapchat handle or NA"
                 className="w-full px-4 py-2.5 rounded-xl text-sm border"
                 style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
                 required
@@ -574,6 +724,62 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
           </button>
         </form>
       )}
+      <AnimatePresence>
+        {pendingSelfClaimId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 overflow-y-auto px-4 pt-24 pb-4 sm:px-6 sm:pt-8 sm:pb-8"
+            style={{ background: "rgba(4, 3, 14, 0.72)" }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              className="mx-auto my-4 w-full max-w-xl rounded-3xl p-6 sm:my-0 sm:p-7"
+              style={{ background: "linear-gradient(180deg, #16132b 0%, #0f0c22 100%)", border: "1px solid rgba(192,132,252,0.2)" }}
+            >
+              <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+                Pay To Claim This As Yours
+              </h2>
+              <div
+                className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
+                style={{ background: "rgba(30,30,63,0.32)", border: "1px solid rgba(192,132,252,0.12)" }}
+              >
+                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                  These details match one of your pending confession cards, so this card is now treated as a Confession to Yourself.
+                </p>
+                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                  This specific card was originally your free first confession to someone else, so it cannot be claimed as yours until you pay {formatInr(pricing.sendConfession)}.
+                </p>
+                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                  Once paid, it will move into your Received section, stay locked like a normal received card, and stop counting as a confession sent to others.
+                </p>
+              </div>
+              <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingSelfClaimId(null)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium"
+                  style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #2a2650", color: "#b6b2db" }}
+                >
+                  Later
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelfClaimPayment}
+                  disabled={processingSelfClaim}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                >
+                  {processingSelfClaim ? "Processing..." : `Pay ${formatInr(pricing.sendConfession)}`}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

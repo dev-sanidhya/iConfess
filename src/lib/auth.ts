@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 
@@ -24,17 +25,32 @@ export async function getSession() {
   if (!token) return null;
   const payload = verifyToken(token);
   if (!payload) return null;
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
-    include: {
-      college: true,
-      school: true,
-      workplace: true,
-      gym: true,
-      neighbourhood: true,
-    },
-  });
-  return user;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      include: {
+        college: true,
+        school: true,
+        workplace: true,
+        gym: true,
+        neighbourhood: true,
+      },
+    });
+
+    return user;
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientInitializationError ||
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientUnknownRequestError
+    ) {
+      console.error("Failed to load session from database.", error);
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 export function generateOtp(): string {
