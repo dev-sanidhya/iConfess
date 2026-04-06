@@ -2,10 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, User, Heart, ArrowRight, Phone, AtSign } from "lucide-react";
+import { Search, User, Heart, ArrowRight, Phone, AtSign, Lock } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
+import {
+  locationCategories,
+  locationFields,
+  type LocationCategory,
+  type SearchResultProfileSection,
+} from "@/lib/matching";
 import { formatInr, pricing } from "@/lib/pricing";
 
 type SearchMode = "profile" | "phone" | "social";
@@ -13,14 +18,18 @@ type SearchMode = "profile" | "phone" | "social";
 type SearchResult = {
   id: string;
   name: string;
-  username: string | null;
   instagramHandle: string | null;
   snapchatHandle: string | null;
   primaryCategory: string;
   gender: "MALE" | "FEMALE" | "OTHER";
   matchContext: string[];
+  isCurrentUser: boolean;
+  confessionPageUnlocked: boolean;
   confessionCount: number;
   hasUnlockedInsights: boolean;
+  unlockedInsightCount: number;
+  lockedInsightCount: number;
+  profileSections: SearchResultProfileSection[];
   college: string | null;
   school: string | null;
   workplace: string | null;
@@ -30,11 +39,111 @@ type SearchResult = {
 
 type ProfileInsight = {
   id: string;
+  isUnlocked: boolean;
   sender: {
-    primaryCategory: string;
-    organizationName: string | null;
+    category: string;
+    details: Array<{
+      label: string;
+      value: string;
+    }>;
   };
 };
+
+type SearchDetailField = {
+  key: string;
+  label: string;
+  type?: string;
+  options?: string[];
+  required?: boolean;
+};
+
+const searchDetailFields: Record<LocationCategory, SearchDetailField[]> = {
+  COLLEGE: [
+    { key: "collegeName", label: "College Name (e.g. VIPS)", required: true },
+    { key: "pinCode", label: "College Pin Code" },
+    { key: "course", label: "Course", options: locationFields.COLLEGE.find((field) => field.key === "course")?.options ?? [] },
+    { key: "yearOfPassing", label: "Year of Passing (Graduation Year)", type: "number" },
+    { key: "branch", label: "Branch (e.g. CSE)" },
+    { key: "section", label: "Section" },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+  SCHOOL: [
+    { key: "schoolName", label: "School Name (e.g. KIS)", required: true },
+    { key: "pinCode", label: "School Pin Code", required: true },
+    { key: "board", label: "Board", options: locationFields.SCHOOL.find((field) => field.key === "board")?.options ?? [] },
+    { key: "yearOfCompletion", label: "School graduation year (completed or expected)", type: "number" },
+    { key: "section", label: "Section" },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+  WORKPLACE: [
+    { key: "companyName", label: "Company Name", required: true },
+    { key: "city", label: "City", required: true },
+    { key: "department", label: "Department" },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+  GYM: [
+    { key: "gymName", label: "Gym Name", required: true },
+    { key: "pinCode", label: "Gym Pin Code", required: true },
+    { key: "timing", label: "Timing", options: locationFields.GYM.find((field) => field.key === "timing")?.options ?? [] },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+  NEIGHBOURHOOD: [
+    { key: "state", label: "State", required: true },
+    { key: "city", label: "City", required: true },
+    { key: "pinCode", label: "Pin Code", required: true },
+    { key: "homeNumber", label: "House Number" },
+    { key: "premisesName", label: "Society / Premises Name" },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+};
+
+function getConciseCategorySummary(section: SearchResultProfileSection) {
+  const detailMap = Object.fromEntries(section.details.map((detail) => [detail.label, detail.value]));
+
+  if (section.key === "COLLEGE") {
+    return [
+      detailMap["College Name"],
+      detailMap["Course"],
+      detailMap["Branch"],
+      detailMap["Year of Passing"],
+    ].filter(Boolean).join(" · ");
+  }
+
+  if (section.key === "SCHOOL") {
+    return [
+      detailMap["School Name"],
+      detailMap["Board"],
+      detailMap["Year of Completion"],
+    ].filter(Boolean).join(" · ");
+  }
+
+  if (section.key === "WORKPLACE") {
+    return [
+      detailMap["Company Name"],
+      detailMap["Department"],
+      detailMap["City"],
+    ].filter(Boolean).join(" · ");
+  }
+
+  if (section.key === "GYM") {
+    return [
+      detailMap["Gym Name"],
+      detailMap["City"],
+      detailMap["Timing"],
+    ].filter(Boolean).join(" · ");
+  }
+
+  return [
+    detailMap["Society / Premises Name"],
+    detailMap["City"],
+    detailMap["Home Number"],
+  ].filter(Boolean).join(" · ");
+}
 
 export default function SearchPage() {
   const [mode, setMode] = useState<SearchMode>("profile");
@@ -46,14 +155,22 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [insightsByUser, setInsightsByUser] = useState<Record<string, ProfileInsight[]>>({});
   const [loadingInsightsFor, setLoadingInsightsFor] = useState<string | null>(null);
+  const [pendingInsightUnlock, setPendingInsightUnlock] = useState<SearchResult | null>(null);
+  const [viewerSentCount, setViewerSentCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const profileFieldsRef = useRef<HTMLDivElement | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (mode !== "profile" || !selectedCategory) return;
     profileFieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [mode, selectedCategory]);
+
+  useEffect(() => {
+    if (!searched || results.length === 0) return;
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [results, searched]);
 
   async function runSearch() {
     const params = new URLSearchParams();
@@ -73,6 +190,12 @@ export default function SearchPage() {
 
     if (mode === "profile") {
       if (!selectedCategory) return;
+      for (const field of searchDetailFields[selectedCategory]) {
+        if (field.required && !profileDetails[field.key]?.trim()) {
+          toast.error(`${field.label} is required`);
+          return;
+        }
+      }
       params.set("mode", "profile");
       params.set("location", selectedCategory);
       for (const [key, value] of Object.entries(profileDetails)) {
@@ -85,6 +208,7 @@ export default function SearchPage() {
       const res = await fetch(`/api/users/search?${params.toString()}`);
       const data = await res.json();
       setResults(data.results || []);
+      setViewerSentCount(data.viewerSentCount ?? 0);
       setSearched(true);
     } finally {
       setLoading(false);
@@ -103,7 +227,14 @@ export default function SearchPage() {
         const unlockData = await unlockRes.json();
         if (!unlockRes.ok) throw new Error(unlockData.error);
         setResults((current) => current.map((result) => (
-          result.id === targetUserId ? { ...result, hasUnlockedInsights: true } : result
+          result.id === targetUserId
+            ? {
+                ...result,
+                hasUnlockedInsights: true,
+                unlockedInsightCount: result.unlockedInsightCount + result.lockedInsightCount,
+                lockedInsightCount: 0,
+              }
+            : result
         )));
       }
 
@@ -111,6 +242,16 @@ export default function SearchPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setInsightsByUser((current) => ({ ...current, [targetUserId]: data.insights ?? [] }));
+      setResults((current) => current.map((result) => (
+        result.id === targetUserId
+          ? {
+              ...result,
+              hasUnlockedInsights: (data.unlockedInsightCount ?? 0) > 0,
+              unlockedInsightCount: data.unlockedInsightCount ?? 0,
+              lockedInsightCount: data.lockedInsightCount ?? 0,
+            }
+          : result
+      )));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load insights";
       throw new Error(message);
@@ -119,28 +260,36 @@ export default function SearchPage() {
     }
   }
 
+  async function handleInsightAccess(result: SearchResult) {
+    if (result.hasUnlockedInsights) {
+      try {
+        await loadInsights(result.id, true);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load insights";
+        toast.error(message);
+      }
+      return;
+    }
+
+    setPendingInsightUnlock(result);
+  }
+
+  async function confirmInsightUnlock() {
+    if (!pendingInsightUnlock) return;
+
+    try {
+      await loadInsights(pendingInsightUnlock.id, false);
+      setPendingInsightUnlock(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load insights";
+      toast.error(message);
+    }
+  }
+
   return (
     <div className="py-2 max-w-2xl">
-      <div className="mb-8">
+      <div className="mb-5">
         <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>Search</h1>
-        <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
-          Search by phone, profile details, or social handle.
-        </p>
-      </div>
-
-      <div
-        className="rounded-2xl p-4 mb-6"
-        style={{ background: "rgba(244,114,182,0.08)", border: "1px solid rgba(244,114,182,0.15)" }}
-      >
-        <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#8d5f78" }}>
-          Insights pricing
-        </p>
-        <p className="mt-2 text-sm sm:text-base" style={{ color: "#f0eeff" }}>
-          View profile insights for {formatInr(pricing.viewInsights)}.
-        </p>
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: "#9b98c8" }}>
-          This purchase only covers confessions available at that moment. If newer confessions arrive later, those new items will be locked again and require another insights unlock.
-        </p>
       </div>
 
       <div
@@ -157,7 +306,7 @@ export default function SearchPage() {
             }}
             className="px-5 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
-              background: mode === entryMode ? "rgba(124,58,237,0.3)" : "transparent",
+              background: mode === entryMode ? "rgba(192,132,252,0.3)" : "transparent",
               color: mode === entryMode ? "#c084fc" : "#9b98c8",
               border: mode === entryMode ? "1px solid rgba(192,132,252,0.3)" : "1px solid transparent",
             }}
@@ -208,7 +357,7 @@ export default function SearchPage() {
                     onClick={() => setPlatform(value)}
                     className="px-4 py-2 rounded-lg text-sm"
                     style={{
-                      background: platform === value ? "rgba(124,58,237,0.3)" : "rgba(30,30,63,0.3)",
+                      background: platform === value ? "rgba(192,132,252,0.3)" : "rgba(30,30,63,0.3)",
                       color: platform === value ? "#c084fc" : "#9b98c8",
                       border: `1px solid ${platform === value ? "rgba(192,132,252,0.3)" : "#1e1e3f"}`,
                     }}
@@ -261,24 +410,10 @@ export default function SearchPage() {
                   <p className="text-xs" style={{ color: "#4a4870" }}>
                     Only fill the details you know. Leave the rest blank.
                   </p>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={profileDetails.fullName || ""}
-                      onChange={(e) =>
-                        setProfileDetails((current) => ({ ...current, fullName: e.target.value }))
-                      }
-                      className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                      style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
-                    />
-                  </div>
-                  {locationFields[selectedCategory].map((field) => (
+                  {searchDetailFields[selectedCategory].map((field) => (
                     <div key={field.key}>
                       <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>
-                        {field.label}
+                        {field.label}{field.required ? " *" : ""}
                       </label>
                       {field.options ? (
                         <select
@@ -288,6 +423,7 @@ export default function SearchPage() {
                           }
                           className="w-full px-4 py-2.5 rounded-xl text-sm border"
                           style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                          required={field.required}
                         >
                           <option value="">Select…</option>
                           {field.options.map((option) => (
@@ -305,6 +441,7 @@ export default function SearchPage() {
                           }
                           className="w-full px-4 py-2.5 rounded-xl text-sm border"
                           style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                          required={field.required}
                         />
                       )}
                     </div>
@@ -344,6 +481,7 @@ export default function SearchPage() {
         {results.length > 0 && (
           <motion.div
             key="results"
+            ref={resultsRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -355,116 +493,237 @@ export default function SearchPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass glass-hover rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                className="glass glass-hover rounded-2xl p-4 sm:p-5"
               >
-                <div className="flex items-center gap-4 min-w-0">
-                  <div
-                    className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                    style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
-                  >
-                    {result.name[0].toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium truncate" style={{ color: "#f0eeff" }}>{result.name}</p>
-                    <div className="flex flex-col gap-1 mt-1">
-                      {result.matchContext.length > 0 ? (
-                        result.matchContext.map((contextItem) => (
-                          <p key={contextItem} className="text-xs" style={{ color: "#4a4870" }}>
-                            {contextItem}
+                {(() => {
+                  const selectedSection =
+                    mode === "profile" && selectedCategory
+                      ? result.profileSections.find((section) => section.key === selectedCategory) ?? null
+                      : null;
+                  const insights = insightsByUser[result.id];
+                  const confessPriceLabel = viewerSentCount === 0 ? 'Free' : formatInr(pricing.sendConfession);
+                  const insightButtonLabel =
+                    result.hasUnlockedInsights
+                      ? result.lockedInsightCount > 0
+                        ? `View insights (${result.lockedInsightCount} new locked)`
+                        : "View insights"
+                      : `View insights (${formatInr(pricing.viewInsights)})`;
+                  const shouldHideSelfConfessionCount = result.isCurrentUser && !result.confessionPageUnlocked;
+
+                  return (
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div
+                        className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                        style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                      >
+                        {result.name[0].toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate" style={{ color: "#f0eeff" }}>{result.name}</p>
+                        {selectedSection && (
+                          <p className="text-sm mt-1 truncate" style={{ color: "#9b98c8" }}>
+                            {getConciseCategorySummary(selectedSection)}
                           </p>
-                        ))
+                        )}
+                        <div className="flex items-center gap-1 mt-1">
+                          {shouldHideSelfConfessionCount ? (
+                            <>
+                              <Lock className="w-3 h-3" style={{ color: "#9b98c8" }} />
+                              <span className="text-xs" style={{ color: "#9b98c8" }}>
+                                Locked
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Heart className="w-3 h-3" style={{ color: "#f472b6" }} />
+                              <span className="text-xs" style={{ color: "#9b98c8" }}>
+                                {result.confessionCount} confession{result.confessionCount !== 1 ? "s" : ""}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                      {result.confessionCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => void handleInsightAccess(result)}
+                          disabled={loadingInsightsFor === result.id}
+                          className="px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto"
+                          style={{
+                            background: "rgba(244,114,182,0.12)",
+                            border: "1px solid rgba(244,114,182,0.18)",
+                            color: "#f472b6",
+                          }}
+                        >
+                          {loadingInsightsFor === result.id
+                            ? "Loading..."
+                            : insightButtonLabel}
+                        </button>
+                      )}
+                      <Link
+                        href={`/dashboard/send?target=${result.id}&name=${encodeURIComponent(result.name)}`}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white flex-shrink-0 w-full sm:w-auto"
+                        style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                      >
+                        {`Confess (${confessPriceLabel})`}
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                  {insights && (
+                    <div className="rounded-2xl border p-4 sm:p-5" style={{ background: "rgba(30,30,63,0.18)", borderColor: "#1e1e3f" }}>
+                      <h3 className="text-sm font-semibold mb-3" style={{ color: "#f0eeff" }}>
+                        Confession insights for {result.name}
+                      </h3>
+                      {result.lockedInsightCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingInsightUnlock(result)}
+                          disabled={loadingInsightsFor === result.id}
+                          className="mb-3 px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-fit"
+                          style={{
+                            background: "rgba(244,114,182,0.12)",
+                            border: "1px solid rgba(244,114,182,0.18)",
+                            color: "#f472b6",
+                          }}
+                        >
+                          {loadingInsightsFor === result.id
+                            ? "Loading..."
+                            : `Unlock all new insights (${formatInr(pricing.viewInsights)})`}
+                        </button>
+                      )}
+                      {insights.length === 0 ? (
+                        <p className="text-xs" style={{ color: "#9b98c8" }}>
+                          No received confessions available to preview.
+                        </p>
                       ) : (
-                        <p className="text-xs" style={{ color: "#4a4870" }}>iConfess user</p>
+                        <div className="flex flex-col gap-3">
+                          {insights.map((insight) => (
+                            <div
+                              key={insight.id}
+                              className="rounded-xl p-4"
+                              style={{
+                                background: insight.isUnlocked ? "rgba(30,30,63,0.28)" : "rgba(30,30,63,0.18)",
+                                border: insight.isUnlocked ? "1px solid #1e1e3f" : "1px dashed rgba(244,114,182,0.24)",
+                              }}
+                            >
+                              <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+                                {insight.isUnlocked ? "Shared sender field" : "Locked insight"}
+                              </p>
+                              {insight.isUnlocked ? (
+                                <>
+                                  <p className="text-sm mt-1 font-medium" style={{ color: "#f0eeff" }}>
+                                    {insight.sender.category}
+                                  </p>
+                                  <div className="mt-3 flex flex-col gap-2">
+                                    {insight.sender.details.length > 0 ? (
+                                      insight.sender.details.map((detail) => (
+                                        <div
+                                          key={`${insight.id}-${detail.label}`}
+                                          className="flex items-center justify-between gap-4"
+                                        >
+                                          <span className="text-xs" style={{ color: "#9b98c8" }}>{detail.label}</span>
+                                          <span className="text-sm text-right" style={{ color: "#f0eeff" }}>{detail.value}</span>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <p className="text-xs" style={{ color: "#9b98c8" }}>
+                                        Shared details are not available for this confession.
+                                      </p>
+                                    )}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="mt-2 flex flex-col gap-2">
+                                  <p className="text-sm font-medium" style={{ color: "#f0eeff" }}>
+                                    New confession insight
+                                  </p>
+                                  <p className="text-xs leading-relaxed" style={{ color: "#9b98c8" }}>
+                                    This insight came in after your last unlock. 
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Heart className="w-3 h-3" style={{ color: "#f472b6" }} />
-                      <span className="text-xs" style={{ color: "#9b98c8" }}>
-                        {result.confessionCount} confession{result.confessionCount !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                  {result.confessionCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await loadInsights(result.id, result.hasUnlockedInsights);
-                        } catch (error) {
-                          const message = error instanceof Error ? error.message : "Failed to load insights";
-                          toast.error(message);
-                        }
-                      }}
-                      className="px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto"
-                      style={{
-                        background: "rgba(244,114,182,0.12)",
-                        border: "1px solid rgba(244,114,182,0.18)",
-                        color: "#f472b6",
-                      }}
-                    >
-                      {loadingInsightsFor === result.id
-                        ? "Loading..."
-                        : result.hasUnlockedInsights
-                          ? "View insights"
-                          : `View insights (${formatInr(pricing.viewInsights)})`}
-                    </button>
                   )}
-                  <Link
-                    href={`/dashboard/send?target=${result.id}&name=${encodeURIComponent(result.name)}`}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white flex-shrink-0 w-full sm:w-auto"
-                    style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
-                  >
-                    {`Confess (${formatInr(pricing.sendConfession)})`}
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
                 </div>
+                  );
+                })()}
               </motion.div>
             ))}
-            {results.map((result) => {
-              const insights = insightsByUser[result.id];
-              if (!insights) return null;
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              return (
-                <div
-                  key={`${result.id}-insights`}
-                  className="glass rounded-2xl p-4 sm:p-5 -mt-1"
+      <AnimatePresence>
+        {pendingInsightUnlock && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 overflow-y-auto px-4 pt-20 pb-6 sm:px-4 sm:py-8"
+            style={{ background: "rgba(4, 3, 14, 0.72)" }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              className="mx-auto w-full max-w-xl rounded-3xl p-6 sm:my-auto sm:p-7"
+              style={{ background: "linear-gradient(180deg, #16132b 0%, #0f0c22 100%)", border: "1px solid rgba(192,132,252,0.2)" }}
+            >
+              <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+                Unlock {pendingInsightUnlock.name}&apos;s insights?
+              </h2>
+              <div
+                className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
+                style={{ background: "rgba(30,30,63,0.32)", border: "1px solid rgba(192,132,252,0.12)" }}
+              >
+                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                  You will see the sender&apos;s shared category and profile details like college, school, workplace, gym, or neighbourhood info when available.
+                </p>
+                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                  This does not reveal the confession message itself. It shows the identity clues the sender chose to attach to those confessions that are included in this unlock.
+                </p>
+                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                  Future confessions are not included in this purchase. If new confessions arrive later, they will appear locked until you unlock insights again.
+                </p>
+              </div>
+              <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingInsightUnlock(null)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium"
+                  style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #2a2650", color: "#b6b2db" }}
                 >
-                  <h3 className="text-sm font-semibold mb-3" style={{ color: "#f0eeff" }}>
-                    Confession insights for {result.name}
-                  </h3>
-                  {insights.length === 0 ? (
-                    <p className="text-xs" style={{ color: "#9b98c8" }}>
-                      No received confessions available to preview.
-                    </p>
-                  ) : (
-                    <div className="flex flex-col gap-3">
-                      {insights.map((insight) => (
-                        <div
-                          key={insight.id}
-                          className="rounded-xl p-4"
-                          style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #1e1e3f" }}
-                        >
-                          <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
-                            Confessor Organization
-                          </p>
-                          <p className="text-sm mt-1" style={{ color: "#f0eeff" }}>
-                            {insight.sender.organizationName ?? "Not available"}
-                          </p>
-                          <p className="text-xs mt-2" style={{ color: "#9b98c8" }}>
-                            Source profile type: {insight.sender.primaryCategory.charAt(0) + insight.sender.primaryCategory.slice(1).toLowerCase()}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void confirmInsightUnlock()}
+                  disabled={loadingInsightsFor === pendingInsightUnlock.id}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                >
+                  {loadingInsightsFor === pendingInsightUnlock.id ? "Processing..." : `Unlock for ${formatInr(pricing.viewInsights)}`}
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
+
+
+
+
+
+

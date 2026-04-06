@@ -50,48 +50,149 @@ export const locationFields: Record<
   { key: string; label: string; type?: string; options?: string[] }[]
 > = {
   COLLEGE: [
-    { key: "collegeName", label: "College Name" },
-    { key: "pinCode", label: "Pin Code" },
+    { key: "collegeName", label: "College Name (e.g. VIPS)" },
+    { key: "pinCode", label: "College Pin Code" },
     { key: "course", label: "Course", options: [...indianCourseOptions] },
     { key: "branch", label: "Branch (e.g. CSE)" },
-    { key: "yearOfPassing", label: "Year of Passing", type: "number" },
+    { key: "yearOfPassing", label: "Year of Passing  (Graduation Year)", type: "number" },
     { key: "section", label: "Section" },
   ],
   SCHOOL: [
-    { key: "schoolName", label: "School Name" },
-    { key: "pinCode", label: "Pin Code" },
+    { key: "schoolName", label: "School Name (e.g. KIS)" },
+    { key: "pinCode", label: "School Pin Code" },
     { key: "board", label: "Board", options: ["CBSE", "ICSE", "State Board", "IB", "IGCSE"] },
-    { key: "yearOfCompletion", label: "Year of Completion", type: "number" },
+    { key: "yearOfCompletion", label: "School graduation year (completed or expected)", type: "number" },
     { key: "section", label: "Section" },
   ],
   WORKPLACE: [
     { key: "companyName", label: "Company Name" },
     { key: "department", label: "Department" },
     { key: "city", label: "City" },
-    { key: "buildingName", label: "Building / Campus Name" },
   ],
   GYM: [
     { key: "gymName", label: "Gym Name" },
     { key: "city", label: "City" },
-    { key: "pinCode", label: "Pin Code" },
+    { key: "pinCode", label: "Gym Pin Code" },
     { key: "timing", label: "Timing", options: ["MORNING", "EVENING", "BOTH"] },
   ],
   NEIGHBOURHOOD: [
     { key: "state", label: "State" },
     { key: "city", label: "City" },
     { key: "pinCode", label: "Pin Code" },
-    { key: "homeNumber", label: "Home Number" },
+    { key: "homeNumber", label: "House Number" },
     { key: "premisesName", label: "Society / Premises Name" },
   ],
 };
 
 export const locationCategories: { id: LocationCategory; label: string; emoji: string }[] = [
   { id: "COLLEGE", label: "College / University", emoji: "🎓" },
-  { id: "SCHOOL", label: "School (past)", emoji: "🏫" },
+  { id: "SCHOOL", label: "School", emoji: "🏫" },
   { id: "WORKPLACE", label: "Workplace / Office", emoji: "🏢" },
   { id: "GYM", label: "Gym", emoji: "💪" },
   { id: "NEIGHBOURHOOD", label: "Neighbourhood", emoji: "🏘️" },
 ];
+
+export type SearchResultProfileSection = {
+  key: LocationCategory;
+  label: string;
+  details: { label: string; value: string }[];
+};
+
+export type SearchDetailField = {
+  key: string;
+  label: string;
+  type?: string;
+  options?: string[];
+  required?: boolean;
+};
+
+export const searchDetailFields: Record<LocationCategory, SearchDetailField[]> = {
+  COLLEGE: [
+    { key: "collegeName", label: "College Name (e.g. VIPS)", required: true },
+    { key: "pinCode", label: "College Pin Code" },
+    { key: "course", label: "Course", options: locationFields.COLLEGE.find((field) => field.key === "course")?.options ?? [] },
+    { key: "yearOfPassing", label: "Year of Passing (Graduation Year)", type: "number" },
+    { key: "branch", label: "Branch (e.g. CSE)" },
+    { key: "section", label: "Section" },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+  SCHOOL: [
+    { key: "schoolName", label: "School Name (e.g. KIS)", required: true },
+    { key: "pinCode", label: "School Pin Code", required: true },
+    { key: "board", label: "Board", options: locationFields.SCHOOL.find((field) => field.key === "board")?.options ?? [] },
+    { key: "yearOfCompletion", label: "School graduation year (completed or expected)", type: "number" },
+    { key: "section", label: "Section" },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+  WORKPLACE: [
+    { key: "companyName", label: "Company Name", required: true },
+    { key: "city", label: "City", required: true },
+    { key: "department", label: "Department" },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+  GYM: [
+    { key: "gymName", label: "Gym Name", required: true },
+    { key: "pinCode", label: "Gym Pin Code", required: true },
+    { key: "timing", label: "Timing", options: locationFields.GYM.find((field) => field.key === "timing")?.options ?? [] },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+  NEIGHBOURHOOD: [
+    { key: "state", label: "State", required: true },
+    { key: "city", label: "City", required: true },
+    { key: "pinCode", label: "Pin Code", required: true },
+    { key: "homeNumber", label: "House Number" },
+    { key: "premisesName", label: "Society / Premises Name" },
+    { key: "firstName", label: "First Name", required: true },
+    { key: "lastName", label: "Last Name" },
+  ],
+};
+
+export function getConciseCategorySummary(section: SearchResultProfileSection) {
+  const detailMap = Object.fromEntries(section.details.map((detail) => [detail.label, detail.value]));
+
+  if (section.key === "COLLEGE") {
+    return [
+      detailMap["College Name"],
+      detailMap["Course"],
+      detailMap["Branch"],
+      detailMap["Year of Passing"],
+    ].filter(Boolean).join(" · ");
+  }
+
+  if (section.key === "SCHOOL") {
+    return [
+      detailMap["School Name"],
+      detailMap["Board"],
+      detailMap["Year of Completion"],
+    ].filter(Boolean).join(" · ");
+  }
+
+  if (section.key === "WORKPLACE") {
+    return [
+      detailMap["Company Name"],
+      detailMap["Department"],
+      detailMap["City"],
+    ].filter(Boolean).join(" · ");
+  }
+
+  if (section.key === "GYM") {
+    return [
+      detailMap["Gym Name"],
+      detailMap["City"],
+      detailMap["Timing"],
+    ].filter(Boolean).join(" · ");
+  }
+
+  return [
+    detailMap["Society / Premises Name"],
+    detailMap["City"],
+    detailMap["Home Number"],
+  ].filter(Boolean).join(" · ");
+}
 
 export async function findMatches(location: string, details: Record<string, string>) {
   const fullName = details.fullName?.trim();
@@ -133,7 +234,6 @@ export async function findMatches(location: string, details: Record<string, stri
         ...(details.companyName && { companyName: { contains: details.companyName, mode: "insensitive" } }),
         ...(details.department && { department: { contains: details.department, mode: "insensitive" } }),
         ...(details.city && { city: { contains: details.city, mode: "insensitive" } }),
-        ...(details.buildingName && { buildingName: { contains: details.buildingName, mode: "insensitive" } }),
         ...(fullName && { fullName: { contains: fullName, mode: "insensitive" } }),
       },
       include: { user: true },
@@ -173,34 +273,81 @@ export async function findMatches(location: string, details: Record<string, stri
   return [];
 }
 
-export async function getSearchResultByIds(ids: string[], currentUserId: string) {
+export async function getSearchResultByIds(ids: string[], currentUserId: string, options?: { includeCurrentUser?: boolean }) {
   if (ids.length === 0) return [];
 
   const users = await prisma.user.findMany({
     where: {
-      id: { in: ids, not: currentUserId },
+      id: options?.includeCurrentUser
+        ? { in: ids }
+        : { in: ids, not: currentUserId },
     },
     select: {
       id: true,
       name: true,
-      username: true,
       instagramHandle: true,
       snapchatHandle: true,
-      college: { select: { collegeName: true, branch: true, yearOfPassing: true } },
-      workplace: { select: { companyName: true, city: true } },
-      gym: { select: { gymName: true, city: true } },
-      neighbourhood: { select: { city: true, premisesName: true, homeNumber: true } },
-      school: { select: { schoolName: true, yearOfCompletion: true } },
+      college: {
+        select: {
+          collegeName: true,
+          pinCode: true,
+          course: true,
+          branch: true,
+          yearOfPassing: true,
+          section: true,
+        },
+      },
+      workplace: {
+        select: {
+          companyName: true,
+          department: true,
+          city: true,
+        },
+      },
+      gym: {
+        select: {
+          gymName: true,
+          city: true,
+          pinCode: true,
+          timing: true,
+        },
+      },
+      neighbourhood: {
+        select: {
+          state: true,
+          city: true,
+          pinCode: true,
+          premisesName: true,
+          homeNumber: true,
+        },
+      },
+      school: {
+        select: {
+          schoolName: true,
+          pinCode: true,
+          board: true,
+          yearOfCompletion: true,
+          section: true,
+        },
+      },
       primaryCategory: true,
       gender: true,
+      confessionPageUnlocked: true,
       receivedConfessions: {
         select: {
           id: true,
+          createdAt: true,
         },
+        orderBy: { createdAt: "desc" },
       },
       profileInsightsOwned: {
         where: { viewerId: currentUserId },
-        select: { id: true },
+        orderBy: { unlockedAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          unlockedAt: true,
+        },
       },
       _count: { select: { receivedConfessions: true } },
     },
@@ -211,16 +358,91 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string)
   return ids
     .map((id) => byId.get(id))
     .filter((user): user is NonNullable<typeof user> => Boolean(user))
-    .map((u) => ({
+    .map((u) => {
+      const latestInsightUnlock = u.profileInsightsOwned[0] ?? null;
+      const unlockedInsightCount = latestInsightUnlock
+        ? u.receivedConfessions.filter((confession) => confession.createdAt <= latestInsightUnlock.unlockedAt).length
+        : 0;
+      const lockedInsightCount = u.receivedConfessions.length - unlockedInsightCount;
+
+      return {
       id: u.id,
       name: u.name,
-      username: u.username,
       instagramHandle: u.instagramHandle,
       snapchatHandle: u.snapchatHandle,
       primaryCategory: u.primaryCategory,
       gender: u.gender,
+      isCurrentUser: u.id === currentUserId,
+      confessionPageUnlocked: u.confessionPageUnlocked,
       confessionCount: u._count.receivedConfessions,
-      hasUnlockedInsights: u.profileInsightsOwned.length > 0,
+      hasUnlockedInsights: unlockedInsightCount > 0,
+      unlockedInsightCount,
+      lockedInsightCount,
+      profileSections: [
+        u.college
+          ? {
+              key: "COLLEGE" as const,
+              label: "College / University",
+              details: [
+                { label: "College Name", value: u.college.collegeName },
+                { label: "Pin Code", value: u.college.pinCode },
+                { label: "Course", value: u.college.course },
+                { label: "Branch", value: u.college.branch },
+                { label: "Year of Passing", value: String(u.college.yearOfPassing) },
+                { label: "Section", value: u.college.section },
+              ],
+            }
+          : null,
+        u.school
+          ? {
+              key: "SCHOOL" as const,
+              label: "School",
+              details: [
+                { label: "School Name", value: u.school.schoolName },
+                { label: "Pin Code", value: u.school.pinCode },
+                { label: "Board", value: u.school.board },
+                { label: "Year of Completion", value: String(u.school.yearOfCompletion) },
+                { label: "Section", value: u.school.section },
+              ],
+            }
+          : null,
+        u.workplace
+          ? {
+              key: "WORKPLACE" as const,
+              label: "Workplace / Office",
+              details: [
+                { label: "Company Name", value: u.workplace.companyName },
+                { label: "Department", value: u.workplace.department },
+                { label: "City", value: u.workplace.city },
+              ],
+            }
+          : null,
+        u.gym
+          ? {
+              key: "GYM" as const,
+              label: "Gym",
+              details: [
+                { label: "Gym Name", value: u.gym.gymName },
+                { label: "City", value: u.gym.city },
+                { label: "Pin Code", value: u.gym.pinCode },
+                { label: "Timing", value: u.gym.timing },
+              ],
+            }
+          : null,
+        u.neighbourhood
+          ? {
+              key: "NEIGHBOURHOOD" as const,
+              label: "Neighbourhood",
+              details: [
+                { label: "State", value: u.neighbourhood.state },
+                { label: "City", value: u.neighbourhood.city },
+                { label: "Pin Code", value: u.neighbourhood.pinCode },
+                { label: "Home Number", value: u.neighbourhood.homeNumber },
+                { label: "Society / Premises Name", value: u.neighbourhood.premisesName },
+              ],
+            }
+          : null,
+      ].filter((section): section is SearchResultProfileSection => Boolean(section)),
       college: u.college
         ? `${u.college.collegeName} · ${u.college.branch} · ${u.college.yearOfPassing}`
         : null,
@@ -230,7 +452,8 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string)
       neighbourhood: u.neighbourhood
         ? `${u.neighbourhood.premisesName} · ${u.neighbourhood.city} · ${u.neighbourhood.homeNumber}`
         : null,
-    }));
+      };
+    });
 }
 
 export function buildProfileMatchContext(
@@ -275,7 +498,6 @@ export function buildProfileMatchContext(
   if (details.course) entries.push(details.course);
   if (details.section) entries.push(details.section);
   if (details.department) entries.push(details.department);
-  if (details.buildingName) entries.push(details.buildingName);
   if (details.state) entries.push(details.state);
   if (details.board) entries.push(details.board);
   if (details.timing) entries.push(details.timing);
