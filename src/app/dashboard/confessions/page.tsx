@@ -1,9 +1,92 @@
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import ConfessionsInbox from "@/components/ConfessionsInbox";
+import { prisma } from "@/lib/prisma";
+import { formatSharedProfileDetails, getStoredSharedProfileSnapshot } from "@/lib/shared-profile-context";
 
 function buildAnonymousId(value: string) {
   return `AID-${value.slice(-6).toUpperCase()}`;
+}
+
+function buildTrashAnonymousId(confessionId: string) {
+  return `AID-${confessionId.slice(-6).toUpperCase()}`;
+}
+
+function getStringDetail(details: Record<string, unknown>, key: string) {
+  const value = details[key];
+  return typeof value === "string" ? value : "";
+}
+
+function buildEnteredRecipientName(details: Record<string, unknown>) {
+  const fullName = getStringDetail(details, "fullName").trim();
+  if (fullName) return fullName;
+
+  const composedName = [
+    getStringDetail(details, "firstName").trim(),
+    getStringDetail(details, "lastName").trim(),
+  ].filter(Boolean).join(" ").trim();
+
+  return composedName || null;
+}
+
+function buildEnteredRecipientContext(
+  location: string,
+  details: Record<string, unknown>,
+  targetPhone: string | null
+) {
+  if (targetPhone) {
+    return `Phone: ${targetPhone}`;
+  }
+
+  const platform = getStringDetail(details, "platform");
+  const handle = getStringDetail(details, "handle");
+
+  if (platform && handle) {
+    const platformLabel = platform === "instagram" ? "Instagram" : platform === "snapchat" ? "Snapchat" : "Social";
+    return `${platformLabel}: @${handle.replace(/^@+/, "")}`;
+  }
+
+  if (location === "COLLEGE") {
+    return [
+      getStringDetail(details, "collegeName"),
+      getStringDetail(details, "course"),
+      getStringDetail(details, "branch"),
+      getStringDetail(details, "yearOfPassing"),
+    ].filter(Boolean).join(" · ") || null;
+  }
+
+  if (location === "SCHOOL") {
+    return [
+      getStringDetail(details, "schoolName"),
+      getStringDetail(details, "board"),
+      getStringDetail(details, "yearOfCompletion"),
+    ].filter(Boolean).join(" · ") || null;
+  }
+
+  if (location === "WORKPLACE") {
+    return [
+      getStringDetail(details, "companyName"),
+      getStringDetail(details, "department"),
+      getStringDetail(details, "city"),
+    ].filter(Boolean).join(" · ") || null;
+  }
+
+  if (location === "GYM") {
+    return [
+      getStringDetail(details, "gymName"),
+      getStringDetail(details, "city"),
+      getStringDetail(details, "timing"),
+    ].filter(Boolean).join(" · ") || null;
+  }
+
+  if (location === "NEIGHBOURHOOD") {
+    return [
+      getStringDetail(details, "premisesName"),
+      getStringDetail(details, "city"),
+      getStringDetail(details, "homeNumber"),
+    ].filter(Boolean).join(" · ") || null;
+  }
+
+  return null;
 }
 
 function buildLocationContext(
@@ -12,7 +95,7 @@ function buildLocationContext(
     | {
         college?: { collegeName: string; course: string; branch: string; yearOfPassing: number } | null;
         school?: { schoolName: string; board: string; yearOfCompletion: number } | null;
-        workplace?: { companyName: string; department: string; city: string; buildingName: string } | null;
+        workplace?: { companyName: string; department: string; city: string } | null;
         gym?: { gymName: string; city: string; timing: string } | null;
         neighbourhood?: { premisesName: string; city: string; homeNumber: string } | null;
       }
@@ -60,7 +143,7 @@ export default async function ConfessionsPage() {
             gender: true,
             college: { select: { collegeName: true, course: true, branch: true, yearOfPassing: true } },
             school: { select: { schoolName: true, board: true, yearOfCompletion: true } },
-            workplace: { select: { companyName: true, department: true, city: true, buildingName: true } },
+            workplace: { select: { companyName: true, department: true, city: true } },
             gym: { select: { gymName: true, city: true, timing: true } },
             neighbourhood: { select: { premisesName: true, city: true, homeNumber: true } },
           },
@@ -68,7 +151,7 @@ export default async function ConfessionsPage() {
       },
     }),
     prisma.confession.findMany({
-      where: { senderId: user.id },
+      where: { senderId: user.id, isSelfConfession: false },
       orderBy: { createdAt: "desc" },
       include: {
         target: {
@@ -78,7 +161,7 @@ export default async function ConfessionsPage() {
             gender: true,
             college: { select: { collegeName: true, course: true, branch: true, yearOfPassing: true } },
             school: { select: { schoolName: true, board: true, yearOfCompletion: true } },
-            workplace: { select: { companyName: true, department: true, city: true, buildingName: true } },
+            workplace: { select: { companyName: true, department: true, city: true } },
             gym: { select: { gymName: true, city: true, timing: true } },
             neighbourhood: { select: { premisesName: true, city: true, homeNumber: true } },
           },
@@ -87,47 +170,64 @@ export default async function ConfessionsPage() {
     }),
   ]);
 
-  const received = receivedConfessions.map((c) => ({
-    id: c.id,
-    direction: "received" as const,
-    location: c.location,
-    matchDetails: c.matchDetails as Record<string, string>,
-    message: c.message,
-    status: c.status,
-    reply: c.reply,
-    repliedAt: c.repliedAt?.toISOString() ?? null,
-    createdAt: c.createdAt.toISOString(),
-    mutualDetected: c.mutualDetected,
-    senderRevealConsent: c.senderRevealConsent,
-    targetRevealConsent: c.targetRevealConsent,
-    revealedAt: c.revealedAt?.toISOString() ?? null,
-    isUnlocked: c.unlockedBy.length > 0,
-    counterpartAnonymousId: buildAnonymousId(c.sender.id),
-    counterpartName: c.revealedAt ? c.sender.name : null,
-    counterpartGender: c.sender.gender,
-    counterpartContext: c.revealedAt ? buildLocationContext(c.location, c.sender) : null,
-  }));
+  const received = receivedConfessions.map((confession) => {
+    const matchDetails = confession.matchDetails as Record<string, unknown>;
+    const sharedProfileSnapshot = getStoredSharedProfileSnapshot(matchDetails);
 
-  const sent = sentConfessions.map((c) => ({
-    id: c.id,
-    direction: "sent" as const,
-    location: c.location,
-    matchDetails: c.matchDetails as Record<string, string>,
-    message: c.message,
-    status: c.status,
-    reply: c.reply,
-    repliedAt: c.repliedAt?.toISOString() ?? null,
-    createdAt: c.createdAt.toISOString(),
-    mutualDetected: c.mutualDetected,
-    senderRevealConsent: c.senderRevealConsent,
-    targetRevealConsent: c.targetRevealConsent,
-    revealedAt: c.revealedAt?.toISOString() ?? null,
-    isUnlocked: true,
-    counterpartAnonymousId: c.targetId ? buildAnonymousId(c.targetId) : buildAnonymousId(c.id),
-    counterpartName: c.revealedAt ? c.target?.name ?? null : null,
-    counterpartGender: c.target?.gender ?? null,
-    counterpartContext: c.revealedAt ? buildLocationContext(c.location, c.target) : null,
-  }));
+    return {
+      id: confession.id,
+      direction: "received" as const,
+      location: confession.location,
+      matchDetails,
+      message: confession.message,
+      status: confession.status,
+      reply: confession.reply,
+      repliedAt: confession.repliedAt?.toISOString() ?? null,
+      createdAt: confession.createdAt.toISOString(),
+      mutualDetected: confession.mutualDetected,
+      senderRevealConsent: confession.senderRevealConsent,
+      targetRevealConsent: confession.targetRevealConsent,
+      revealedAt: confession.revealedAt?.toISOString() ?? null,
+      isUnlocked: confession.unlockedBy.length > 0,
+      counterpartAnonymousId: confession.isSelfConfession
+        ? buildTrashAnonymousId(confession.id)
+        : buildAnonymousId(confession.sender.id),
+      counterpartName: confession.revealedAt ? confession.sender.name : null,
+      counterpartGender: confession.selfGenderOverride ?? confession.sender.gender,
+      counterpartContext:
+        confession.revealedAt && sharedProfileSnapshot
+          ? formatSharedProfileDetails(sharedProfileSnapshot.details)
+          : null,
+    };
+  });
+
+  const sent = sentConfessions.map((confession) => {
+    const matchDetails = confession.matchDetails as Record<string, unknown>;
+    const fallbackRecipientName = buildEnteredRecipientName(matchDetails);
+
+    return {
+      id: confession.id,
+      direction: "sent" as const,
+      location: confession.location,
+      matchDetails,
+      message: confession.message,
+      status: confession.status,
+      reply: confession.reply,
+      repliedAt: confession.repliedAt?.toISOString() ?? null,
+      createdAt: confession.createdAt.toISOString(),
+      mutualDetected: confession.mutualDetected,
+      senderRevealConsent: confession.senderRevealConsent,
+      targetRevealConsent: confession.targetRevealConsent,
+      revealedAt: confession.revealedAt?.toISOString() ?? null,
+      isUnlocked: true,
+      counterpartAnonymousId: confession.targetId ? buildAnonymousId(confession.targetId) : buildAnonymousId(confession.id),
+      counterpartName: confession.target?.name ?? fallbackRecipientName,
+      counterpartGender: confession.target?.gender ?? null,
+      counterpartContext:
+        buildLocationContext(confession.location, confession.target) ??
+        buildEnteredRecipientContext(confession.location, matchDetails, confession.targetPhone),
+    };
+  });
 
   return (
     <ConfessionsInbox

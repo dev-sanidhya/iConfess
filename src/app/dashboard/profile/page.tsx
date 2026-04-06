@@ -13,7 +13,6 @@ export default async function Profile() {
         phone: user.phone,
         gender: user.gender,
         primaryCategory: user.primaryCategory,
-        username: user.username,
         instagramHandle: user.instagramHandle,
         snapchatHandle: user.snapchatHandle,
         college: user.college
@@ -42,7 +41,6 @@ export default async function Profile() {
               companyName: user.workplace.companyName,
               department: user.workplace.department,
               city: user.workplace.city,
-              buildingName: user.workplace.buildingName,
               fullName: user.workplace.fullName,
             }
           : null,

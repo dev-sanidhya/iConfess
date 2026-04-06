@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { getSession, normalizeSocialHandle, normalizeUsername } from "@/lib/auth";
+import { PendingProfileSearchKind } from "@prisma/client";
+import { getSession, normalizeSocialHandle } from "@/lib/auth";
 import { type LocationCategory } from "@/lib/matching";
 import { syncUserProfiles } from "@/lib/profile-details";
+import {
+  claimPendingProfileSearchCounts,
+  ensureProfileSearchCountSeeded,
+} from "@/lib/profile-search-count";
 import { prisma } from "@/lib/prisma";
-
-type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
+import {
+  buildSelfClaimSnapshot,
+  confessionMatchesSelfClaim,
+  convertConfessionToSelf,
+} from "@/lib/confessions";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -14,7 +21,6 @@ export async function PATCH(req: NextRequest) {
 
     const {
       name,
-      username,
       instagramHandle,
       snapchatHandle,
       primaryCategory,
@@ -23,7 +29,6 @@ export async function PATCH(req: NextRequest) {
     } =
       await req.json();
 
-    const normalizedUsername = normalizeUsername(username ?? "");
     const normalizedInstagramHandle = normalizeSocialHandle(instagramHandle ?? "");
     const normalizedSnapchatHandle = normalizeSocialHandle(snapchatHandle ?? "");
 
@@ -31,23 +36,9 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    if (!normalizedUsername || normalizedUsername.length < 3) {
-      return NextResponse.json(
-        { error: "Username must be at least 3 characters long" },
-        { status: 400 }
-      );
-    }
-
-    if (!/^[a-z0-9_]+$/.test(normalizedUsername)) {
-      return NextResponse.json(
-        { error: "Username can only contain lowercase letters, numbers, and underscores" },
-        { status: 400 }
-      );
-    }
-
     if (!instagramHandle?.trim() || !snapchatHandle?.trim()) {
       return NextResponse.json(
-        { error: "Instagram and Snapchat handles are required. Use NA Handle if not available." },
+        { error: "Instagram and Snapchat handles are required. Use NA if not available." },
         { status: 400 }
       );
     }
@@ -70,13 +61,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const duplicateUsername = await prisma.user.findFirst({
-      where: { username: normalizedUsername, id: { not: session.id } },
-    });
-    if (duplicateUsername) {
-      return NextResponse.json({ error: "Username is already taken" }, { status: 400 });
-    }
-
     if (normalizedInstagramHandle) {
       const duplicateInstagram = await prisma.user.findFirst({
         where: { instagramHandle: normalizedInstagramHandle, id: { not: session.id } },
@@ -95,23 +79,102 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    await prisma.$transaction(async (tx: Tx) => {
-      await tx.user.update({
+    const carriedSearchCount = await claimPendingProfileSearchCounts(
+      [
+        { kind: PendingProfileSearchKind.INSTAGRAM, value: normalizedInstagramHandle },
+        { kind: PendingProfileSearchKind.SNAPCHAT, value: normalizedSnapchatHandle },
+      ],
+      prisma
+    );
+
+    if (carriedSearchCount > 0) {
+      const currentSearchCount = await ensureProfileSearchCountSeeded(session.id, prisma);
+      await prisma.user.update({
         where: { id: session.id },
         data: {
-          name: name.trim(),
-          username: normalizedUsername,
-          instagramHandle: normalizedInstagramHandle,
-          snapchatHandle: normalizedSnapchatHandle,
-          primaryCategory: primaryCategory as LocationCategory,
+          profileSearchCount: currentSearchCount + carriedSearchCount,
         },
       });
-      await syncUserProfiles(tx, session.id, name.trim(), chosenCategories, profileDetailsByCategory ?? {});
-    });
+    }
 
-    return NextResponse.json({ success: true });
+    await prisma.user.update({
+      where: { id: session.id },
+      data: {
+        name: name.trim(),
+        instagramHandle: normalizedInstagramHandle,
+        snapchatHandle: normalizedSnapchatHandle,
+        primaryCategory: primaryCategory as LocationCategory,
+      },
+    });
+    await syncUserProfiles(prisma, session.id, name.trim(), chosenCategories, profileDetailsByCategory ?? {});
+
+    const [updatedUser, pendingSelfCandidates] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.id },
+        include: {
+          college: true,
+          school: true,
+          workplace: true,
+          gym: true,
+          neighbourhood: true,
+        },
+      }),
+      prisma.confession.findMany({
+        where: {
+          senderId: session.id,
+          status: "PENDING",
+          isSelfConfession: false,
+        },
+        select: {
+          id: true,
+          location: true,
+          targetPhone: true,
+          matchDetails: true,
+          billingState: true,
+        },
+      }),
+    ]);
+
+    const convertedIds: string[] = [];
+    const paymentRequiredIds: string[] = [];
+
+    if (updatedUser) {
+      const selfClaimSnapshot = buildSelfClaimSnapshot(updatedUser);
+
+      for (const confession of pendingSelfCandidates) {
+        if (!confessionMatchesSelfClaim(confession, selfClaimSnapshot)) {
+          continue;
+        }
+
+        if (confession.billingState === "FREE") {
+          paymentRequiredIds.push(confession.id);
+          continue;
+        }
+
+        try {
+          await convertConfessionToSelf(confession.id, session.id, prisma);
+          convertedIds.push(confession.id);
+        } catch (claimError) {
+          console.error("[Self Claim Conversion Error]", {
+            confessionId: confession.id,
+            userId: session.id,
+            error: claimError,
+          });
+        }
+      }
+    }
+
+    return NextResponse.json({ success: true, convertedIds, paymentRequiredIds });
   } catch (error) {
     console.error("[Profile Update Error]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Internal server error",
+      },
+      { status: 500 }
+    );
   }
 }

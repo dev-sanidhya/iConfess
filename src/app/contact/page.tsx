@@ -38,7 +38,7 @@ export default function ContactPage() {
           Important Note
         </h2>
         <p>
-          iConfess operates as a digital platform. Communication is primarily handled over email. Users are advised to include their registered phone number or username when requesting account-specific support.
+          iConfess operates as a digital platform. Communication is primarily handled over email. Users are advised to include their registered phone number when requesting account-specific support.
         </p>
       </section>
     </LegalPageShell>

@@ -1,6 +1,6 @@
 import type { LocationCategory } from "@/lib/matching";
 
-type SharedProfileDetail = {
+export type SharedProfileDetail = {
   label: string;
   value: string;
 };
@@ -12,104 +12,138 @@ export type SharedProfileOption = {
   details: SharedProfileDetail[];
 };
 
-type SessionUserProfile = {
-  college: {
-    collegeName: string;
-    course: string;
-    branch: string;
-    yearOfPassing: number;
-  } | null;
-  school: {
-    schoolName: string;
-    board: string;
-    yearOfCompletion: number;
-  } | null;
-  workplace: {
-    companyName: string;
-    department: string;
-    city: string;
-    buildingName: string;
-  } | null;
-  gym: {
-    gymName: string;
-    city: string;
-    timing: string;
-  } | null;
-  neighbourhood: {
-    premisesName: string;
-    city: string;
-    homeNumber: string;
-  } | null;
-};
+function buildSummary(details: SharedProfileDetail[]) {
+  return details.map((detail) => detail.value).filter(Boolean).join(" · ");
+}
 
-export function buildSharedProfileOptions(user: SessionUserProfile): SharedProfileOption[] {
+export function formatSharedProfileDetails(details: SharedProfileDetail[]) {
+  return details.map((detail) => `${detail.label}: ${detail.value}`).join(" · ");
+}
+
+export function buildSharedProfileOptionsFromUser(user: {
+  college?: { branch: string; section: string; yearOfPassing: number; collegeName: string } | null;
+  school?: { yearOfCompletion: number; schoolName: string } | null;
+  workplace?: { companyName: string; city: string } | null;
+  gym?: { gymName: string; city: string } | null;
+  neighbourhood?: { city: string; state: string; pinCode: string } | null;
+}) {
   const options: SharedProfileOption[] = [];
 
   if (user.college) {
+    const details = [
+      { label: "Branch", value: user.college.branch },
+      { label: "Section", value: user.college.section },
+      { label: "Year of Passing", value: String(user.college.yearOfPassing) },
+      { label: "College Name", value: user.college.collegeName },
+    ];
+
     options.push({
       category: "COLLEGE",
       label: "College / University",
-      summary: [user.college.collegeName, user.college.course, user.college.branch, String(user.college.yearOfPassing)].join(" · "),
-      details: [
-        { label: "College", value: user.college.collegeName },
-        { label: "Course", value: user.college.course },
-        { label: "Branch", value: user.college.branch },
-        { label: "Year", value: String(user.college.yearOfPassing) },
-      ],
+      summary: buildSummary(details),
+      details,
     });
   }
 
   if (user.school) {
+    const details = [
+      { label: "School Graduation Year", value: String(user.school.yearOfCompletion) },
+      { label: "School Name", value: user.school.schoolName },
+    ];
+
     options.push({
       category: "SCHOOL",
       label: "School",
-      summary: [user.school.schoolName, user.school.board, String(user.school.yearOfCompletion)].join(" · "),
-      details: [
-        { label: "School", value: user.school.schoolName },
-        { label: "Board", value: user.school.board },
-        { label: "Year", value: String(user.school.yearOfCompletion) },
-      ],
+      summary: buildSummary(details),
+      details,
     });
   }
 
   if (user.workplace) {
+    const details = [
+      { label: "Company Name", value: user.workplace.companyName },
+      { label: "City", value: user.workplace.city },
+    ];
+
     options.push({
       category: "WORKPLACE",
       label: "Workplace / Office",
-      summary: [user.workplace.companyName, user.workplace.department, user.workplace.city].join(" · "),
-      details: [
-        { label: "Company", value: user.workplace.companyName },
-        { label: "Department", value: user.workplace.department },
-        { label: "City", value: user.workplace.city },
-      ],
+      summary: buildSummary(details),
+      details,
     });
   }
 
   if (user.gym) {
+    const details = [
+      { label: "Gym Name", value: user.gym.gymName },
+      { label: "City", value: user.gym.city },
+    ];
+
     options.push({
       category: "GYM",
       label: "Gym",
-      summary: [user.gym.gymName, user.gym.city, user.gym.timing].join(" · "),
-      details: [
-        { label: "Gym", value: user.gym.gymName },
-        { label: "City", value: user.gym.city },
-        { label: "Timing", value: user.gym.timing },
-      ],
+      summary: buildSummary(details),
+      details,
     });
   }
 
   if (user.neighbourhood) {
+    const details = [
+      { label: "City", value: user.neighbourhood.city },
+      { label: "State", value: user.neighbourhood.state },
+      { label: "Pin Code", value: user.neighbourhood.pinCode },
+    ];
+
     options.push({
       category: "NEIGHBOURHOOD",
       label: "Neighbourhood",
-      summary: [user.neighbourhood.premisesName, user.neighbourhood.city, user.neighbourhood.homeNumber].join(" · "),
-      details: [
-        { label: "Premises", value: user.neighbourhood.premisesName },
-        { label: "City", value: user.neighbourhood.city },
-        { label: "Home Number", value: user.neighbourhood.homeNumber },
-      ],
+      summary: buildSummary(details),
+      details,
     });
   }
 
   return options;
+}
+
+export function buildSharedProfileOptions(user: {
+  college?: { branch: string; section: string; yearOfPassing: number; collegeName: string } | null;
+  school?: { yearOfCompletion: number; schoolName: string } | null;
+  workplace?: { companyName: string; city: string } | null;
+  gym?: { gymName: string; city: string } | null;
+  neighbourhood?: { city: string; state: string; pinCode: string } | null;
+}) {
+  return buildSharedProfileOptionsFromUser(user);
+}
+
+export function getSharedProfileOptionByCategory(
+  options: SharedProfileOption[],
+  category: string | null | undefined
+) {
+  if (!category) return null;
+  return options.find((option) => option.category === category) ?? null;
+}
+
+export function getStoredSharedProfileSnapshot(matchDetails: Record<string, unknown>) {
+  const category = typeof matchDetails.sharedProfileCategory === "string" ? matchDetails.sharedProfileCategory : null;
+  const label = typeof matchDetails.sharedProfileLabel === "string" ? matchDetails.sharedProfileLabel : null;
+  const details = Array.isArray(matchDetails.sharedProfileDetails)
+    ? matchDetails.sharedProfileDetails.filter(
+        (detail): detail is SharedProfileDetail =>
+          typeof detail === "object" &&
+          detail !== null &&
+          typeof (detail as { label?: unknown }).label === "string" &&
+          typeof (detail as { value?: unknown }).value === "string"
+      )
+    : [];
+
+  if (!category || !label || details.length === 0) {
+    return null;
+  }
+
+  return {
+    category,
+    label,
+    details,
+    summary: buildSummary(details),
+  };
 }

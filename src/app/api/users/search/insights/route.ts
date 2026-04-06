@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getStoredSharedProfileSnapshot } from "@/lib/shared-profile-context";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,13 +15,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Target user is required" }, { status: 400 });
     }
 
-    const unlocked = await prisma.unlockedProfileInsight.findUnique({
+    const unlocked = await prisma.unlockedProfileInsight.findFirst({
       where: {
-        viewerId_targetUserId: {
-          viewerId: user.id,
-          targetUserId,
-        },
+        viewerId: user.id,
+        targetUserId,
       },
+      orderBy: { unlockedAt: "desc" },
     });
 
     if (!unlocked) {
@@ -32,38 +32,30 @@ export async function GET(req: NextRequest) {
         targetId: targetUserId,
       },
       orderBy: { createdAt: "desc" },
-      take: 10,
       include: {
         sender: {
-          select: {
-            primaryCategory: true,
-            college: { select: { collegeName: true } },
-            school: { select: { schoolName: true } },
-            workplace: { select: { companyName: true } },
-            gym: { select: { gymName: true } },
-            neighbourhood: { select: { premisesName: true } },
-          },
+          select: { primaryCategory: true },
         },
       },
     });
 
+    const insights = confessions.map((confession) => {
+        const sharedProfileSnapshot = getStoredSharedProfileSnapshot(confession.matchDetails as Record<string, unknown>);
+
+        return {
+          id: confession.id,
+          isUnlocked: confession.createdAt <= unlocked.unlockedAt,
+          sender: {
+            category: sharedProfileSnapshot?.label ?? confession.sender.primaryCategory,
+            details: sharedProfileSnapshot?.details ?? [],
+          },
+        };
+      });
+
     return NextResponse.json({
-      insights: confessions.map((confession) => ({
-        id: confession.id,
-        sender: {
-          primaryCategory: confession.sender.primaryCategory,
-          organizationName:
-            confession.sender.primaryCategory === "COLLEGE"
-              ? confession.sender.college?.collegeName
-              : confession.sender.primaryCategory === "SCHOOL"
-                ? confession.sender.school?.schoolName
-                : confession.sender.primaryCategory === "WORKPLACE"
-                  ? confession.sender.workplace?.companyName
-                  : confession.sender.primaryCategory === "GYM"
-                    ? confession.sender.gym?.gymName
-                    : confession.sender.neighbourhood?.premisesName,
-        },
-      })),
+      insights,
+      unlockedInsightCount: insights.filter((insight) => insight.isUnlocked).length,
+      lockedInsightCount: insights.filter((insight) => !insight.isUnlocked).length,
     });
   } catch (error) {
     console.error("[Search Insights Error]", error);

@@ -19,8 +19,8 @@ function RegisterForm() {
   const [phone, setPhone] = useState(prefillPhone);
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [instagramHandle, setInstagramHandle] = useState("");
@@ -84,11 +84,6 @@ function RegisterForm() {
       toast.error("Choose your primary category");
       return;
     }
-    if (username.trim().length < 3) { toast.error("Username must be at least 3 characters"); return; }
-    if (!/^[a-z0-9_]+$/.test(username.trim().toLowerCase())) {
-      toast.error("Username can only use lowercase letters, numbers, and underscores");
-      return;
-    }
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     if (password !== confirmPassword) { toast.error("Passwords do not match"); return; }
     if (!gender) { toast.error("Select your gender"); return; }
@@ -100,7 +95,7 @@ function RegisterForm() {
         body: JSON.stringify({
           phone,
           name,
-          username,
+          dateOfBirth,
           password,
           gender,
           instagramHandle,
@@ -205,12 +200,8 @@ function RegisterForm() {
               <form onSubmit={(e) => {
                 e.preventDefault();
                 if (!name.trim()) return;
-                if (username.trim().length < 3) {
-                  toast.error("Username must be at least 3 characters");
-                  return;
-                }
-                if (!/^[a-z0-9_]+$/.test(username.trim().toLowerCase())) {
-                  toast.error("Username can only use lowercase letters, numbers, and underscores");
+                if (!dateOfBirth) {
+                  toast.error("Enter your date of birth");
                   return;
                 }
                 if (password.length < 8) {
@@ -230,7 +221,7 @@ function RegisterForm() {
                 <input type="text" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-                <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
                 <select value={gender} onChange={(e) => setGender(e.target.value as Gender)}
@@ -250,14 +241,14 @@ function RegisterForm() {
                 <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-                <input type="text" placeholder="Instagram handle or NA Handle" value={instagramHandle} onChange={(e) => setInstagramHandle(e.target.value)}
+                <input type="text" placeholder="Instagram handle or NA" value={instagramHandle} onChange={(e) => setInstagramHandle(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-                <input type="text" placeholder="Snapchat handle or NA Handle" value={snapchatHandle} onChange={(e) => setSnapchatHandle(e.target.value)}
+                <input type="text" placeholder="Snapchat handle or NA" value={snapchatHandle} onChange={(e) => setSnapchatHandle(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
                 <p className="text-xs" style={{ color: "#4a4870" }}>
-                  This is your display name on iConfess. If you do not use a platform, enter `NA Handle`.
+                  Your phone number will be used as your sign-in ID. Date of birth cannot be changed later, so enter it carefully. If you do not use a platform, enter `NA`.
                 </p>
                 <button type="submit"
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90"

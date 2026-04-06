@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
           1. Information Collected
         </h2>
         <p>
-          iConfess may collect registration information such as phone number, username, gender, social handles, profile details, authentication data, search input, device or browser metadata, and records of platform interactions, including confessions and related activity.
+          iConfess may collect registration information such as phone number, gender, social handles, profile details, authentication data, search input, device or browser metadata, and records of platform interactions, including confessions and related activity.
         </p>
       </section>
 

@@ -1,14 +1,15 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import SendConfession from "@/components/SendConfession";
-import { buildSharedProfileOptions } from "@/lib/shared-profile-context";
+import { buildSharedProfileOptionsFromUser } from "@/lib/shared-profile-context";
+import { countSentConfessionsToOthers } from "@/lib/confessions";
 
 export default async function SendPage() {
   const user = await getSession();
   if (!user) return null;
 
-  const sentCount = await prisma.confession.count({ where: { senderId: user.id } });
-  const sharedProfileOptions = buildSharedProfileOptions(user);
+  const sentCount = await countSentConfessionsToOthers(user.id, prisma);
+  const sharedProfileOptions = buildSharedProfileOptionsFromUser(user);
 
   return (
     <SendConfession

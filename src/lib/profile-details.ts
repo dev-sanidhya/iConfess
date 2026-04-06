@@ -1,10 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import type { LocationCategory } from "@/lib/matching";
 
-type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
+type DbClient = PrismaClient | Prisma.TransactionClient;
 
 export async function syncUserProfiles(
-  tx: Tx,
+  tx: DbClient,
   userId: string,
   fullName: string,
   selectedCategories: LocationCategory[],
@@ -74,7 +74,7 @@ export async function syncUserProfiles(
         companyName: profile.companyName,
         department: profile.department,
         city: profile.city,
-        buildingName: profile.buildingName,
+        buildingName: profile.buildingName ?? "",
         fullName,
       },
       create: {
@@ -82,7 +82,7 @@ export async function syncUserProfiles(
         companyName: profile.companyName,
         department: profile.department,
         city: profile.city,
-        buildingName: profile.buildingName,
+        buildingName: profile.buildingName ?? "",
         fullName,
       },
     });

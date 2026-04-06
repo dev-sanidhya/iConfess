@@ -1,25 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Gender, PrismaClient } from "@prisma/client";
+import { Gender, PendingProfileSearchKind, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { type LocationCategory } from "@/lib/matching";
 import { syncUserProfiles } from "@/lib/profile-details";
 import {
+  claimPendingProfileSearchCounts,
+  createInitialProfileSearchCount,
+} from "@/lib/profile-search-count";
+import {
   signToken,
   COOKIE_NAME_EXPORT,
   hashPassword,
-  normalizeUsername,
   normalizeSocialHandle,
 } from "@/lib/auth";
+import { parseDateOfBirth } from "@/lib/age";
 import { formatPhone, addDays } from "@/lib/utils";
 
-type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
+type Tx = Prisma.TransactionClient;
 
 export async function POST(req: NextRequest) {
   try {
     const {
       phone,
       name,
-      username,
+      dateOfBirth,
       password,
       gender,
       instagramHandle,
@@ -29,10 +33,10 @@ export async function POST(req: NextRequest) {
       profileDetailsByCategory,
     } = await req.json();
     const formattedPhone = formatPhone(phone);
-    const normalizedUsername = normalizeUsername(username ?? "");
+    const parsedDateOfBirth = parseDateOfBirth(dateOfBirth);
     if (!instagramHandle?.trim() || !snapchatHandle?.trim()) {
       return NextResponse.json(
-        { error: "Instagram and Snapchat handles are required. Use NA Handle if not available." },
+        { error: "Instagram and Snapchat handles are required. Type NA if not available." },
         { status: 400 }
       );
     }
@@ -44,22 +48,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
+    if (!parsedDateOfBirth) {
+      return NextResponse.json({ error: "Date of birth is required" }, { status: 400 });
+    }
+
     if (!gender || !Object.values(Gender).includes(gender as Gender)) {
       return NextResponse.json({ error: "Gender is required" }, { status: 400 });
-    }
-
-    if (!normalizedUsername || normalizedUsername.length < 3) {
-      return NextResponse.json(
-        { error: "Username must be at least 3 characters long" },
-        { status: 400 }
-      );
-    }
-
-    if (!/^[a-z0-9_]+$/.test(normalizedUsername)) {
-      return NextResponse.json(
-        { error: "Username can only contain lowercase letters, numbers, and underscores" },
-        { status: 400 }
-      );
     }
 
     if (!password || password.length < 8) {
@@ -92,13 +86,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User already registered" }, { status: 400 });
     }
 
-    const existingUsername = await prisma.user.findUnique({
-      where: { username: normalizedUsername },
-    });
-    if (existingUsername) {
-      return NextResponse.json({ error: "Username is already taken" }, { status: 400 });
-    }
-
     if (normalizedInstagramHandle) {
       const existingInstagram = await prisma.user.findUnique({
         where: { instagramHandle: normalizedInstagramHandle },
@@ -121,15 +108,25 @@ export async function POST(req: NextRequest) {
 
     // Create user and profile in a transaction
     const user = await prisma.$transaction(async (tx: Tx) => {
+      const carriedSearchCount = await claimPendingProfileSearchCounts(
+        [
+          { kind: PendingProfileSearchKind.PHONE, value: formattedPhone },
+          { kind: PendingProfileSearchKind.INSTAGRAM, value: normalizedInstagramHandle },
+          { kind: PendingProfileSearchKind.SNAPCHAT, value: normalizedSnapchatHandle },
+        ],
+        tx
+      );
+
       const newUser = await tx.user.create({
         data: {
           phone: formattedPhone,
           name: name.trim(),
-          username: normalizedUsername,
+          dateOfBirth: parsedDateOfBirth,
           passwordHash,
           gender: gender as Gender,
           instagramHandle: normalizedInstagramHandle,
           snapchatHandle: normalizedSnapchatHandle,
+          profileSearchCount: createInitialProfileSearchCount(carriedSearchCount),
           primaryCategory: primaryCategory as LocationCategory,
         },
       });
@@ -180,7 +177,7 @@ export async function POST(req: NextRequest) {
 async function checkAndMarkMutual(userId: string) {
   // Find all confessions this user sent
   const sent = await prisma.confession.findMany({
-    where: { senderId: userId, targetId: { not: null } },
+    where: { senderId: userId, targetId: { not: null }, isSelfConfession: false },
     select: { id: true, targetId: true },
   });
 
@@ -188,7 +185,7 @@ async function checkAndMarkMutual(userId: string) {
     if (!s.targetId) continue;
     // Check if target has confessed back
     const reverse = await prisma.confession.findFirst({
-      where: { senderId: s.targetId, targetId: userId },
+      where: { senderId: s.targetId, targetId: userId, isSelfConfession: false },
     });
     if (reverse && !s.targetId) continue;
     if (reverse) {

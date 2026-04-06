@@ -2,30 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   COOKIE_NAME_EXPORT,
-  normalizeUsername,
   signToken,
   verifyPassword,
 } from "@/lib/auth";
+import { formatPhone } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
-    const { username, password } = await req.json();
+    const { phone, password } = await req.json();
 
-    if (!username || !password) {
+    if (!phone || !password) {
       return NextResponse.json(
-        { error: "Username and password are required" },
+        { error: "Phone number and password are required" },
         { status: 400 }
       );
     }
 
-    const normalizedUsername = normalizeUsername(username);
+    if (!/^\d{10}$/.test(phone)) {
+      return NextResponse.json(
+        { error: "Enter a valid 10-digit phone number" },
+        { status: 400 }
+      );
+    }
+
+    const formattedPhone = formatPhone(phone);
     const user = await prisma.user.findUnique({
-      where: { username: normalizedUsername },
+      where: { phone: formattedPhone },
     });
 
     if (!user || !user.passwordHash) {
       return NextResponse.json(
-        { error: "Invalid username or password" },
+        { error: "Invalid phone number or password" },
         { status: 401 }
       );
     }
@@ -33,7 +40,7 @@ export async function POST(req: NextRequest) {
     const passwordMatches = await verifyPassword(password, user.passwordHash);
     if (!passwordMatches) {
       return NextResponse.json(
-        { error: "Invalid username or password" },
+        { error: "Invalid phone number or password" },
         { status: 401 }
       );
     }

@@ -1,42 +1,37 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
-import { Compass, Heart, Clock, Shield, Sparkles } from "lucide-react";
+import { Compass, Heart, KeyRound, Lock, Shield, Search } from "lucide-react";
+import { maskPhone } from "@/lib/utils";
 
-type Stat = { label: string; value: number; icon: React.ElementType; color: string; note: string };
-type RecentItem = {
-  id: string;
-  status: string;
-  location: string;
-  createdAt: Date;
-  mutualDetected: boolean;
-};
-
-const statusColors: Record<string, string> = {
-  PENDING: "#94a3b8",
-  DELIVERED: "#60a5fa",
-  OPENED: "#a78bfa",
-  REPLIED: "#34d399",
-  GHOSTED: "#f87171",
-  EXPIRED: "#6b7280",
-};
+type Stat = { label: string; value: number | "locked"; icon: React.ElementType; color: string; note: string };
 
 export default function DashboardOverview({
   user,
   stats,
-  recentSent,
   confessionPageUnlocked,
 }: {
-  user: { name: string; id: string; username: string | null; primaryCategory: string; searchablePlaces: number };
-  stats: { sentCount: number; mutualCount: number; pendingCount: number };
-  recentSent: RecentItem[];
+  user: { name: string; id: string; phone: string; primaryCategory: string; searchablePlaces: number };
+  stats: {
+    profileSearchCount: number;
+    receivedConfessionCount: number;
+    lockedReceivedConfessionCount: number;
+    profileInsightUnlockCount: number;
+  };
   confessionPageUnlocked: boolean;
 }) {
   const statCards: Stat[] = [
-    { label: "Confessions Sent", value: stats.sentCount, icon: Sparkles, color: "#a78bfa", note: "Total messages you have sent" },
-    { label: "Mutuals", value: stats.mutualCount, icon: Heart, color: "#f472b6", note: "Two-way confession matches" },
-    { label: "Pending", value: stats.pendingCount, icon: Clock, color: "#60a5fa", note: "Still waiting to be opened or matched" },
+    { label: "Profile Searches", value: stats.profileSearchCount, icon: Search, color: "#a78bfa", note: "How many times your profile was searched on iConfess" },
+    {
+      label: "Received Confessions",
+      value: !confessionPageUnlocked && stats.lockedReceivedConfessionCount === 0 ? "locked" : stats.receivedConfessionCount,
+      icon: Heart,
+      color: "#f472b6",
+      note: !confessionPageUnlocked && stats.lockedReceivedConfessionCount === 0
+        ? "Unlock your inbox page to access received confessions"
+        : "Total confessions delivered to your inbox",
+    },
+    { label: "Profile Insight Unlocks", value: stats.profileInsightUnlockCount, icon: KeyRound, color: "#60a5fa", note: "How many times people unlocked your profile insights" },
     { label: "Searchable Places", value: user.searchablePlaces, icon: Compass, color: "#34d399", note: "Active profile categories linked to you" },
   ];
 
@@ -52,7 +47,7 @@ export default function DashboardOverview({
           Hey, {user.name.split(" ")[0]}
         </h1>
         <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
-          Your profile is live through {user.searchablePlaces} place{user.searchablePlaces !== 1 ? "s" : ""}. Keep your details sharp so people can find you accurately.
+          Your profile is searchable through {user.searchablePlaces} field{user.searchablePlaces !== 1 ? "s" : ""}. Keep your details sharp so people can find you accurately.
         </p>
       </motion.div>
 
@@ -72,7 +67,7 @@ export default function DashboardOverview({
               Profile Snapshot
             </p>
             <h2 className="text-xl sm:text-2xl font-semibold mt-2 break-all sm:break-normal" style={{ color: "#f0eeff" }}>
-              @{user.username ?? "profile-incomplete"}
+              {maskPhone(user.phone)}
             </h2>
             <p className="text-sm mt-2 max-w-xl" style={{ color: "#c7c3ee" }}>
               Primary profile: {user.primaryCategory.toLowerCase()}. Your confession inbox is {confessionPageUnlocked ? "unlocked" : "still locked"} and your public identity map is currently spread across {user.searchablePlaces} searchable context{user.searchablePlaces !== 1 ? "s" : ""}.
@@ -115,51 +110,20 @@ export default function DashboardOverview({
                 <stat.icon className="w-3.5 h-3.5" style={{ color: stat.color }} />
               </div>
             </div>
-            <p className="text-3xl font-bold" style={{ color: "#f0eeff" }}>{stat.value}</p>
+            {stat.value === "locked" ? (
+              <div className="h-9 flex items-center">
+                <Lock className="w-8 h-8" style={{ color: "#f0eeff" }} />
+              </div>
+            ) : (
+              <p className="text-3xl font-bold" style={{ color: "#f0eeff" }}>{stat.value}</p>
+            )}
             <p className="text-xs mt-2 leading-relaxed" style={{ color: "#6f6b98" }}>{stat.note}</p>
           </motion.div>
         ))}
       </div>
 
-      {recentSent.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.48, duration: 0.5 }}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-4">
-            <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Recent Sending Activity</h2>
-            <p className="text-xs" style={{ color: "#6f6b98" }}>Latest outgoing confessions</p>
-          </div>
-          <div className="flex flex-col gap-3">
-            {recentSent.map((c) => (
-              <div key={c.id} className="glass rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-2 h-2 rounded-full" style={{ background: statusColors[c.status] || "#9b98c8" }} />
-                  <div className="min-w-0">
-                    <p className="text-sm" style={{ color: "#f0eeff" }}>
-                      {c.location.charAt(0) + c.location.slice(1).toLowerCase()} Confession
-                    </p>
-                    <p className="text-xs" style={{ color: "#4a4870" }}>
-                      {new Date(c.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {c.mutualDetected && (
-                    <span className="text-xs px-2 py-0.5 rounded-full status-mutual">Mutual</span>
-                  )}
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full status-${c.status.toLowerCase()}`}
-                  >
-                    {c.status.charAt(0) + c.status.slice(1).toLowerCase()}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }
+
+

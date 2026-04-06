@@ -6,13 +6,20 @@ import {
   findMatches,
   type LocationCategory,
 } from "@/lib/matching";
+import {
+  incrementPendingProfileSearchCount,
+  incrementProfileSearchCounts,
+} from "@/lib/profile-search-count";
 import { prisma } from "@/lib/prisma";
 import { formatPhone } from "@/lib/utils";
+import { PendingProfileSearchKind } from "@prisma/client";
+import { countSentConfessionsToOthers } from "@/lib/confessions";
 
 export async function GET(req: NextRequest) {
   try {
     const user = await getSession();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const viewerSentCount = await countSentConfessionsToOthers(user.id, prisma);
 
     const { searchParams } = new URL(req.url);
     const mode = searchParams.get("mode");
@@ -20,18 +27,28 @@ export async function GET(req: NextRequest) {
     if (mode === "phone") {
       const phone = searchParams.get("phone")?.trim();
       if (!phone || !/^\d{10}$/.test(phone)) {
-        return NextResponse.json({ results: [] });
+        return NextResponse.json({ results: [], viewerSentCount });
       }
 
       const target = await prisma.user.findUnique({
         where: { phone: formatPhone(phone) },
       });
 
-      const results = (await getSearchResultByIds(target ? [target.id] : [], user.id)).map((result) => ({
+      if (target && target.id !== user.id) {
+        await incrementProfileSearchCounts([target.id], prisma);
+      } else if (!target) {
+        await incrementPendingProfileSearchCount(
+          PendingProfileSearchKind.PHONE,
+          formatPhone(phone),
+          prisma
+        );
+      }
+
+      const results = (await getSearchResultByIds(target ? [target.id] : [], user.id, { includeCurrentUser: true })).map((result) => ({
         ...result,
         matchContext: ["Matched by phone number"],
       }));
-      return NextResponse.json({ results });
+      return NextResponse.json({ results, viewerSentCount });
     }
 
     if (mode === "social") {
@@ -39,7 +56,7 @@ export async function GET(req: NextRequest) {
       const handle = normalizeSocialHandle(searchParams.get("handle") ?? "");
 
       if (!handle || (platform !== "instagram" && platform !== "snapchat")) {
-        return NextResponse.json({ results: [] });
+        return NextResponse.json({ results: [], viewerSentCount });
       }
 
       const target = await prisma.user.findFirst({
@@ -50,7 +67,19 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      const results = (await getSearchResultByIds(target ? [target.id] : [], user.id)).map((result) => ({
+      if (target && target.id !== user.id) {
+        await incrementProfileSearchCounts([target.id], prisma);
+      } else if (!target) {
+        await incrementPendingProfileSearchCount(
+          platform === "instagram"
+            ? PendingProfileSearchKind.INSTAGRAM
+            : PendingProfileSearchKind.SNAPCHAT,
+          handle,
+          prisma
+        );
+      }
+
+      const results = (await getSearchResultByIds(target ? [target.id] : [], user.id, { includeCurrentUser: true })).map((result) => ({
         ...result,
         matchContext: [
           platform === "instagram"
@@ -58,13 +87,13 @@ export async function GET(req: NextRequest) {
             : `Snapchat: @${result.snapchatHandle ?? handle}`,
         ],
       }));
-      return NextResponse.json({ results });
+      return NextResponse.json({ results, viewerSentCount });
     }
 
     if (mode === "profile") {
       const location = searchParams.get("location");
       if (!location) {
-        return NextResponse.json({ results: [] });
+        return NextResponse.json({ results: [], viewerSentCount });
       }
 
       const details: Record<string, string> = {};
@@ -74,18 +103,34 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      const fullName = [details.firstName, details.lastName].filter(Boolean).join(" ").trim();
+      if (!details.firstName) {
+        return NextResponse.json({ results: [], viewerSentCount });
+      }
+      if (fullName) {
+        details.fullName = fullName;
+      }
+      delete details.firstName;
+      delete details.lastName;
+
       const matches = await findMatches(location, details);
       const uniqueIds = [...new Set(matches.map((match: { id: string }) => match.id))];
-      const results = (await getSearchResultByIds(uniqueIds, user.id)).map((result) => ({
+      const targetUserIds = uniqueIds.filter((id) => id !== user.id);
+
+      await incrementProfileSearchCounts(targetUserIds, prisma);
+
+      const results = (await getSearchResultByIds(uniqueIds, user.id, { includeCurrentUser: true })).map((result) => ({
         ...result,
         matchContext: buildProfileMatchContext(location as LocationCategory, details, result),
       }));
-      return NextResponse.json({ results });
+      return NextResponse.json({ results, viewerSentCount });
     }
 
-    return NextResponse.json({ results: [] });
+    return NextResponse.json({ results: [], viewerSentCount });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+

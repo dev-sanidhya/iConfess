@@ -13,8 +13,10 @@ model User {
   phone     String   @unique
   username  String?  @unique
   passwordHash String?
+  dateOfBirth DateTime?
   instagramHandle String? @unique
   snapchatHandle  String? @unique
+  profileSearchCount Int?
   primaryCategory LocationCategory @default(COLLEGE)
   gender    Gender   @default(OTHER)
   name      String
@@ -35,6 +37,20 @@ model User {
   profileInsightsViewed  UnlockedProfileInsight[] @relation("ProfileInsightViewer")
   profileInsightsOwned   UnlockedProfileInsight[] @relation("ProfileInsightTarget")
   otpSessions            OtpSession[]
+  payments               Payment[]
+  visitSessions          VisitSession[]
+  activities             UserActivity[]
+}
+
+model PendingProfileSearchCount {
+  id        String                   @id @default(cuid())
+  kind      PendingProfileSearchKind
+  value     String
+  count     Int                      @default(0)
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
+
+  @@unique([kind, value])
 }
 
 model CollegeProfile {
@@ -105,6 +121,10 @@ model Confession {
   targetId    String?
   target      User?            @relation("ReceivedConfessions", fields: [targetId], references: [id])
   targetPhone String?
+  isSelfConfession Boolean     @default(false)
+  billingCategory ConfessionBillingCategory @default(CONFESSION_TO_OTHERS)
+  billingState ConfessionBillingState @default(PAID)
+  selfGenderOverride Gender?
   message     String
   location    LocationCategory
   matchDetails Json
@@ -137,8 +157,9 @@ model UnlockedProfileInsight {
   targetUserId String
   targetUser   User     @relation("ProfileInsightTarget", fields: [targetUserId], references: [id])
   unlockedAt   DateTime @default(now())
-
-  @@unique([viewerId, targetUserId])
+  
+  @@index([viewerId, targetUserId])
+  @@index([targetUserId])
 }
 
 model OtpSession {
@@ -150,6 +171,68 @@ model OtpSession {
   expiresAt DateTime
   verified  Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model StaffUser {
+  id           String            @id @default(cuid())
+  name         String
+  username     String            @unique
+  passwordHash String
+  role         StaffRole
+  status       StaffStatus       @default(ACTIVE)
+  permissions  StaffPermission[] @default([])
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  managedPayments Payment[] @relation("PaymentManager")
+}
+
+model Payment {
+  id                   String        @id @default(cuid())
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                 PaymentType
+  status               PaymentStatus @default(SUCCESS)
+  amount               Int
+  gateway              String?
+  gatewayTransactionId String?
+  metadata             Json?
+  managedByStaffId     String?
+  managedByStaff       StaffUser?    @relation("PaymentManager", fields: [managedByStaffId], references: [id], onDelete: SetNull)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([userId, type, createdAt])
+  @@index([status, createdAt])
+}
+
+model VisitSession {
+  id             String         @id @default(cuid())
+  userId         String?
+  user           User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anonymousId    String?
+  startedAt      DateTime
+  lastActivityAt DateTime
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  activities     UserActivity[]
+
+  @@index([userId, lastActivityAt])
+  @@index([anonymousId, lastActivityAt])
+}
+
+model UserActivity {
+  id             String       @id @default(cuid())
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitSessionId String
+  visitSession   VisitSession @relation(fields: [visitSessionId], references: [id], onDelete: Cascade)
+  type           ActivityType
+  path           String?
+  createdAt      DateTime     @default(now())
+
+  @@index([userId, createdAt])
+  @@index([visitSessionId, createdAt])
 }
 
 enum GymTiming {
@@ -179,4 +262,56 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+enum ConfessionBillingCategory {
+  CONFESSION_TO_OTHERS
+  CONFESSION_TO_YOURSELF
+}
+
+enum ConfessionBillingState {
+  FREE
+  PAID
+}
+
+enum PendingProfileSearchKind {
+  PHONE
+  INSTAGRAM
+  SNAPCHAT
+}
+
+enum StaffRole {
+  ADMIN
+  EMPLOYEE
+}
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum StaffPermission {
+  MANAGE_USERS
+  MANAGE_PAYMENTS
+  MANAGE_CONFESSIONS
+}
+
+enum PaymentType {
+  SEND_CONFESSION
+  UNLOCK_CONFESSION_CARD
+  UNLOCK_CONFESSION_PAGE
+  UNLOCK_PROFILE_INSIGHTS
+  SELF_CONFESSION
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum ActivityType {
+  CLICK
+  SCROLL
 }

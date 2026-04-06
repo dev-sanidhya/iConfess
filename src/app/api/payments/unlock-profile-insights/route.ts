@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { recordPayment } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
+import { pricing } from "@/lib/pricing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,24 +26,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Target not found" }, { status: 404 });
     }
 
-    const existing = await prisma.unlockedProfileInsight.findUnique({
-      where: {
-        viewerId_targetUserId: {
-          viewerId: user.id,
-          targetUserId,
-        },
-      },
-    });
-
-    if (existing) {
-      return NextResponse.json({ success: true, alreadyUnlocked: true });
-    }
-
     await prisma.unlockedProfileInsight.create({
       data: {
         viewerId: user.id,
         targetUserId,
       },
+    });
+
+    await recordPayment({
+      userId: user.id,
+      type: "UNLOCK_PROFILE_INSIGHTS",
+      amount: pricing.viewInsights,
+      metadata: { targetUserId },
     });
 
     return NextResponse.json({ success: true });

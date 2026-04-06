@@ -13,7 +13,7 @@ export default function PricingPage() {
   return (
     <LegalPageShell
       title="Pricing"
-      description="These are the current planned iConfess prices for premium actions and access layers. Payment gateway approval will use this pricing structure."
+      description="These are the current planned iConfess prices for premium actions and access layers."
     >
       <section className="space-y-4">
         <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>

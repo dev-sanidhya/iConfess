@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         isNewUser: false,
-        hasCredentials: Boolean(existingUser.username && existingUser.passwordHash),
+        hasCredentials: Boolean(existingUser.passwordHash),
       });
     }
 
