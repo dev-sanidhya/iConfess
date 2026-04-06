@@ -14,6 +14,7 @@ type UserProfile = {
   phone: string;
   gender: "MALE" | "FEMALE" | "OTHER";
   primaryCategory: LocationCategory;
+  username: string | null;
   instagramHandle: string | null;
   snapchatHandle: string | null;
   college: {
@@ -37,6 +38,7 @@ type UserProfile = {
     companyName: string;
     department: string;
     city: string;
+    buildingName: string;
     fullName: string;
   } | null;
   gym: {
@@ -92,13 +94,14 @@ function getProfileDetailsByCategory(user: UserProfile): Partial<Record<Location
         }
       : {}),
     ...(user.workplace
-      ? {
-          WORKPLACE: {
-            companyName: user.workplace.companyName,
-            department: user.workplace.department,
-            city: user.workplace.city,
-          },
-        }
+        ? {
+            WORKPLACE: {
+              companyName: user.workplace.companyName,
+              department: user.workplace.department,
+              city: user.workplace.city,
+              buildingName: user.workplace.buildingName,
+            },
+          }
       : {}),
     ...(user.gym
       ? {
