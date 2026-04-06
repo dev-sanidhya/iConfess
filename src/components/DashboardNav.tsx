@@ -30,22 +30,22 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
     <>
       <div className="px-3 mb-8">
         <span className="text-xl font-bold gradient-text">iConfess</span>
-        <p className="text-xs mt-0.5" style={{ color: "#4a4870" }}>Anonymous Confessions</p>
+        <p className="text-xs mt-0.5" style={{ color: "#9b7c5d" }}>Anonymous Confessions</p>
       </div>
 
       <div
         className="flex items-center gap-3 px-3 py-3 rounded-xl mb-6"
-        style={{ background: "rgba(30,30,63,0.3)" }}
+        style={{ background: "rgba(255,251,245,0.7)", border: "1px solid rgba(179,148,111,0.22)" }}
       >
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-          style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+          style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
         >
           {user.name[0].toUpperCase()}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium truncate" style={{ color: "#f0eeff" }}>{user.name}</p>
-          <p className="text-xs" style={{ color: "#4a4870" }}>#{user.id.slice(-6).toUpperCase()}</p>
+          <p className="text-sm font-medium truncate" style={{ color: "#3f2c1d" }}>{user.name}</p>
+          <p className="text-xs" style={{ color: "#9b7c5d" }}>#{user.id.slice(-6).toUpperCase()}</p>
         </div>
       </div>
 
@@ -58,9 +58,9 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
                 whileHover={{ x: 2 }}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
                 style={{
-                  background: active ? "rgba(124,58,237,0.15)" : "transparent",
-                  color: active ? "#c084fc" : "#9b98c8",
-                  border: active ? "1px solid rgba(192,132,252,0.2)" : "1px solid transparent",
+                  background: active ? "rgba(143,106,70,0.14)" : "transparent",
+                  color: active ? "#8f6a46" : "#735a43",
+                  border: active ? "1px solid rgba(143,106,70,0.22)" : "1px solid transparent",
                 }}
               >
                 <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -69,7 +69,7 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
                   <motion.div
                     layoutId="nav-indicator"
                     className="ml-auto w-1.5 h-1.5 rounded-full"
-                    style={{ background: "#c084fc" }}
+                    style={{ background: "#8f6a46" }}
                   />
                 )}
               </motion.div>
@@ -81,7 +81,7 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
       <button
         onClick={handleLogout}
         className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all w-full"
-        style={{ color: "#4a4870" }}
+        style={{ color: "#9b7c5d" }}
       >
         <LogOut className="w-4 h-4" />
         Sign Out
@@ -93,17 +93,17 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
     <>
       <div
         className="md:hidden fixed top-0 inset-x-0 z-40 px-4 py-3 flex items-center justify-between"
-        style={{ background: "rgba(5,5,15,0.92)", borderBottom: "1px solid #1e1e3f", backdropFilter: "blur(20px)" }}
+        style={{ background: "rgba(247,239,228,0.94)", borderBottom: "1px solid rgba(179,148,111,0.22)", backdropFilter: "blur(20px)" }}
       >
         <div>
           <span className="text-lg font-bold gradient-text">iConfess</span>
-          <p className="text-[11px] mt-0.5" style={{ color: "#4a4870" }}>{user.name}</p>
+          <p className="text-[11px] mt-0.5" style={{ color: "#9b7c5d" }}>{user.name}</p>
         </div>
         <button
           type="button"
           onClick={() => setMobileOpen((current) => !current)}
           className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: "rgba(30,30,63,0.45)", border: "1px solid #1e1e3f", color: "#c084fc" }}
+          style={{ background: "rgba(255,251,245,0.84)", border: "1px solid rgba(179,148,111,0.24)", color: "#8f6a46" }}
           aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -123,7 +123,7 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
         className={`fixed left-0 top-0 z-50 h-screen w-[min(82vw,20rem)] md:w-64 flex flex-col py-6 md:py-8 px-4 transition-transform duration-300 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
-        style={{ background: "rgba(5,5,15,0.97)", borderRight: "1px solid #1e1e3f", backdropFilter: "blur(20px)" }}
+        style={{ background: "rgba(247,239,228,0.94)", borderRight: "1px solid rgba(179,148,111,0.22)", backdropFilter: "blur(20px)" }}
       >
         {navContent}
       </aside>

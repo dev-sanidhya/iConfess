@@ -289,12 +289,12 @@ export default function SearchPage() {
   return (
     <div className="py-2 max-w-2xl">
       <div className="mb-5">
-        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>Search</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#3f2c1d" }}>Search</h1>
       </div>
 
       <div
         className="grid grid-cols-1 sm:grid-cols-3 gap-1 p-1 rounded-xl mb-6 w-full sm:w-fit"
-        style={{ background: "rgba(30,30,63,0.4)", border: "1px solid #1e1e3f" }}
+        style={{ background: "rgba(255,248,240,0.9)", border: "1px solid rgba(184,159,126,0.3)" }}
       >
         {(["profile", "phone", "social"] as SearchMode[]).map((entryMode) => (
           <button
@@ -306,9 +306,9 @@ export default function SearchPage() {
             }}
             className="px-5 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
-              background: mode === entryMode ? "rgba(192,132,252,0.3)" : "transparent",
-              color: mode === entryMode ? "#c084fc" : "#9b98c8",
-              border: mode === entryMode ? "1px solid rgba(192,132,252,0.3)" : "1px solid transparent",
+              background: mode === entryMode ? "rgba(143,106,70,0.12)" : "transparent",
+              color: mode === entryMode ? "#8f6a46" : "#9b7c5d",
+              border: mode === entryMode ? "1px solid rgba(179,148,111,0.24)" : "1px solid transparent",
             }}
           >
             {entryMode === "profile"
@@ -324,11 +324,11 @@ export default function SearchPage() {
         <AnimatePresence mode="wait">
           {mode === "phone" && (
             <motion.div key="phone" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Search by phone number</h3>
+              <h3 className="text-sm font-medium mb-3" style={{ color: "#8c7257" }}>Search by phone number</h3>
               <div className="flex gap-2">
                 <span
                   className="flex items-center px-3 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#9b98c8" }}
+                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#8c7257" }}
                 >
                   +91
                 </span>
@@ -340,7 +340,7 @@ export default function SearchPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                   className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
                 />
               </div>
             </motion.div>
@@ -348,7 +348,7 @@ export default function SearchPage() {
 
           {mode === "social" && (
             <motion.div key="social" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Search by social handle</h3>
+              <h3 className="text-sm font-medium mb-3" style={{ color: "#8c7257" }}>Search by social handle</h3>
               <div className="grid grid-cols-2 gap-2 mb-3">
                 {(["instagram", "snapchat"] as const).map((value) => (
                   <button
@@ -357,9 +357,9 @@ export default function SearchPage() {
                     onClick={() => setPlatform(value)}
                     className="px-4 py-2 rounded-lg text-sm"
                     style={{
-                      background: platform === value ? "rgba(192,132,252,0.3)" : "rgba(30,30,63,0.3)",
-                      color: platform === value ? "#c084fc" : "#9b98c8",
-                      border: `1px solid ${platform === value ? "rgba(192,132,252,0.3)" : "#1e1e3f"}`,
+                      background: platform === value ? "rgba(143,106,70,0.12)" : "rgba(255,251,245,0.84)",
+                      color: platform === value ? "#8f6a46" : "#8c7257",
+                      border: `1px solid ${platform === value ? "rgba(179,148,111,0.28)" : "rgba(184,159,126,0.22)"}`,
                     }}
                   >
                     {value === "instagram" ? "Instagram" : "Snapchat"}
@@ -367,14 +367,14 @@ export default function SearchPage() {
                 ))}
               </div>
               <div className="relative">
-                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b98c8" }} />
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b7c5d" }} />
                 <input
                   type="text"
                   placeholder={platform === "instagram" ? "instagram_handle" : "snapchat_handle"}
                   value={handle}
                   onChange={(e) => setHandle(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
                 />
               </div>
             </motion.div>
@@ -382,7 +382,7 @@ export default function SearchPage() {
 
           {mode === "profile" && (
             <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <h3 className="text-sm font-medium mb-3" style={{ color: "#9b98c8" }}>Search by profile details</h3>
+              <h3 className="text-sm font-medium mb-3" style={{ color: "#8c7257" }}>Search by profile details</h3>
               <div className="grid grid-cols-1 gap-2 mb-4">
                 {locationCategories.map((cat) => (
                   <button
@@ -394,9 +394,9 @@ export default function SearchPage() {
                     }}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"
                     style={{
-                      background: selectedCategory === cat.id ? "rgba(124,58,237,0.15)" : "rgba(30,30,63,0.3)",
-                      border: `1px solid ${selectedCategory === cat.id ? "rgba(192,132,252,0.4)" : "#1e1e3f"}`,
-                      color: selectedCategory === cat.id ? "#c084fc" : "#9b98c8",
+                      background: selectedCategory === cat.id ? "rgba(143,106,70,0.12)" : "rgba(255,251,245,0.84)",
+                      border: `1px solid ${selectedCategory === cat.id ? "rgba(179,148,111,0.32)" : "rgba(184,159,126,0.22)"}`,
+                      color: selectedCategory === cat.id ? "#8f6a46" : "#8c7257",
                     }}
                   >
                     <span>{cat.emoji}</span>
@@ -407,12 +407,12 @@ export default function SearchPage() {
 
               {selectedCategory && (
                 <div ref={profileFieldsRef} className="flex flex-col gap-3">
-                  <p className="text-xs" style={{ color: "#4a4870" }}>
+                  <p className="text-xs" style={{ color: "#9b7c5d" }}>
                     Only fill the details you know. Leave the rest blank.
                   </p>
                   {searchDetailFields[selectedCategory].map((field) => (
                     <div key={field.key}>
-                      <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>
+                      <label className="text-xs font-medium mb-1 block" style={{ color: "#9b7c5d" }}>
                         {field.label}{field.required ? " *" : ""}
                       </label>
                       {field.options ? (
@@ -422,7 +422,7 @@ export default function SearchPage() {
                             setProfileDetails((current) => ({ ...current, [field.key]: e.target.value }))
                           }
                           className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                          style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                          style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
                           required={field.required}
                         >
                           <option value="">Select…</option>
@@ -440,7 +440,7 @@ export default function SearchPage() {
                             setProfileDetails((current) => ({ ...current, [field.key]: e.target.value }))
                           }
                           className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                          style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                          style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
                           required={field.required}
                         />
                       )}
@@ -457,7 +457,7 @@ export default function SearchPage() {
           onClick={runSearch}
           disabled={loading}
           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-all"
-          style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}
+          style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
         >
           {mode === "phone" ? <Phone className="w-4 h-4" /> : <Search className="w-4 h-4" />}
           {loading ? "Searching..." : "Search"}
@@ -473,8 +473,8 @@ export default function SearchPage() {
             exit={{ opacity: 0 }}
             className="text-center py-16"
           >
-            <User className="w-8 h-8 mx-auto mb-3" style={{ color: "#1e1e3f" }} />
-            <p style={{ color: "#4a4870" }}>No matching profile found.</p>
+            <User className="w-8 h-8 mx-auto mb-3" style={{ color: "#8f6a46" }} />
+            <p style={{ color: "#735a43" }}>No matching profile found.</p>
           </motion.div>
         )}
 
@@ -516,29 +516,29 @@ export default function SearchPage() {
                     <div className="flex items-center gap-4 min-w-0">
                       <div
                         className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                        style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                        style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                       >
                         {result.name[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium truncate" style={{ color: "#f0eeff" }}>{result.name}</p>
+                        <p className="font-medium truncate" style={{ color: "#3f2c1d" }}>{result.name}</p>
                         {selectedSection && (
-                          <p className="text-sm mt-1 truncate" style={{ color: "#9b98c8" }}>
+                          <p className="text-sm mt-1 truncate" style={{ color: "#8c7257" }}>
                             {getConciseCategorySummary(selectedSection)}
                           </p>
                         )}
                         <div className="flex items-center gap-1 mt-1">
                           {shouldHideSelfConfessionCount ? (
                             <>
-                              <Lock className="w-3 h-3" style={{ color: "#9b98c8" }} />
-                              <span className="text-xs" style={{ color: "#9b98c8" }}>
+                              <Lock className="w-3 h-3" style={{ color: "#9b7c5d" }} />
+                              <span className="text-xs" style={{ color: "#9b7c5d" }}>
                                 Locked
                               </span>
                             </>
                           ) : (
                             <>
-                              <Heart className="w-3 h-3" style={{ color: "#f472b6" }} />
-                              <span className="text-xs" style={{ color: "#9b98c8" }}>
+                              <Heart className="w-3 h-3" style={{ color: "#9f6c31" }} />
+                              <span className="text-xs" style={{ color: "#9b7c5d" }}>
                                 {result.confessionCount} confession{result.confessionCount !== 1 ? "s" : ""}
                               </span>
                             </>
@@ -554,9 +554,9 @@ export default function SearchPage() {
                           disabled={loadingInsightsFor === result.id}
                           className="px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto"
                           style={{
-                            background: "rgba(244,114,182,0.12)",
-                            border: "1px solid rgba(244,114,182,0.18)",
-                            color: "#f472b6",
+                            background: "rgba(198,145,85,0.12)",
+                            border: "1px solid rgba(198,145,85,0.18)",
+                            color: "#9f6c31",
                           }}
                         >
                           {loadingInsightsFor === result.id
@@ -567,7 +567,7 @@ export default function SearchPage() {
                       <Link
                         href={`/dashboard/send?target=${result.id}&name=${encodeURIComponent(result.name)}`}
                         className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white flex-shrink-0 w-full sm:w-auto"
-                        style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                        style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                       >
                         {`Confess (${confessPriceLabel})`}
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -575,8 +575,8 @@ export default function SearchPage() {
                     </div>
                   </div>
                   {insights && (
-                    <div className="rounded-2xl border p-4 sm:p-5" style={{ background: "rgba(30,30,63,0.18)", borderColor: "#1e1e3f" }}>
-                      <h3 className="text-sm font-semibold mb-3" style={{ color: "#f0eeff" }}>
+                    <div className="rounded-2xl border p-4 sm:p-5" style={{ background: "rgba(255,251,245,0.88)", borderColor: "rgba(184,159,126,0.22)" }}>
+                      <h3 className="text-sm font-semibold mb-3" style={{ color: "#3f2c1d" }}>
                         Confession insights for {result.name}
                       </h3>
                       {result.lockedInsightCount > 0 && (
@@ -586,9 +586,9 @@ export default function SearchPage() {
                           disabled={loadingInsightsFor === result.id}
                           className="mb-3 px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-fit"
                           style={{
-                            background: "rgba(244,114,182,0.12)",
-                            border: "1px solid rgba(244,114,182,0.18)",
-                            color: "#f472b6",
+                            background: "rgba(198,145,85,0.12)",
+                            border: "1px solid rgba(198,145,85,0.18)",
+                            color: "#9f6c31",
                           }}
                         >
                           {loadingInsightsFor === result.id
@@ -597,7 +597,7 @@ export default function SearchPage() {
                         </button>
                       )}
                       {insights.length === 0 ? (
-                        <p className="text-xs" style={{ color: "#9b98c8" }}>
+                        <p className="text-xs" style={{ color: "#9b7c5d" }}>
                           No received confessions available to preview.
                         </p>
                       ) : (
@@ -607,16 +607,16 @@ export default function SearchPage() {
                               key={insight.id}
                               className="rounded-xl p-4"
                               style={{
-                                background: insight.isUnlocked ? "rgba(30,30,63,0.28)" : "rgba(30,30,63,0.18)",
-                                border: insight.isUnlocked ? "1px solid #1e1e3f" : "1px dashed rgba(244,114,182,0.24)",
+                                background: insight.isUnlocked ? "rgba(255,248,240,0.92)" : "rgba(255,251,245,0.82)",
+                                border: insight.isUnlocked ? "1px solid rgba(184,159,126,0.26)" : "1px dashed rgba(198,145,85,0.28)",
                               }}
                             >
-                              <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+                              <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>
                                 {insight.isUnlocked ? "Shared sender field" : "Locked insight"}
                               </p>
                               {insight.isUnlocked ? (
                                 <>
-                                  <p className="text-sm mt-1 font-medium" style={{ color: "#f0eeff" }}>
+                                  <p className="text-sm mt-1 font-medium" style={{ color: "#3f2c1d" }}>
                                     {insight.sender.category}
                                   </p>
                                   <div className="mt-3 flex flex-col gap-2">
@@ -626,12 +626,12 @@ export default function SearchPage() {
                                           key={`${insight.id}-${detail.label}`}
                                           className="flex items-center justify-between gap-4"
                                         >
-                                          <span className="text-xs" style={{ color: "#9b98c8" }}>{detail.label}</span>
-                                          <span className="text-sm text-right" style={{ color: "#f0eeff" }}>{detail.value}</span>
+                                          <span className="text-xs" style={{ color: "#9b7c5d" }}>{detail.label}</span>
+                                          <span className="text-sm text-right" style={{ color: "#3f2c1d" }}>{detail.value}</span>
                                         </div>
                                       ))
                                     ) : (
-                                      <p className="text-xs" style={{ color: "#9b98c8" }}>
+                                      <p className="text-xs" style={{ color: "#9b7c5d" }}>
                                         Shared details are not available for this confession.
                                       </p>
                                     )}
@@ -639,10 +639,10 @@ export default function SearchPage() {
                                 </>
                               ) : (
                                 <div className="mt-2 flex flex-col gap-2">
-                                  <p className="text-sm font-medium" style={{ color: "#f0eeff" }}>
+                                  <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>
                                     New confession insight
                                   </p>
-                                  <p className="text-xs leading-relaxed" style={{ color: "#9b98c8" }}>
+                                  <p className="text-xs leading-relaxed" style={{ color: "#9b7c5d" }}>
                                     This insight came in after your last unlock. 
                                   </p>
                                 </div>
@@ -669,29 +669,29 @@ export default function SearchPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 overflow-y-auto px-4 pt-20 pb-6 sm:px-4 sm:py-8"
-            style={{ background: "rgba(4, 3, 14, 0.72)" }}
+            style={{ background: "rgba(102, 74, 44, 0.34)" }}
           >
             <motion.div
               initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.96 }}
               className="mx-auto w-full max-w-xl rounded-3xl p-6 sm:my-auto sm:p-7"
-              style={{ background: "linear-gradient(180deg, #16132b 0%, #0f0c22 100%)", border: "1px solid rgba(192,132,252,0.2)" }}
+              style={{ background: "linear-gradient(180deg, #fffaf3 0%, #f3e6d7 100%)", border: "1px solid rgba(184,159,126,0.3)" }}
             >
-              <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+              <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
                 Unlock {pendingInsightUnlock.name}&apos;s insights?
               </h2>
               <div
                 className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
-                style={{ background: "rgba(30,30,63,0.32)", border: "1px solid rgba(192,132,252,0.12)" }}
+                style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
               >
-                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   You will see the sender&apos;s shared category and profile details like college, school, workplace, gym, or neighbourhood info when available.
                 </p>
-                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   This does not reveal the confession message itself. It shows the identity clues the sender chose to attach to those confessions that are included in this unlock.
                 </p>
-                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   Future confessions are not included in this purchase. If new confessions arrive later, they will appear locked until you unlock insights again.
                 </p>
               </div>
@@ -700,7 +700,7 @@ export default function SearchPage() {
                   type="button"
                   onClick={() => setPendingInsightUnlock(null)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium"
-                  style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #2a2650", color: "#b6b2db" }}
+                  style={{ background: "rgba(255,251,245,0.9)", border: "1px solid rgba(184,159,126,0.3)", color: "#8c7257" }}
                 >
                   Cancel
                 </button>
@@ -709,7 +709,7 @@ export default function SearchPage() {
                   onClick={() => void confirmInsightUnlock()}
                   disabled={loadingInsightsFor === pendingInsightUnlock.id}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                  style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
                   {loadingInsightsFor === pendingInsightUnlock.id ? "Processing..." : `Unlock for ${formatInr(pricing.viewInsights)}`}
                 </button>

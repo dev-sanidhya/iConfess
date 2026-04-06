@@ -26,7 +26,7 @@ export default function DashboardOverview({
       label: "Received Confessions",
       value: !confessionPageUnlocked && stats.lockedReceivedConfessionCount === 0 ? "locked" : stats.receivedConfessionCount,
       icon: Heart,
-      color: "#f472b6",
+      color: "#9f6c31",
       note: !confessionPageUnlocked && stats.lockedReceivedConfessionCount === 0
         ? "Unlock your inbox page to access received confessions"
         : "Total confessions delivered to your inbox",
@@ -43,10 +43,10 @@ export default function DashboardOverview({
         transition={{ duration: 0.5 }}
         className="mb-10"
       >
-        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>
+        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#3f2c1d" }}>
           Hey, {user.name.split(" ")[0]}
         </h1>
-        <p className="text-sm mt-1" style={{ color: "#9b98c8" }}>
+        <p className="text-sm mt-1" style={{ color: "#735a43" }}>
           Your profile is searchable through {user.searchablePlaces} field{user.searchablePlaces !== 1 ? "s" : ""}. Keep your details sharp so people can find you accurately.
         </p>
       </motion.div>
@@ -57,33 +57,33 @@ export default function DashboardOverview({
         transition={{ delay: 0.08, duration: 0.5 }}
         className="rounded-2xl p-6 mb-8"
         style={{
-          background: "linear-gradient(135deg, rgba(124,58,237,0.16) 0%, rgba(14,165,233,0.08) 100%)",
-          border: "1px solid rgba(192,132,252,0.2)",
+          background: "linear-gradient(135deg, rgba(214,185,150,0.24) 0%, rgba(255,255,255,0.5) 100%)",
+          border: "1px solid rgba(179,148,111,0.22)",
         }}
       >
         <div className="flex flex-col lg:flex-row items-start justify-between gap-4 lg:gap-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "#9b98c8" }}>
+            <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "#9b7c5d" }}>
               Profile Snapshot
             </p>
-            <h2 className="text-xl sm:text-2xl font-semibold mt-2 break-all sm:break-normal" style={{ color: "#f0eeff" }}>
+            <h2 className="text-xl sm:text-2xl font-semibold mt-2 break-all sm:break-normal" style={{ color: "#3f2c1d" }}>
               {maskPhone(user.phone)}
             </h2>
-            <p className="text-sm mt-2 max-w-xl" style={{ color: "#c7c3ee" }}>
+            <p className="text-sm mt-2 max-w-xl" style={{ color: "#735a43" }}>
               Primary profile: {user.primaryCategory.toLowerCase()}. Your confession inbox is {confessionPageUnlocked ? "unlocked" : "still locked"} and your public identity map is currently spread across {user.searchablePlaces} searchable context{user.searchablePlaces !== 1 ? "s" : ""}.
             </p>
           </div>
           <div
             className="rounded-2xl px-4 py-3 w-full lg:w-auto lg:min-w-[180px]"
-            style={{ background: "rgba(10,10,24,0.35)", border: "1px solid rgba(192,132,252,0.14)" }}
+            style={{ background: "rgba(255,251,245,0.72)", border: "1px solid rgba(179,148,111,0.22)" }}
           >
             <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4" style={{ color: confessionPageUnlocked ? "#34d399" : "#c084fc" }} />
-              <span className="text-sm font-medium" style={{ color: "#f0eeff" }}>
+              <Shield className="w-4 h-4" style={{ color: confessionPageUnlocked ? "#3f9a76" : "#8f6a46" }} />
+              <span className="text-sm font-medium" style={{ color: "#3f2c1d" }}>
                 Inbox Access
               </span>
             </div>
-            <p className="text-xs" style={{ color: "#9b98c8" }}>
+            <p className="text-xs" style={{ color: "#735a43" }}>
               {confessionPageUnlocked
                 ? "Received confessions can be opened from the inbox."
                 : "Received confessions stay locked until the inbox is unlocked."}
@@ -102,7 +102,7 @@ export default function DashboardOverview({
             className="glass glass-hover rounded-2xl p-5"
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs" style={{ color: "#4a4870" }}>{stat.label}</span>
+              <span className="text-xs" style={{ color: "#9b7c5d" }}>{stat.label}</span>
               <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{ background: `${stat.color}15` }}
@@ -112,12 +112,12 @@ export default function DashboardOverview({
             </div>
             {stat.value === "locked" ? (
               <div className="h-9 flex items-center">
-                <Lock className="w-8 h-8" style={{ color: "#f0eeff" }} />
+                <Lock className="w-8 h-8" style={{ color: "#3f2c1d" }} />
               </div>
             ) : (
-              <p className="text-3xl font-bold" style={{ color: "#f0eeff" }}>{stat.value}</p>
+              <p className="text-3xl font-bold" style={{ color: "#3f2c1d" }}>{stat.value}</p>
             )}
-            <p className="text-xs mt-2 leading-relaxed" style={{ color: "#6f6b98" }}>{stat.note}</p>
+            <p className="text-xs mt-2 leading-relaxed" style={{ color: "#9b7c5d" }}>{stat.note}</p>
           </motion.div>
         ))}
       </div>

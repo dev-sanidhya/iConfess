@@ -80,11 +80,11 @@ function EmptyState({ tab }: { tab: TabKey }) {
   return (
     <div className="text-center py-24">
       {tab === "received" ? (
-        <Inbox className="w-10 h-10 mx-auto mb-4" style={{ color: "#1e1e3f" }} />
+        <Inbox className="w-10 h-10 mx-auto mb-4" style={{ color: "#8f6a46" }} />
       ) : (
-        <Send className="w-10 h-10 mx-auto mb-4" style={{ color: "#1e1e3f" }} />
+        <Send className="w-10 h-10 mx-auto mb-4" style={{ color: "#8f6a46" }} />
       )}
-      <p className="font-medium" style={{ color: "#4a4870" }}>
+      <p className="font-medium" style={{ color: "#735a43" }}>
         {tab === "received" ? "No received confessions yet" : "No sent confessions yet"}
       </p>
     </div>
@@ -145,28 +145,28 @@ function ConfessionCard({
         <div
           className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-2.5 text-sm font-medium"
           style={{
-            background: "linear-gradient(90deg, rgba(244,114,182,0.15), rgba(192,132,252,0.1))",
-            borderBottom: "1px solid rgba(244,114,182,0.2)",
+            background: "linear-gradient(90deg, rgba(214,185,150,0.24), rgba(255,251,245,0.72))",
+            borderBottom: "1px solid rgba(179,148,111,0.24)",
           }}
         >
-          <Sparkles className="w-4 h-4" style={{ color: "#f472b6" }} />
-          <span style={{ color: "#f472b6" }}>Mutual Confession!</span>
+          <Sparkles className="w-4 h-4" style={{ color: "#8f6a46" }} />
+          <span style={{ color: "#8f6a46" }}>Mutual Confession!</span>
           {!hasConsented && !confession.revealedAt && (
             <button
               onClick={() => onRevealConsent(confession.id)}
               className="ml-auto text-xs px-3 py-1 rounded-lg font-medium"
-              style={{ background: "rgba(244,114,182,0.2)", color: "#f472b6" }}
+              style={{ background: "rgba(143,106,70,0.14)", color: "#8f6a46", border: "1px solid rgba(179,148,111,0.24)" }}
             >
               Reveal identity
             </button>
           )}
           {hasConsented && !confession.revealedAt && (
-            <span className="ml-auto text-xs" style={{ color: "#9b98c8" }}>
+            <span className="ml-auto text-xs" style={{ color: "#9b7c5d" }}>
               Waiting for other person...
             </span>
           )}
           {confession.revealedAt && (
-            <span className="ml-auto text-xs" style={{ color: "#9b98c8" }}>
+            <span className="ml-auto text-xs" style={{ color: "#9b7c5d" }}>
               Identity revealed
             </span>
           )}
@@ -176,25 +176,25 @@ function ConfessionCard({
       <div className="p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium" style={{ color: "#f0eeff" }}>
+            <p className="text-xs font-medium" style={{ color: "#8f6a46" }}>
               {isReceived ? "From" : "To"}
             </p>
-            <p className="text-sm font-semibold mt-1 break-words" style={{ color: "#f0eeff" }}>
+            <p className="text-sm font-semibold mt-1 break-words" style={{ color: "#3f2c1d" }}>
               {identityLabel}
             </p>
             {identityMeta && (
-              <p className="text-xs mt-1" style={{ color: "#9b98c8" }}>
+              <p className="text-xs mt-1" style={{ color: "#9b7c5d" }}>
                 {identityMeta}
               </p>
             )}
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0 text-right">
             {previewGender && (
-              <p className="text-xs" style={{ color: "#c084fc" }}>
+              <p className="text-xs" style={{ color: "#8f6a46" }}>
                 Gender: {previewGender}
               </p>
             )}
-            <p className="text-xs" style={{ color: "#4a4870" }}>
+            <p className="text-xs" style={{ color: "#9b7c5d" }}>
               {new Date(confession.createdAt).toLocaleDateString("en-IN", {
                 day: "numeric",
                 month: "short",
@@ -212,16 +212,16 @@ function ConfessionCard({
         </div>
 
         {canRead ? (
-          <p className="text-sm leading-relaxed mb-4" style={{ color: "#f0eeff" }}>
+          <p className="text-sm leading-relaxed mb-4" style={{ color: "#4a3521" }}>
             &quot;{confession.message}&quot;
           </p>
         ) : (
           <div
             className="rounded-xl px-4 py-6 mb-4 text-center"
-            style={{ background: "rgba(30,30,63,0.4)", border: "1px dashed #1e1e3f" }}
+            style={{ background: "rgba(255,248,240,0.84)", border: "1px dashed rgba(179,148,111,0.45)" }}
           >
-            <Lock className="w-5 h-5 mx-auto mb-2" style={{ color: "#4a4870" }} />
-            <p className="text-sm" style={{ color: "#4a4870" }}>
+            <Lock className="w-5 h-5 mx-auto mb-2" style={{ color: "#9b7c5d" }} />
+            <p className="text-sm" style={{ color: "#735a43" }}>
               {!pageUnlocked
                 ? `Unlock this card to open it and activate My Confessions access for ${pricing.unlockReceivedConfessionPageMonths} months`
                 : "Unlock this card individually to read"}
@@ -234,7 +234,7 @@ function ConfessionCard({
             <button
               onClick={() => onUnlockCard(confession.id)}
               className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-white w-full sm:w-auto"
-              style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+              style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
             >
               <Lock className="w-3.5 h-3.5" />
               {`Unlock this card (${formatInr(unlockCardPrice)})`}
@@ -247,7 +247,7 @@ function ConfessionCard({
             <button
               onClick={() => setShowReply(true)}
               className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-all"
-              style={{ background: "rgba(124,58,237,0.1)", color: "#c084fc", border: "1px solid rgba(192,132,252,0.2)" }}
+              style={{ background: "rgba(143,106,70,0.1)", color: "#8f6a46", border: "1px solid rgba(179,148,111,0.22)" }}
             >
               <MessageSquare className="w-3.5 h-3.5" />
               Reply
@@ -264,7 +264,7 @@ function ConfessionCard({
               rows={3}
               maxLength={500}
               className="w-full px-4 py-3 rounded-xl text-sm border resize-none"
-              style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+              style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
             />
             <div className="flex justify-center">
               <div className="flex gap-2">
@@ -272,7 +272,7 @@ function ConfessionCard({
                   type="button"
                   onClick={() => setShowReply(false)}
                   className="px-4 py-2 rounded-lg text-xs border"
-                  style={{ borderColor: "#1e1e3f", color: "#9b98c8" }}
+                  style={{ borderColor: "rgba(184,159,126,0.35)", color: "#9b7c5d", background: "rgba(255,251,245,0.86)" }}
                 >
                   Cancel
                 </button>
@@ -280,7 +280,7 @@ function ConfessionCard({
                   type="submit"
                   disabled={submitting}
                   className="px-4 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                  style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
                   {submitting ? "Sending..." : "Send Reply"}
                 </button>
@@ -292,12 +292,12 @@ function ConfessionCard({
         {confession.reply && (
           <div
             className="mt-3 rounded-xl px-4 py-3"
-            style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.15)" }}
+            style={{ background: "rgba(240,253,244,0.9)", border: "1px solid rgba(74,163,90,0.22)" }}
           >
-            <p className="text-xs mb-1" style={{ color: "#34d399" }}>
+            <p className="text-xs mb-1" style={{ color: "#2f7d32" }}>
               {isReceived ? "Your reply" : "They replied"}
             </p>
-            <p className="text-sm" style={{ color: "#f0eeff" }}>{confession.reply}</p>
+            <p className="text-sm" style={{ color: "#3f2c1d" }}>{confession.reply}</p>
           </div>
         )}
       </div>
@@ -441,32 +441,32 @@ export default function ConfessionsInbox({
     <div className="py-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#f0eeff" }}>My Confessions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#3f2c1d" }}>My Confessions</h1>
         </div>
       </div>
 
       {shouldLockEntirePage ? (
         <div
           className="rounded-2xl p-6 sm:p-8 text-center"
-          style={{ background: "rgba(30,30,63,0.24)", border: "1px solid #1e1e3f" }}
+          style={{ background: "linear-gradient(180deg, rgba(255,251,245,0.96) 0%, rgba(248,239,229,0.92) 100%)", border: "1px solid rgba(184,159,126,0.3)" }}
         >
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: "rgba(124,58,237,0.16)", border: "1px solid rgba(192,132,252,0.2)" }}
+            style={{ background: "rgba(143,106,70,0.14)", border: "1px solid rgba(179,148,111,0.24)" }}
           >
-            <Lock className="w-6 h-6" style={{ color: "#c084fc" }} />
+            <Lock className="w-6 h-6" style={{ color: "#8f6a46" }} />
           </div>
-          <h2 className="text-lg sm:text-xl font-semibold" style={{ color: "#f0eeff" }}>
+          <h2 className="text-lg sm:text-xl font-semibold" style={{ color: "#3f2c1d" }}>
             Unlock My Confessions
           </h2>
-          <p className="text-sm mt-3 max-w-xl mx-auto leading-relaxed" style={{ color: "#9b98c8" }}>
+          <p className="text-sm mt-3 max-w-xl mx-auto leading-relaxed" style={{ color: "#735a43" }}>
             Unlock this page to access your sent and received confessions for next {pricing.unlockReceivedConfessionPageMonths} months. Each received card must be unlocked separately.
           </p>
           <button
             onClick={handleUnlockPage}
             disabled={unlockingPage}
             className="mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+            style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
           >
             <Lock className="w-4 h-4" />
             {unlockingPage ? "Processing..." : `Unlock for ${pricing.unlockReceivedConfessionPageMonths} Months (${formatInr(pricing.unlockReceivedConfessionPage)})`}
@@ -476,7 +476,7 @@ export default function ConfessionsInbox({
         <>
       <div
         className="grid grid-cols-2 gap-1 p-1 rounded-xl mb-6 w-full sm:w-fit"
-        style={{ background: "rgba(30,30,63,0.4)", border: "1px solid #1e1e3f" }}
+        style={{ background: "rgba(255,248,240,0.9)", border: "1px solid rgba(184,159,126,0.3)" }}
       >
         {([
           { key: "received", label: `Received (${receivedItems.length})` },
@@ -487,9 +487,9 @@ export default function ConfessionsInbox({
             onClick={() => setActiveTab(tab.key)}
             className="px-5 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
-              background: activeTab === tab.key ? "rgba(192,132,252,0.3)" : "transparent",
-              color: activeTab === tab.key ? "#c084fc" : "#9b98c8",
-              border: activeTab === tab.key ? "1px solid rgba(192,132,252,0.3)" : "1px solid transparent",
+              background: activeTab === tab.key ? "rgba(143,106,70,0.12)" : "transparent",
+              color: activeTab === tab.key ? "#8f6a46" : "#9b7c5d",
+              border: activeTab === tab.key ? "1px solid rgba(179,148,111,0.24)" : "1px solid transparent",
             }}
           >
             {tab.label}
@@ -523,29 +523,29 @@ export default function ConfessionsInbox({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 overflow-y-auto px-4 pt-24 pb-4 sm:px-6 sm:pt-8 sm:pb-8"
-            style={{ background: "rgba(4, 3, 14, 0.72)" }}
+            style={{ background: "rgba(102, 74, 44, 0.34)" }}
           >
             <motion.div
               initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.96 }}
               className="mx-auto my-4 w-full max-w-xl rounded-3xl p-6 sm:my-0 sm:p-7"
-              style={{ background: "linear-gradient(180deg, #16132b 0%, #0f0c22 100%)", border: "1px solid rgba(192,132,252,0.2)" }}
+              style={{ background: "linear-gradient(180deg, #fffaf3 0%, #f3e6d7 100%)", border: "1px solid rgba(184,159,126,0.3)" }}
             >
-              <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+              <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
                 Confirm This Unlock
               </h2>
-              <p className="text-sm mt-3 leading-relaxed" style={{ color: "#c7c3ee" }}>
+              <p className="text-sm mt-3 leading-relaxed" style={{ color: "#735a43" }}>
                 This payment is {formatInr(1299)} in total.
               </p>
               <div
                 className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
-                style={{ background: "rgba(30,30,63,0.32)", border: "1px solid rgba(192,132,252,0.12)" }}
+                style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
               >
-                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   {formatInr(999)} to unlock this card permanently.
                 </p>
-                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   {formatInr(300)} unlocks your My Confessions page for the next {pricing.unlockReceivedConfessionPageMonths} months, so you won&apos;t pay this page-access amount again for other cards during that period.
                 </p>
               </div>
@@ -554,7 +554,7 @@ export default function ConfessionsInbox({
                   type="button"
                   onClick={() => setPendingUnlockCardId(null)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium"
-                  style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #2a2650", color: "#b6b2db" }}
+                  style={{ background: "rgba(255,251,245,0.9)", border: "1px solid rgba(184,159,126,0.3)", color: "#8c7257" }}
                 >
                   Cancel
                 </button>
@@ -563,7 +563,7 @@ export default function ConfessionsInbox({
                   onClick={confirmUnlockCard}
                   disabled={unlockingCardId !== null}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #7c3aed, #c084fc)" }}
+                  style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
                   {unlockingCardId ? "Processing..." : "Unlock Now"}
                 </button>
@@ -580,36 +580,36 @@ export default function ConfessionsInbox({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 overflow-y-auto px-4 pt-24 pb-4 sm:px-6 sm:pt-8 sm:pb-8"
-            style={{ background: "rgba(4, 3, 14, 0.72)" }}
+            style={{ background: "rgba(102, 74, 44, 0.34)" }}
           >
             <motion.div
               initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.96 }}
               className="mx-auto my-4 w-full max-w-xl rounded-3xl p-6 sm:my-0 sm:p-7"
-              style={{ background: "linear-gradient(180deg, #16132b 0%, #0f0c22 100%)", border: "1px solid rgba(192,132,252,0.2)" }}
+              style={{ background: "linear-gradient(180deg, #fffaf3 0%, #f3e6d7 100%)", border: "1px solid rgba(184,159,126,0.3)" }}
             >
-              <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+              <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
                 Confirm Identity Reveal
               </h2>
-              <p className="text-sm mt-3 leading-relaxed" style={{ color: "#c7c3ee" }}>
+              <p className="text-sm mt-3 leading-relaxed" style={{ color: "#735a43" }}>
                 {revealPricing?.summary}
               </p>
               <div
                 className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
-                style={{ background: "rgba(30,30,63,0.32)", border: "1px solid rgba(192,132,252,0.12)" }}
+                style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
               >
-                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   {revealPricing?.detail}
                 </p>
-                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   If the other person also agrees on their side, both of you will be able to see each other&apos;s real identity on this match instead of the anonymous ID.
                 </p>
-                <p className="text-sm leading-relaxed" style={{ color: "#f0eeff" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   If they have not agreed yet, your consent will be saved and the reveal will happen only after they confirm and complete their payment too.
                 </p>
               </div>
-              <p className="text-xs mt-4 leading-relaxed" style={{ color: "#9b98c8" }}>
+              <p className="text-xs mt-4 leading-relaxed" style={{ color: "#9b7c5d" }}>
                 This action is only for this mutual match and does not unlock any extra profile details beyond what the reveal flow already shows.
               </p>
               <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
@@ -617,7 +617,7 @@ export default function ConfessionsInbox({
                   type="button"
                   onClick={() => setPendingRevealConfession(null)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium"
-                  style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #2a2650", color: "#b6b2db" }}
+                  style={{ background: "rgba(255,251,245,0.9)", border: "1px solid rgba(184,159,126,0.3)", color: "#8c7257" }}
                 >
                   Cancel
                 </button>
@@ -626,7 +626,7 @@ export default function ConfessionsInbox({
                   onClick={confirmRevealConsent}
                   disabled={revealingConfessionId !== null}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #f472b6, #c084fc)" }}
+                  style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
                   {revealingConfessionId === pendingRevealConfession.id ? "Processing..." : `Yes, Reveal Identity (${formatInr(revealPricing?.total ?? identityRevealPrice)})`}
                 </button>
