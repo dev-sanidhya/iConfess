@@ -16,51 +16,51 @@ export default function PricingPage() {
       description="These are the current planned iConfess prices for premium actions and access layers."
     >
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
           Core Pricing
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl p-5" style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #1e1e3f" }}>
-            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+          <div className="rounded-2xl p-5" style={{ background: "rgba(255,251,245,0.78)", border: "1px solid rgba(179,148,111,0.22)" }}>
+            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>
               Send confession
             </p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: "#f0eeff" }}>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: "#3f2c1d" }}>
               {formatInr(pricing.sendConfession)}
             </p>
-            <p className="mt-2 text-sm" style={{ color: "#9b98c8" }}>
+            <p className="mt-2 text-sm" style={{ color: "#735a43" }}>
               Charged per confession card sent.
             </p>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #1e1e3f" }}>
-            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+          <div className="rounded-2xl p-5" style={{ background: "rgba(255,251,245,0.78)", border: "1px solid rgba(179,148,111,0.22)" }}>
+            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>
               Read received confession card
             </p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: "#f0eeff" }}>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: "#3f2c1d" }}>
               {formatInr(pricing.unlockReceivedConfessionCard)}
             </p>
-            <p className="mt-2 text-sm" style={{ color: "#9b98c8" }}>
+            <p className="mt-2 text-sm" style={{ color: "#735a43" }}>
               Charged per received confession card.
             </p>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #1e1e3f" }}>
-            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+          <div className="rounded-2xl p-5" style={{ background: "rgba(255,251,245,0.78)", border: "1px solid rgba(179,148,111,0.22)" }}>
+            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>
               View insights
             </p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: "#f0eeff" }}>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: "#3f2c1d" }}>
               {formatInr(pricing.viewInsights)}
             </p>
-            <p className="mt-2 text-sm" style={{ color: "#9b98c8" }}>
+            <p className="mt-2 text-sm" style={{ color: "#735a43" }}>
               Covers only the confessions available at the time of purchase.
             </p>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "rgba(30,30,63,0.28)", border: "1px solid #1e1e3f" }}>
-            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+          <div className="rounded-2xl p-5" style={{ background: "rgba(255,251,245,0.78)", border: "1px solid rgba(179,148,111,0.22)" }}>
+            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>
               Unlock received confessions page
             </p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: "#f0eeff" }}>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: "#3f2c1d" }}>
               {formatInr(pricing.unlockReceivedConfessionPage)}
             </p>
-            <p className="mt-2 text-sm" style={{ color: "#9b98c8" }}>
+            <p className="mt-2 text-sm" style={{ color: "#735a43" }}>
               Unlocks the page for {pricing.unlockReceivedConfessionPageMonths} months. Individual cards are still paid separately.
             </p>
           </div>
@@ -68,7 +68,7 @@ export default function PricingPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
           How Received Confession Unlocking Works
         </h2>
         <p>
@@ -83,7 +83,7 @@ export default function PricingPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
           Example Calculation
         </h2>
         <p>
@@ -100,7 +100,7 @@ export default function PricingPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
           Insight Purchase Scope
         </h2>
         <p>

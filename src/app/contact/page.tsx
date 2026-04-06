@@ -13,12 +13,12 @@ export default function ContactPage() {
       description="Use the details below for customer support, grievance communication, payment support, or general business queries related to iConfess."
     >
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
           Support Contact
         </h2>
         <p>
           Email:{" "}
-          <a className="text-[#c084fc] underline-offset-4 hover:underline" href="mailto:rocid003@gmail.com">
+          <a className="text-[#8f6a46] underline-offset-4 hover:underline" href="mailto:rocid003@gmail.com">
             rocid003@gmail.com
           </a>
         </p>
@@ -27,14 +27,14 @@ export default function ContactPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
           Query Types
         </h2>
         <p>Users may contact iConfess for account access issues, payment support, refund requests, policy questions, privacy concerns, and grievance reporting.</p>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
           Important Note
         </h2>
         <p>

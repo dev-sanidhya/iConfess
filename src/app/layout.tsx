@@ -24,7 +24,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col relative" style={{ background: "#05050f" }}>
+      <body className="min-h-full flex flex-col relative" style={{ background: "#f7efe4" }}>
         <ActivityTracker />
         {/* Ambient background glows */}
         <div
@@ -32,7 +32,7 @@ export default function RootLayout({
           style={{
             width: 700,
             height: 700,
-            background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(214,185,150,0.26) 0%, transparent 70%)",
             top: -250,
             right: -250,
           }}
@@ -42,7 +42,7 @@ export default function RootLayout({
           style={{
             width: 500,
             height: 500,
-            background: "radial-gradient(circle, rgba(244,114,182,0.08) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(255,255,255,0.34) 0%, transparent 70%)",
             bottom: -100,
             left: -100,
           }}
@@ -51,12 +51,12 @@ export default function RootLayout({
           {children}
         </div>
         <Toaster
-          theme="dark"
+          theme="light"
           toastOptions={{
             style: {
-              background: "#0d0d1f",
-              border: "1px solid #1e1e3f",
-              color: "#f0eeff",
+              background: "rgba(255, 250, 243, 0.96)",
+              border: "1px solid rgba(179, 148, 111, 0.32)",
+              color: "#4a3521",
             },
           }}
         />

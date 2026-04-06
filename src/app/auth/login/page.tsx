@@ -165,7 +165,7 @@ export default function LoginPage() {
           <Link href="/" className="text-xl sm:text-2xl font-bold gradient-text">
             iConfess
           </Link>
-          <p className="text-sm mt-2" style={{ color: "#9b98c8" }}>
+          <p className="text-sm mt-2" style={{ color: "#80664c" }}>
             {viewMode === "login"
               ? "Sign in with your phone number and password"
               : "Reset your password with OTP verification"}
@@ -183,11 +183,11 @@ export default function LoginPage() {
             >
               <form onSubmit={handleLogin} className="flex flex-col gap-4">
                 <div>
-                  <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b98c8" }}>
+                  <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
                     Phone number
                   </label>
                   <div className="flex gap-2">
-                    <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#9b98c8" }}>
+                    <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#80664c" }}>
                       +91
                     </span>
                     <input
@@ -199,18 +199,18 @@ export default function LoginPage() {
                       value={loginPhone}
                       onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, ""))}
                       className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-                      style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                      style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b98c8" }}>
+                  <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
                     Password
                   </label>
                   <div className="relative">
-                    <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b98c8" }} />
+                    <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b7c5d" }} />
                     <input
                       type="password"
                       autoComplete="current-password"
@@ -218,7 +218,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border"
-                      style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                      style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
                       required
                     />
                   </div>
@@ -228,7 +228,7 @@ export default function LoginPage() {
                   type="submit"
                   disabled={loading}
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}
+                  style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
                 >
                   {loading ? "Signing in..." : "Sign In"}
                   <ArrowRight className="w-4 h-4" />
@@ -242,7 +242,7 @@ export default function LoginPage() {
                   setViewMode("recover");
                 }}
                 className="w-full mt-4 text-sm font-medium"
-                style={{ color: "#c084fc" }}
+                style={{ color: "#8f6a46" }}
               >
                 Forgot password?
               </button>
@@ -257,8 +257,8 @@ export default function LoginPage() {
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4" style={{ color: "#c084fc" }} />
-                  <h2 className="font-semibold" style={{ color: "#f0eeff" }}>
+                  <KeyRound className="w-4 h-4" style={{ color: "#8f6a46" }} />
+                  <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>
                     Recover access
                   </h2>
                 </div>
@@ -269,7 +269,7 @@ export default function LoginPage() {
                     resetRecoveryState();
                   }}
                   className="text-xs"
-                  style={{ color: "#9b98c8" }}
+                  style={{ color: "#80664c" }}
                 >
                   Back to sign in
                 </button>
@@ -277,15 +277,15 @@ export default function LoginPage() {
 
               {recoveryStep === "phone" && (
                 <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
-                  <p className="text-xs" style={{ color: "#9b98c8" }}>
+                  <p className="text-xs" style={{ color: "#80664c" }}>
                     Enter your registered mobile number. We&apos;ll verify it by OTP before letting you reset your password.
                   </p>
                   <div>
-                    <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b98c8" }}>
+                    <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
                       Registered mobile number
                     </label>
                     <div className="flex gap-2">
-                      <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#9b98c8" }}>
+                      <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#80664c" }}>
                         +91
                       </span>
                       <input
@@ -296,7 +296,7 @@ export default function LoginPage() {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                         className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-                        style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                        style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
                         required
                       />
                     </div>
@@ -305,7 +305,7 @@ export default function LoginPage() {
                     type="submit"
                     disabled={loading}
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}
+                    style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
                   >
                     <Phone className="w-4 h-4" />
                     {loading ? "Sending..." : "Send OTP"}
@@ -315,7 +315,7 @@ export default function LoginPage() {
 
               {recoveryStep === "otp" && (
                 <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
-                  <p className="text-xs" style={{ color: "#9b98c8" }}>
+                  <p className="text-xs" style={{ color: "#80664c" }}>
                     Enter the OTP sent to +91 {phone}.
                   </p>
                   <input
@@ -326,14 +326,14 @@ export default function LoginPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                     className="w-full px-4 py-3 rounded-xl border text-center tracking-[0.5em] text-lg"
-                    style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                    style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
                     required
                   />
                   <button
                     type="submit"
                     disabled={loading}
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}
+                    style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
                   >
                     {loading ? "Verifying..." : "Verify OTP"}
                     <ArrowRight className="w-4 h-4" />
@@ -342,7 +342,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setRecoveryStep("phone")}
                     className="flex items-center justify-center gap-1 text-xs"
-                    style={{ color: "#9b98c8" }}
+                    style={{ color: "#80664c" }}
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Change number
@@ -354,33 +354,33 @@ export default function LoginPage() {
                 <form onSubmit={handleResetCredentials} className="flex flex-col gap-4">
                   <div
                     className="rounded-xl px-4 py-3"
-                    style={{ background: "rgba(30,30,63,0.38)", border: "1px solid #1e1e3f" }}
+                    style={{ background: "rgba(255,251,245,0.8)", border: "1px solid rgba(179,148,111,0.24)" }}
                   >
-                    <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>
+                    <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>
                       Verified mobile
                     </p>
-                    <p className="text-sm mt-1" style={{ color: "#f0eeff" }}>+91 {phone}</p>
+                    <p className="text-sm mt-1" style={{ color: "#3f2c1d" }}>+91 {phone}</p>
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b98c8" }}>
+                    <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
                       New password
                     </label>
                     <div className="relative">
-                      <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b98c8" }} />
+                      <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b7c5d" }} />
                       <input
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border"
-                        style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                        style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
                         required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b98c8" }}>
+                    <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
                       Confirm new password
                     </label>
                     <input
@@ -388,7 +388,7 @@ export default function LoginPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                      style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                      style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
                       required
                     />
                   </div>
@@ -397,7 +397,7 @@ export default function LoginPage() {
                     type="submit"
                     disabled={loading}
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}
+                    style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
                   >
                     {loading ? "Updating..." : "Update password"}
                     <ArrowRight className="w-4 h-4" />
@@ -408,7 +408,7 @@ export default function LoginPage() {
           )}
         </AnimatePresence>
 
-        <p className="text-center text-xs mt-4" style={{ color: "#4a4870" }}>
+        <p className="text-center text-xs mt-4" style={{ color: "#9b7c5d" }}>
           New here?{" "}
           <Link href="/auth/register" className="gradient-text font-medium">
             Create account

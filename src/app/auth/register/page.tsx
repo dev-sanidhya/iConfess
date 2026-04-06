@@ -129,14 +129,14 @@ function RegisterForm() {
       >
         <div className="text-center mb-6 sm:mb-8">
           <Link href="/" className="text-xl sm:text-2xl font-bold gradient-text">iConfess</Link>
-          <p className="text-sm mt-2" style={{ color: "#9b98c8" }}>Create your account</p>
+          <p className="text-sm mt-2" style={{ color: "#80664c" }}>Create your account</p>
         </div>
 
         {/* Progress bar */}
-        <div className="mb-6 h-0.5 rounded-full" style={{ background: "#1e1e3f" }}>
+        <div className="mb-6 h-0.5 rounded-full" style={{ background: "rgba(179,148,111,0.24)" }}>
           <motion.div
             className="h-full rounded-full"
-            style={{ background: "linear-gradient(90deg, #7c3aed, #c084fc)" }}
+            style={{ background: "linear-gradient(90deg, #8f6a46, #d7b892)" }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.4 }}
           />
@@ -147,23 +147,23 @@ function RegisterForm() {
           {step === "phone" && (
             <motion.div key="phone" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass rounded-2xl p-5 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Phone className="w-4 h-4" style={{ color: "#c084fc" }} />
-                <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Your phone number</h2>
+                <Phone className="w-4 h-4" style={{ color: "#8f6a46" }} />
+                <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>Your phone number</h2>
               </div>
               <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
                 <div>
-                  <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b98c8" }}>Phone Number</label>
+                  <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>Phone Number</label>
                   <div className="flex gap-2">
-                    <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#9b98c8" }}>+91</span>
+                    <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#80664c" }}>+91</span>
                     <input type="tel" inputMode="numeric" maxLength={10} placeholder="9876543210" value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                       className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-                      style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                      style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
                   </div>
                 </div>
                 <button type="submit" disabled={loading}
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}>
+                  style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
                   <Phone className="w-4 h-4" />{loading ? "Sending..." : "Send OTP"}
                 </button>
               </form>
@@ -173,19 +173,19 @@ function RegisterForm() {
           {/* Step 2: OTP */}
           {step === "otp" && (
             <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass rounded-2xl p-5 sm:p-6">
-              <h2 className="font-semibold mb-1" style={{ color: "#f0eeff" }}>Enter OTP</h2>
-              <p className="text-xs mb-4" style={{ color: "#9b98c8" }}>Sent to +91 {phone}</p>
+              <h2 className="font-semibold mb-1" style={{ color: "#3f2c1d" }}>Enter OTP</h2>
+              <p className="text-xs mb-4" style={{ color: "#80664c" }}>Sent to +91 {phone}</p>
               <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
                 <input type="text" inputMode="numeric" maxLength={6} placeholder="• • • • • •" value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                   className="w-full px-4 py-3 rounded-xl border text-center tracking-[0.5em] text-lg"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
                 <button type="submit" disabled={loading}
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}>
+                  style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
                   Verify <ArrowRight className="w-4 h-4" />
                 </button>
-                <button type="button" onClick={() => setStep("phone")} className="text-xs text-center" style={{ color: "#4a4870" }}>Change number</button>
+                <button type="button" onClick={() => setStep("phone")} className="text-xs text-center" style={{ color: "#9b7c5d" }}>Change number</button>
               </form>
             </motion.div>
           )}
@@ -194,8 +194,8 @@ function RegisterForm() {
           {step === "name" && (
             <motion.div key="name" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass rounded-2xl p-5 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
-                <User className="w-4 h-4" style={{ color: "#c084fc" }} />
-                <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Set your account details</h2>
+                <User className="w-4 h-4" style={{ color: "#8f6a46" }} />
+                <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>Set your account details</h2>
               </div>
               <form onSubmit={(e) => {
                 e.preventDefault();
@@ -220,39 +220,39 @@ function RegisterForm() {
               }} className="flex flex-col gap-4">
                 <input type="text" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
                 <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
                 <select value={gender} onChange={(e) => setGender(e.target.value as Gender)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required>
+                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required>
                   <option value="">Select gender</option>
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
                   <option value="OTHER">Other</option>
                 </select>
                 <div className="relative">
-                  <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b98c8" }} />
+                  <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b7c5d" }} />
                   <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border"
-                    style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                    style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
                 </div>
                 <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
                 <input type="text" placeholder="Instagram handle or NA" value={instagramHandle} onChange={(e) => setInstagramHandle(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
+                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
                 <input type="text" placeholder="Snapchat handle or NA" value={snapchatHandle} onChange={(e) => setSnapchatHandle(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-                <p className="text-xs" style={{ color: "#4a4870" }}>
+                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
+                <p className="text-xs" style={{ color: "#9b7c5d" }}>
                   Your phone number will be used as your sign-in ID. Date of birth cannot be changed later, so enter it carefully. If you do not use a platform, enter `NA`.
                 </p>
                 <button type="submit"
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90"
-                  style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}>
+                  style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
@@ -263,10 +263,10 @@ function RegisterForm() {
           {step === "profile" && (
             <motion.div key="profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass rounded-2xl p-5 sm:p-6">
               <div className="flex items-center gap-2 mb-1">
-                <MapPin className="w-4 h-4" style={{ color: "#c084fc" }} />
-                <h2 className="font-semibold" style={{ color: "#f0eeff" }}>Where can people find you?</h2>
+                <MapPin className="w-4 h-4" style={{ color: "#8f6a46" }} />
+                <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>Where can people find you?</h2>
               </div>
-              <p className="text-xs mb-5" style={{ color: "#9b98c8" }}>
+              <p className="text-xs mb-5" style={{ color: "#80664c" }}>
                 You can add multiple profiles here, like college plus gym plus workplace. Choose one as primary and we will reuse your full name automatically across all of them.
               </p>
 
@@ -295,9 +295,9 @@ function RegisterForm() {
                     }}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"
                     style={{
-                      background: isSelected ? "rgba(124,58,237,0.15)" : "rgba(30,30,63,0.3)",
-                      border: `1px solid ${isSelected ? "rgba(192,132,252,0.4)" : "#1e1e3f"}`,
-                      color: isSelected ? "#c084fc" : "#9b98c8",
+                      background: isSelected ? "rgba(143,106,70,0.14)" : "rgba(255,251,245,0.74)",
+                      border: `1px solid ${isSelected ? "rgba(143,106,70,0.35)" : "rgba(179,148,111,0.24)"}`,
+                      color: isSelected ? "#8f6a46" : "#735a43",
                     }}>
                     <span>{cat.emoji}</span>
                     <span className="flex-1">{cat.label}</span>
@@ -305,8 +305,8 @@ function RegisterForm() {
                       <span
                         className="text-[10px] px-2 py-0.5 rounded-full"
                         style={{
-                          background: isPrimary ? "rgba(244,114,182,0.18)" : "rgba(124,58,237,0.18)",
-                          color: isPrimary ? "#f472b6" : "#c084fc",
+                          background: isPrimary ? "rgba(184,121,98,0.18)" : "rgba(143,106,70,0.16)",
+                          color: isPrimary ? "#b87962" : "#8f6a46",
                         }}
                       >
                         {isPrimary ? "Primary" : "Added"}
@@ -318,14 +318,14 @@ function RegisterForm() {
 
               {selectedCategories.length > 0 && (
                 <form onSubmit={handleRegister} className="flex flex-col gap-3">
-                  <div className="h-px mb-1" style={{ background: "#1e1e3f" }} />
-                  <p className="text-xs mb-2" style={{ color: "#9b98c8" }}>
+                  <div className="h-px mb-1" style={{ background: "rgba(179,148,111,0.24)" }} />
+                  <p className="text-xs mb-2" style={{ color: "#80664c" }}>
                     Select one primary category and fill the place details only. Your name will be pulled from the identity step, so you do not need to type it again for each profile.
                   </p>
                   {selectedCategories.map((category) => (
-                    <div key={category} className="rounded-xl p-4" style={{ background: "rgba(30,30,63,0.22)", border: "1px solid #1e1e3f" }}>
+                    <div key={category} className="rounded-xl p-4" style={{ background: "rgba(255,251,245,0.76)", border: "1px solid rgba(179,148,111,0.24)" }}>
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-sm font-medium" style={{ color: "#f0eeff" }}>
+                        <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>
                           {locationCategories.find((item) => item.id === category)?.label}
                         </p>
                         <button
@@ -333,8 +333,8 @@ function RegisterForm() {
                           onClick={() => setPrimaryCategory(category)}
                           className="text-[11px] px-2 py-1 rounded-full"
                           style={{
-                            background: primaryCategory === category ? "rgba(244,114,182,0.18)" : "rgba(124,58,237,0.18)",
-                            color: primaryCategory === category ? "#f472b6" : "#c084fc",
+                            background: primaryCategory === category ? "rgba(184,121,98,0.18)" : "rgba(143,106,70,0.16)",
+                            color: primaryCategory === category ? "#b87962" : "#8f6a46",
                           }}
                         >
                           {primaryCategory === category ? "Primary" : "Set Primary"}
@@ -343,7 +343,7 @@ function RegisterForm() {
                       <div className="flex flex-col gap-3">
                         {locationFields[category].map((field) => (
                           <div key={`${category}-${field.key}`}>
-                            <label className="text-xs font-medium mb-1 block" style={{ color: "#9b98c8" }}>{field.label}</label>
+                            <label className="text-xs font-medium mb-1 block" style={{ color: "#9b7c5d" }}>{field.label}</label>
                             {field.options ? (
                               <select
                                 value={profileDetailsByCategory[category]?.[field.key] || ""}
@@ -355,7 +355,7 @@ function RegisterForm() {
                                   },
                                 }))}
                                 className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                                style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                                style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
                                 required
                               >
                                 <option value="">Select...</option>
@@ -373,7 +373,7 @@ function RegisterForm() {
                                   },
                                 }))}
                                 className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                                style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+                                style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
                                 required
                               />
                             )}
@@ -385,12 +385,12 @@ function RegisterForm() {
                   <div className="flex gap-2 mt-2">
                     <button type="button" onClick={() => setStep("name")}
                       className="flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl text-sm border w-12 flex-shrink-0"
-                      style={{ borderColor: "#1e1e3f", color: "#9b98c8" }}>
+                      style={{ borderColor: "rgba(179,148,111,0.24)", color: "#80664c", background: "rgba(255,251,245,0.84)" }}>
                       <ArrowLeft className="w-4 h-4" />
                     </button>
                     <button type="submit" disabled={loading}
                       className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)" }}>
+                      style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
                       {loading ? "Creating account..." : "Create Account"}
                       <ArrowRight className="w-4 h-4" />
                     </button>
@@ -401,7 +401,7 @@ function RegisterForm() {
           )}
         </AnimatePresence>
 
-        <p className="text-center text-xs mt-4" style={{ color: "#4a4870" }}>
+        <p className="text-center text-xs mt-4" style={{ color: "#9b7c5d" }}>
           Already have an account?{" "}
           <Link href="/auth/login" className="gradient-text font-medium">Sign in</Link>
         </p>

@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #05050f;
-  --foreground: #f0eeff;
-  --card: #0d0d1f;
-  --card-foreground: #f0eeff;
-  --primary: #c084fc;
-  --primary-foreground: #05050f;
-  --secondary: #12122a;
-  --secondary-foreground: #9b98c8;
-  --muted: #12122a;
-  --muted-foreground: #4a4870;
-  --accent: #1e1e3f;
-  --accent-foreground: #c084fc;
-  --border: #1e1e3f;
-  --input: #1e1e3f;
-  --ring: #c084fc;
+  --background: #f7efe4;
+  --foreground: #4a3521;
+  --card: rgba(255, 251, 245, 0.8);
+  --card-foreground: #4a3521;
+  --primary: #8f6a46;
+  --primary-foreground: #fffaf3;
+  --secondary: #efe1cf;
+  --secondary-foreground: #80664c;
+  --muted: #f2e6d8;
+  --muted-foreground: #9b7c5d;
+  --accent: #d8c1a1;
+  --accent-foreground: #6f5234;
+  --border: rgba(179, 148, 111, 0.28);
+  --input: rgba(179, 148, 111, 0.28);
+  --ring: rgba(143, 106, 70, 0.28);
   --radius: 0.75rem;
 }
 
@@ -45,15 +45,16 @@ body {
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(192,132,252,0.2); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(192,132,252,0.4); }
+::-webkit-scrollbar-thumb { background: rgba(143,106,70,0.22); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(143,106,70,0.4); }
 
 /* Glass */
 .glass {
-  background: rgba(13, 13, 31, 0.6);
+  background: linear-gradient(180deg, rgba(255, 251, 245, 0.78) 0%, rgba(248, 239, 228, 0.9) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(30, 30, 63, 0.8);
+  border: 1px solid rgba(179, 148, 111, 0.24);
+  box-shadow: 0 24px 60px rgba(123, 95, 63, 0.08);
 }
 
 .glass-hover {
@@ -61,30 +62,31 @@ body {
 }
 
 .glass-hover:hover {
-  border-color: rgba(192, 132, 252, 0.3);
-  box-shadow: 0 0 30px rgba(192, 132, 252, 0.08);
+  border-color: rgba(143, 106, 70, 0.3);
+  box-shadow: 0 24px 70px rgba(143, 106, 70, 0.12);
 }
 
 /* Confession card */
 .confession-card {
-  background: linear-gradient(135deg, rgba(13,13,31,0.9) 0%, rgba(18,18,42,0.9) 100%);
-  border: 1px solid rgba(30,30,63,0.9);
+  background: linear-gradient(145deg, rgba(251,246,238,0.96) 0%, rgba(242,232,219,0.92) 100%);
+  border: 1px solid rgba(184,159,126,0.42);
   backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 32px 72px rgba(117, 90, 56, 0.14);
 }
 
 .confession-card::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(192,132,252,0.03) 0%, rgba(244,114,182,0.03) 100%);
+  background: linear-gradient(135deg, rgba(196,168,133,0.12) 0%, rgba(255,255,255,0.16) 100%);
   pointer-events: none;
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #c084fc 0%, #f472b6 100%);
+  background: linear-gradient(135deg, #8f6a46 0%, #d4b08c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -100,16 +102,16 @@ body {
 }
 
 /* Status badges */
-.status-pending   { color: #94a3b8; background: rgba(148,163,184,0.1); }
-.status-delivered { color: #60a5fa; background: rgba(96,165,250,0.1); }
-.status-opened    { color: #a78bfa; background: rgba(167,139,250,0.1); }
-.status-replied   { color: #34d399; background: rgba(52,211,153,0.1); }
-.status-ghosted   { color: #f87171; background: rgba(248,113,113,0.1); }
-.status-expired   { color: #6b7280; background: rgba(107,114,128,0.1); }
-.status-mutual    { color: #f472b6; background: rgba(244,114,182,0.1); }
+.status-pending   { color: #8e7658; background: rgba(184,159,126,0.14); }
+.status-delivered { color: #7b6cf0; background: rgba(123,108,240,0.1); }
+.status-opened    { color: #9d7f62; background: rgba(157,127,98,0.12); }
+.status-replied   { color: #3f9a76; background: rgba(63,154,118,0.12); }
+.status-ghosted   { color: #d46b67; background: rgba(212,107,103,0.1); }
+.status-expired   { color: #8b8379; background: rgba(139,131,121,0.1); }
+.status-mutual    { color: #b87962; background: rgba(184,121,98,0.12); }
 
 /* Input overrides */
 input:focus, textarea:focus {
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(192,132,252,0.15) !important;
+  box-shadow: 0 0 0 2px rgba(143,106,70,0.15) !important;
 }
