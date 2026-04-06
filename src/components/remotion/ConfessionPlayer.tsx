@@ -3,7 +3,11 @@
 import { Player } from "@remotion/player";
 import { ConfessionRevealComposition } from "./ConfessionReveal";
 
-export default function ConfessionPlayer() {
+type ConfessionPlayerProps = {
+  variant?: "dark" | "light";
+};
+
+export default function ConfessionPlayer({ variant = "dark" }: ConfessionPlayerProps) {
   return (
     <Player
       component={ConfessionRevealComposition}
@@ -20,7 +24,7 @@ export default function ConfessionPlayer() {
         overflow: "hidden",
         background: "transparent",
       }}
-      inputProps={{}}
+      inputProps={{ variant }}
     />
   );
 }

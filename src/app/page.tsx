@@ -2,11 +2,13 @@
 
 import { motion, Variants } from "framer-motion";
 import dynamic from "next/dynamic";
+import { Playfair_Display } from "next/font/google";
 import Link from "next/link";
 import { ArrowRight, Heart, Lock, Zap } from "lucide-react";
 
 const AbstractBackground = dynamic(() => import("@/components/remotion/AbstractBackground"), { ssr: false });
 const ConfessionPlayer = dynamic(() => import("@/components/remotion/ConfessionPlayer"), { ssr: false });
+const playfair = Playfair_Display({ subsets: ["latin"], weight: ["600", "700"] });
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -47,15 +49,32 @@ const footerLinks = [
 
 export default function LandingPage() {
   return (
-    <main className="flex flex-col items-center min-h-screen px-4 overflow-x-hidden">
-      <AbstractBackground />
+    <main className="relative flex min-h-screen w-full flex-col items-center overflow-x-hidden px-4">
+      <div className="absolute inset-0 bg-[#f8f1e7]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at top right, rgba(214,185,150,0.42) 0%, transparent 34%), radial-gradient(circle at 15% 22%, rgba(255,255,255,0.82) 0%, transparent 28%), linear-gradient(180deg, #fbf6ef 0%, #f3e7d7 48%, #efe0cd 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-x-0 top-0 h-[420px]"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)",
+        }}
+      />
+      <AbstractBackground variant="light" />
+      <div className="relative z-10 flex w-full flex-col items-center">
       {/* Nav */}
       <nav className="w-full max-w-6xl flex items-center justify-between gap-3 py-5 sm:py-6">
         <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="text-lg sm:text-xl font-semibold tracking-tight gradient-text flex-shrink-0"
+          className="flex-shrink-0 text-lg font-semibold tracking-[0.18em] uppercase sm:text-xl"
+          style={{ color: "#805f3e" }}
         >
           iConfess
         </motion.span>
@@ -68,7 +87,7 @@ export default function LandingPage() {
           <Link
             href="/auth/login"
             className="px-3 sm:px-4 py-2 text-sm transition-colors whitespace-nowrap"
-            style={{ color: "#9b98c8" }}
+            style={{ color: "#80664c" }}
           >
             Sign In
           </Link>
@@ -76,9 +95,10 @@ export default function LandingPage() {
             href="/auth/register"
             className="px-3 sm:px-4 py-2 text-sm rounded-lg border transition-all whitespace-nowrap"
             style={{
-              border: "1px solid #1e1e3f",
-              background: "#0d0d1f",
-              color: "#c084fc",
+              border: "1px solid rgba(142, 112, 77, 0.34)",
+              background: "rgba(255,255,255,0.5)",
+              boxShadow: "0 12px 30px rgba(133, 103, 70, 0.08)",
+              color: "#6f5234",
             }}
           >
             Get Started
@@ -94,9 +114,14 @@ export default function LandingPage() {
           initial="hidden"
           animate="visible"
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] sm:text-xs mb-6 sm:mb-8"
-          style={{ border: "1px solid #1e1e3f", background: "#0d0d1f", color: "#9b98c8" }}
+          style={{
+            border: "1px solid rgba(166, 132, 94, 0.24)",
+            background: "rgba(255,255,255,0.62)",
+            color: "#8a6a4a",
+            boxShadow: "0 10px 30px rgba(133, 103, 70, 0.08)",
+          }}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#c084fc] animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#b38b5d" }} />
           Now live on college campuses
         </motion.div>
 
@@ -105,14 +130,14 @@ export default function LandingPage() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-5 sm:mb-6"
-          style={{ color: "#f0eeff" }}
+          className={`${playfair.className} text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight leading-[0.98] mb-5 sm:mb-6`}
+          style={{ color: "#3f2c1d" }}
         >
           Say what you{" "}
-          <span className="gradient-text">feel</span>
+          <span style={{ color: "#9e7349" }}>feel</span>
           <br />
           without the{" "}
-          <span className="gradient-text">fear</span>
+          <span style={{ color: "#9e7349" }}>fear</span>
         </motion.h1>
 
         <motion.p
@@ -121,7 +146,7 @@ export default function LandingPage() {
           initial="hidden"
           animate="visible"
           className="text-base sm:text-lg leading-relaxed mb-8 sm:mb-10 max-w-xl px-1"
-          style={{ color: "#9b98c8" }}
+          style={{ color: "#735a43" }}
         >
           Confess your feelings to someone you&apos;ve noticed. We find them, deliver your words,
           and keep your identity completely hidden.
@@ -138,7 +163,8 @@ export default function LandingPage() {
             href="/auth/register"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 sm:hover:scale-105 w-full sm:w-auto"
             style={{
-              background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%)",
+              background: "linear-gradient(135deg, #8f6a46 0%, #b69068 55%, #d7b892 100%)",
+              boxShadow: "0 20px 40px rgba(143, 106, 70, 0.22)",
             }}
           >
             Send a Confession
@@ -148,8 +174,9 @@ export default function LandingPage() {
             href="/auth/login"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all hover:border-[#c084fc]/30 w-full sm:w-auto"
             style={{
-              color: "#9b98c8",
-              border: "1px solid #1e1e3f",
+              color: "#735a43",
+              border: "1px solid rgba(142, 112, 77, 0.28)",
+              background: "rgba(255,255,255,0.38)",
             }}
           >
             Read Mine
@@ -167,13 +194,19 @@ export default function LandingPage() {
         {/* Stacked ghost cards behind */}
         <div
           className="absolute inset-x-6 -top-3 h-full rounded-2xl"
-          style={{ background: "rgba(18,18,42,0.4)", border: "1px solid rgba(30,30,63,0.4)" }}
+          style={{
+            background: "rgba(235, 223, 208, 0.6)",
+            border: "1px solid rgba(179, 148, 111, 0.24)",
+          }}
         />
         <div
           className="absolute inset-x-3 -top-1.5 h-full rounded-2xl"
-          style={{ background: "rgba(13,13,31,0.6)", border: "1px solid rgba(30,30,63,0.5)" }}
+          style={{
+            background: "rgba(247, 240, 230, 0.86)",
+            border: "1px solid rgba(179, 148, 111, 0.28)",
+          }}
         />
-        <ConfessionPlayer />
+        <ConfessionPlayer variant="light" />
       </motion.div>
 
       {/* Features */}
@@ -183,10 +216,10 @@ export default function LandingPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12"
-          style={{ color: "#f0eeff" }}
+          className={`${playfair.className} text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-12`}
+          style={{ color: "#3f2c1d" }}
         >
-          How it <span className="gradient-text">works</span>
+          How it <span style={{ color: "#9e7349" }}>works</span>
         </motion.h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
           {features.map((f, i) => (
@@ -196,21 +229,27 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.6 }}
-              className="glass glass-hover rounded-2xl p-6"
+              className="rounded-2xl p-6"
+              style={{
+                background: "linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(250,242,232,0.88) 100%)",
+                border: "1px solid rgba(179, 148, 111, 0.22)",
+                boxShadow: "0 24px 50px rgba(123, 95, 63, 0.08)",
+                backdropFilter: "blur(18px)",
+              }}
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
                 style={{
-                  background: "rgba(124,58,237,0.15)",
-                  border: "1px solid rgba(124,58,237,0.2)",
+                  background: "rgba(179, 148, 111, 0.12)",
+                  border: "1px solid rgba(179, 148, 111, 0.22)",
                 }}
               >
-                <f.icon className="w-5 h-5" style={{ color: "#c084fc" }} />
+                <f.icon className="w-5 h-5" style={{ color: "#8f6a46" }} />
               </div>
-              <h3 className="font-semibold mb-2" style={{ color: "#f0eeff" }}>
+              <h3 className={`${playfair.className} mb-2 text-xl font-semibold`} style={{ color: "#493321" }}>
                 {f.title}
               </h3>
-              <p className="text-sm leading-relaxed" style={{ color: "#9b98c8" }}>
+              <p className="text-sm leading-relaxed" style={{ color: "#735a43" }}>
                 {f.description}
               </p>
             </motion.div>
@@ -221,23 +260,26 @@ export default function LandingPage() {
       {/* Footer */}
       <footer
         className="w-full max-w-6xl py-8 flex flex-col gap-4 text-xs text-center sm:text-left"
-        style={{ borderTop: "1px solid #1e1e3f", color: "#4a4870" }}
+        style={{ borderTop: "1px solid rgba(179, 148, 111, 0.22)", color: "#8a6a4a" }}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="gradient-text font-semibold">iConfess</span>
+          <span className={`${playfair.className} font-semibold`} style={{ color: "#805f3e" }}>
+            iConfess
+          </span>
           <span>Anonymous. Private. Yours.</span>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-start">
           {footerLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="transition-colors hover:text-[#c084fc]">
+            <Link key={link.href} href={link.href} className="transition-colors hover:text-[#6f5234]">
               {link.label}
             </Link>
           ))}
-          <a href="mailto:rocid003@gmail.com" className="transition-colors hover:text-[#c084fc]">
+          <a href="mailto:rocid003@gmail.com" className="transition-colors hover:text-[#6f5234]">
             rocid003@gmail.com
           </a>
         </div>
       </footer>
+      </div>
     </main>
   );
 }

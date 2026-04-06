@@ -12,7 +12,11 @@ type Orb = {
   hue: number;
 };
 
-export default function AbstractBackground() {
+type AbstractBackgroundProps = {
+  variant?: "dark" | "light";
+};
+
+export default function AbstractBackground({ variant = "dark" }: AbstractBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const orbsRef = useRef<Orb[]>([]);
   const frameRef = useRef<number>(0);
@@ -39,8 +43,15 @@ export default function AbstractBackground() {
       vx: (Math.random() - 0.5) * 0.25,
       vy: (Math.random() - 0.5) * 0.25,
       r: 80 + Math.random() * 200,
-      opacity: 0.04 + Math.random() * 0.06,
-      hue: Math.random() > 0.5 ? 270 : 320, // purple or rose
+      opacity: variant === "light" ? 0.06 + Math.random() * 0.06 : 0.04 + Math.random() * 0.06,
+      hue:
+        variant === "light"
+          ? Math.random() > 0.5
+            ? 35
+            : 48
+          : Math.random() > 0.5
+            ? 270
+            : 320,
     }));
 
     function draw() {
@@ -69,7 +80,8 @@ export default function AbstractBackground() {
       }
 
       // Subtle connecting lines between nearby orbs
-      ctx.strokeStyle = "rgba(192, 132, 252, 0.04)";
+      ctx.strokeStyle =
+        variant === "light" ? "rgba(143, 110, 74, 0.08)" : "rgba(192, 132, 252, 0.04)";
       ctx.lineWidth = 0.5;
       for (let i = 0; i < orbsRef.current.length; i++) {
         for (let j = i + 1; j < orbsRef.current.length; j++) {
@@ -96,7 +108,7 @@ export default function AbstractBackground() {
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(frameRef.current);
     };
-  }, []);
+  }, [variant]);
 
   return (
     <canvas
@@ -106,7 +118,7 @@ export default function AbstractBackground() {
         inset: 0,
         zIndex: 0,
         pointerEvents: "none",
-        opacity: 0.8,
+        opacity: variant === "light" ? 0.95 : 0.8,
       }}
     />
   );

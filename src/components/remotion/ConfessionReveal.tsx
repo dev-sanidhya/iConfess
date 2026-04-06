@@ -3,14 +3,21 @@
 import {
   AbsoluteFill,
   interpolate,
+  spring,
   useCurrentFrame,
   useVideoConfig,
-  spring,
 } from "remotion";
 
-export function ConfessionRevealComposition() {
+type ConfessionRevealCompositionProps = {
+  variant?: "dark" | "light";
+};
+
+export function ConfessionRevealComposition({
+  variant = "dark",
+}: ConfessionRevealCompositionProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const isLight = variant === "light";
 
   const containerOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
 
@@ -19,7 +26,13 @@ export function ConfessionRevealComposition() {
   const textOpacity = interpolate(frame, [30, 50], [0, 1], { extrapolateRight: "clamp" });
   const textY = interpolate(frame, [30, 55], [12, 0], { extrapolateRight: "clamp" });
 
-  const heartScale = spring({ frame: Math.max(0, frame - 60), fps, from: 0, to: 1, config: { damping: 10, stiffness: 200 } });
+  const heartScale = spring({
+    frame: Math.max(0, frame - 60),
+    fps,
+    from: 0,
+    to: 1,
+    config: { damping: 10, stiffness: 200 },
+  });
   const mutualOpacity = interpolate(frame, [65, 80], [0, 1], { extrapolateRight: "clamp" });
 
   return (
@@ -29,7 +42,7 @@ export function ConfessionRevealComposition() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: isLight ? "'Georgia', serif" : "'Inter', sans-serif",
       }}
     >
       <div
@@ -38,11 +51,15 @@ export function ConfessionRevealComposition() {
           transform: `translateY(${cardY}px)`,
           width: 380,
           borderRadius: 20,
-          background: "linear-gradient(135deg, rgba(13,13,31,0.95) 0%, rgba(18,18,42,0.95) 100%)",
-          border: "1px solid rgba(30,30,63,0.9)",
+          background: isLight
+            ? "linear-gradient(145deg, rgba(251,246,238,0.97) 0%, rgba(242,232,219,0.94) 100%)"
+            : "linear-gradient(135deg, rgba(13,13,31,0.95) 0%, rgba(18,18,42,0.95) 100%)",
+          border: isLight ? "1px solid rgba(184, 159, 126, 0.45)" : "1px solid rgba(30,30,63,0.9)",
           backdropFilter: "blur(20px)",
           padding: 28,
-          boxShadow: "0 40px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.1)",
+          boxShadow: isLight
+            ? "0 38px 90px rgba(117, 90, 56, 0.18), 0 0 60px rgba(206, 185, 156, 0.24)"
+            : "0 40px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.1)",
           overflow: "hidden",
           position: "relative",
         }}
@@ -52,7 +69,9 @@ export function ConfessionRevealComposition() {
           style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(135deg, rgba(192,132,252,0.04) 0%, rgba(244,114,182,0.03) 100%)",
+            background: isLight
+              ? "linear-gradient(135deg, rgba(196, 168, 133, 0.12) 0%, rgba(255, 255, 255, 0.18) 100%)"
+              : "linear-gradient(135deg, rgba(192,132,252,0.04) 0%, rgba(244,114,182,0.03) 100%)",
             pointerEvents: "none",
           }}
         />
@@ -65,7 +84,9 @@ export function ConfessionRevealComposition() {
                 width: 36,
                 height: 36,
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, #7c3aed, #c084fc)",
+                background: isLight
+                  ? "linear-gradient(135deg, #b08a60, #d5b690)"
+                  : "linear-gradient(135deg, #7c3aed, #c084fc)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -77,8 +98,18 @@ export function ConfessionRevealComposition() {
               ?
             </div>
             <div>
-              <div style={{ color: "#f0eeff", fontSize: 13, fontWeight: 600 }}>Anonymous</div>
-              <div style={{ color: "#4a4870", fontSize: 11 }}>College · 3 days ago</div>
+              <div
+                style={{
+                  color: isLight ? "#4d3925" : "#f0eeff",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Anonymous
+              </div>
+              <div style={{ color: isLight ? "#927357" : "#4a4870", fontSize: 11 }}>
+                College · 3 days ago
+              </div>
             </div>
           </div>
           <div
@@ -86,8 +117,8 @@ export function ConfessionRevealComposition() {
               fontSize: 10,
               padding: "3px 10px",
               borderRadius: 999,
-              background: "rgba(96,165,250,0.1)",
-              color: "#60a5fa",
+              background: isLight ? "rgba(164, 132, 95, 0.12)" : "rgba(96,165,250,0.1)",
+              color: isLight ? "#8a6946" : "#60a5fa",
             }}
           >
             Delivered
@@ -101,7 +132,7 @@ export function ConfessionRevealComposition() {
             transform: `translateY(${textY}px)`,
             fontSize: 13,
             lineHeight: 1.7,
-            color: "#f0eeff",
+            color: isLight ? "#5a4430" : "#f0eeff",
             marginBottom: 20,
           }}
         >
@@ -112,14 +143,16 @@ export function ConfessionRevealComposition() {
         {/* Footer */}
         <div
           style={{
-            borderTop: "1px solid #1e1e3f",
+            borderTop: isLight ? "1px solid rgba(184, 159, 126, 0.35)" : "1px solid #1e1e3f",
             paddingTop: 14,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
-          <div style={{ fontSize: 11, color: "#4a4870" }}>CSE · 2026 · XYZ University</div>
+          <div style={{ fontSize: 11, color: isLight ? "#927357" : "#4a4870" }}>
+            CSE · 2026 · XYZ University
+          </div>
 
           {/* Mutual heart */}
           <div
@@ -132,8 +165,8 @@ export function ConfessionRevealComposition() {
               fontSize: 10,
               padding: "3px 10px",
               borderRadius: 999,
-              background: "rgba(244,114,182,0.15)",
-              color: "#f472b6",
+              background: isLight ? "rgba(185, 141, 110, 0.14)" : "rgba(244,114,182,0.15)",
+              color: isLight ? "#9a6b43" : "#f472b6",
             }}
           >
             ✦ Mutual
