@@ -1,10 +1,10 @@
-import { StaffPermission } from "@prisma/client";
 import PaymentsManagementPanel from "@/components/PaymentsManagementPanel";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPermission } from "@/lib/staff-guards";
+import { STAFF_PERMISSIONS } from "@/lib/staff-types";
 
 export default async function EmployeePaymentsPage() {
-  await requireStaffPermission(StaffPermission.MANAGE_PAYMENTS);
+  await requireStaffPermission(STAFF_PERMISSIONS[1]);
 
   const payments = await prisma.payment.findMany({
     orderBy: { createdAt: "desc" },

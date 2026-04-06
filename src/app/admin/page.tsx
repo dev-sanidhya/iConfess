@@ -37,8 +37,8 @@ export default async function AdminDashboardPage({ searchParams }: AdminPageProp
     <div className="space-y-6 py-6">
       <section className="glass rounded-3xl p-5 sm:p-6">
         <div className="flex flex-col gap-2 mb-5">
-          <h1 className="text-2xl font-semibold" style={{ color: "#f0eeff" }}>Admin Analytics</h1>
-          <p className="text-sm" style={{ color: "#9b98c8" }}>
+          <h1 className="text-2xl font-semibold" style={{ color: "#3f2c1d" }}>Admin Analytics</h1>
+          <p className="text-sm" style={{ color: "#735a43" }}>
             This first build covers the locked dashboard metrics, age buckets, specific-age filtering, payment analytics, and click/scroll visit sessions.
           </p>
         </div>
@@ -49,20 +49,20 @@ export default async function AdminDashboardPage({ searchParams }: AdminPageProp
             name="startDate"
             defaultValue={typeof params.startDate === "string" ? params.startDate : ""}
             className="px-4 py-2.5 rounded-xl text-sm border"
-            style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+            style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
           />
           <input
             type="date"
             name="endDate"
             defaultValue={typeof params.endDate === "string" ? params.endDate : ""}
             className="px-4 py-2.5 rounded-xl text-sm border"
-            style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+            style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
           />
           <select
             name="gender"
             defaultValue={gender ?? ""}
             className="px-4 py-2.5 rounded-xl text-sm border"
-            style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+            style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
           >
             <option value="">All genders</option>
             {Object.values(Gender).map((option) => (
@@ -73,7 +73,7 @@ export default async function AdminDashboardPage({ searchParams }: AdminPageProp
             name="ageBucket"
             defaultValue={ageBucket ?? ""}
             className="px-4 py-2.5 rounded-xl text-sm border"
-            style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+            style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
           >
             <option value="">All age buckets</option>
             {getAgeBucketOptions().map((option) => (
@@ -87,12 +87,12 @@ export default async function AdminDashboardPage({ searchParams }: AdminPageProp
             defaultValue={typeof params.specificAge === "string" ? params.specificAge : ""}
             placeholder="Specific age"
             className="px-4 py-2.5 rounded-xl text-sm border"
-            style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+            style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
           />
           <button
             type="submit"
             className="md:col-span-5 px-4 py-2.5 rounded-xl text-sm font-medium text-white"
-            style={{ background: "linear-gradient(135deg, #0f766e 0%, #34d399 100%)" }}
+            style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
           >
             Apply Filters
           </button>
@@ -107,35 +107,35 @@ export default async function AdminDashboardPage({ searchParams }: AdminPageProp
           { label: "Mutual-confession users", value: snapshot.confessions.mutualUsers },
         ].map((card) => (
           <div key={card.label} className="glass rounded-2xl p-5">
-            <p className="text-xs uppercase tracking-[0.16em]" style={{ color: "#6f6b98" }}>{card.label}</p>
-            <p className="text-3xl font-semibold mt-3" style={{ color: "#f0eeff" }}>{card.value}</p>
+            <p className="text-xs uppercase tracking-[0.16em]" style={{ color: "#9b7c5d" }}>{card.label}</p>
+            <p className="text-3xl font-semibold mt-3" style={{ color: "#3f2c1d" }}>{card.value}</p>
           </div>
         ))}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="glass rounded-2xl p-5">
-          <h2 className="text-lg font-medium mb-4" style={{ color: "#f0eeff" }}>Purchases by Feature</h2>
+          <h2 className="text-lg font-medium mb-4" style={{ color: "#3f2c1d" }}>Purchases by Feature</h2>
           <div className="space-y-3">
             {snapshot.purchases.map((item) => (
-              <div key={item.type} className="rounded-2xl p-4" style={{ background: "rgba(30,30,63,0.28)" }}>
+              <div key={String(item.type)} className="rounded-2xl p-4" style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.2)" }}>
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium" style={{ color: "#f0eeff" }}>{item.type}</p>
-                  <p className="text-sm" style={{ color: "#34d399" }}>{item.totalPurchases} purchases</p>
+                  <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>{String(item.type)}</p>
+                  <p className="text-sm" style={{ color: "#8f6a46" }}>{item.totalPurchases} purchases</p>
                 </div>
-                <p className="text-xs mt-1" style={{ color: "#9b98c8" }}>{item.uniqueUsers} unique users</p>
+                <p className="text-xs mt-1" style={{ color: "#9b7c5d" }}>{item.uniqueUsers} unique users</p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="glass rounded-2xl p-5">
-          <h2 className="text-lg font-medium mb-4" style={{ color: "#f0eeff" }}>Profile Completion</h2>
+          <h2 className="text-lg font-medium mb-4" style={{ color: "#3f2c1d" }}>Profile Completion</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {Object.entries(snapshot.profileCompletion).map(([key, value]) => (
-              <div key={key} className="rounded-2xl p-4" style={{ background: "rgba(30,30,63,0.28)" }}>
-                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>{key}</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: "#f0eeff" }}>{value}</p>
+              <div key={key} className="rounded-2xl p-4" style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.2)" }}>
+                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>{key}</p>
+                <p className="text-2xl font-semibold mt-2" style={{ color: "#3f2c1d" }}>{value}</p>
               </div>
             ))}
           </div>
@@ -144,23 +144,23 @@ export default async function AdminDashboardPage({ searchParams }: AdminPageProp
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="glass rounded-2xl p-5">
-          <h2 className="text-lg font-medium mb-4" style={{ color: "#f0eeff" }}>Confession Activity</h2>
-          <div className="space-y-3 text-sm" style={{ color: "#9b98c8" }}>
-            <p>Total sent: <span style={{ color: "#f0eeff" }}>{snapshot.confessions.totalSent}</span></p>
-            <p>Total received: <span style={{ color: "#f0eeff" }}>{snapshot.confessions.totalReceived}</span></p>
-            <p>Users who sent: <span style={{ color: "#f0eeff" }}>{snapshot.confessions.usersWhoSent}</span></p>
-            <p>Users who received: <span style={{ color: "#f0eeff" }}>{snapshot.confessions.usersWhoReceived}</span></p>
-            <p>Mutual confession records: <span style={{ color: "#f0eeff" }}>{snapshot.confessions.mutualConfessionRecords}</span></p>
+          <h2 className="text-lg font-medium mb-4" style={{ color: "#3f2c1d" }}>Confession Activity</h2>
+          <div className="space-y-3 text-sm" style={{ color: "#9b7c5d" }}>
+            <p>Total sent: <span style={{ color: "#3f2c1d" }}>{snapshot.confessions.totalSent}</span></p>
+            <p>Total received: <span style={{ color: "#3f2c1d" }}>{snapshot.confessions.totalReceived}</span></p>
+            <p>Users who sent: <span style={{ color: "#3f2c1d" }}>{snapshot.confessions.usersWhoSent}</span></p>
+            <p>Users who received: <span style={{ color: "#3f2c1d" }}>{snapshot.confessions.usersWhoReceived}</span></p>
+            <p>Mutual confession records: <span style={{ color: "#3f2c1d" }}>{snapshot.confessions.mutualConfessionRecords}</span></p>
           </div>
         </div>
 
         <div className="glass rounded-2xl p-5">
-          <h2 className="text-lg font-medium mb-4" style={{ color: "#f0eeff" }}>Confession Method Breakdown</h2>
+          <h2 className="text-lg font-medium mb-4" style={{ color: "#3f2c1d" }}>Confession Method Breakdown</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {Object.entries(snapshot.confessionMethod).map(([key, value]) => (
-              <div key={key} className="rounded-2xl p-4" style={{ background: "rgba(30,30,63,0.28)" }}>
-                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#6f6b98" }}>{key}</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: "#f0eeff" }}>{value}</p>
+              <div key={key} className="rounded-2xl p-4" style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.2)" }}>
+                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>{key}</p>
+                <p className="text-2xl font-semibold mt-2" style={{ color: "#3f2c1d" }}>{value}</p>
               </div>
             ))}
           </div>
@@ -169,24 +169,24 @@ export default async function AdminDashboardPage({ searchParams }: AdminPageProp
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="glass rounded-2xl p-5">
-          <h2 className="text-lg font-medium mb-4" style={{ color: "#f0eeff" }}>Visits Distribution</h2>
+          <h2 className="text-lg font-medium mb-4" style={{ color: "#3f2c1d" }}>Visits Distribution</h2>
           <div className="space-y-2">
             {snapshot.visits.visitCountDistribution.map((item) => (
-              <div key={item.count} className="flex items-center justify-between text-sm" style={{ color: "#9b98c8" }}>
+              <div key={item.count} className="flex items-center justify-between text-sm" style={{ color: "#9b7c5d" }}>
                 <span>{item.count} visits</span>
-                <span style={{ color: "#f0eeff" }}>{item.users} users</span>
+                <span style={{ color: "#3f2c1d" }}>{item.users} users</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="glass rounded-2xl p-5">
-          <h2 className="text-lg font-medium mb-4" style={{ color: "#f0eeff" }}>Self-Confession Distribution</h2>
+          <h2 className="text-lg font-medium mb-4" style={{ color: "#3f2c1d" }}>Self-Confession Distribution</h2>
           <div className="space-y-2">
             {snapshot.selfConfessions.selfCountDistribution.map((item) => (
-              <div key={item.count} className="flex items-center justify-between text-sm" style={{ color: "#9b98c8" }}>
+              <div key={item.count} className="flex items-center justify-between text-sm" style={{ color: "#9b7c5d" }}>
                 <span>{item.count} self-confessions</span>
-                <span style={{ color: "#f0eeff" }}>{item.users} users</span>
+                <span style={{ color: "#3f2c1d" }}>{item.users} users</span>
               </div>
             ))}
           </div>

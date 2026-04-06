@@ -1,7 +1,10 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
-import { StaffPermission, StaffRole, StaffStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  type StaffPermission,
+  type StaffRole,
+} from "@/lib/staff-types";
 
 const STAFF_COOKIE_NAME = "iconfess_staff_token";
 const STAFF_JWT_SECRET = process.env.STAFF_JWT_SECRET ?? process.env.JWT_SECRET!;
@@ -35,7 +38,7 @@ export async function getStaffSession() {
     where: { id: payload.staffId },
   });
 
-  if (!staff || staff.status !== StaffStatus.ACTIVE) {
+  if (!staff || staff.status !== "ACTIVE") {
     return null;
   }
 
@@ -51,7 +54,7 @@ export function hasPermission(
   role: StaffRole,
   requiredPermission: StaffPermission
 ) {
-  if (role === StaffRole.ADMIN) {
+  if (role === "ADMIN") {
     return true;
   }
 
@@ -74,8 +77,8 @@ export async function ensureStaffPermission(permission: StaffPermission) {
 export async function hasAnyAdmin() {
   const adminCount = await prisma.staffUser.count({
     where: {
-      role: StaffRole.ADMIN,
-      status: StaffStatus.ACTIVE,
+      role: "ADMIN",
+      status: "ACTIVE",
     },
   });
 

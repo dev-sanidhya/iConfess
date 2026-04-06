@@ -1,10 +1,10 @@
-import { StaffPermission } from "@prisma/client";
 import ConfessionsManagementPanel from "@/components/ConfessionsManagementPanel";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPermission } from "@/lib/staff-guards";
+import { STAFF_PERMISSIONS } from "@/lib/staff-types";
 
 export default async function EmployeeConfessionsPage() {
-  await requireStaffPermission(StaffPermission.MANAGE_CONFESSIONS);
+  await requireStaffPermission(STAFF_PERMISSIONS[2]);
 
   const confessions = await prisma.confession.findMany({
     orderBy: { createdAt: "desc" },

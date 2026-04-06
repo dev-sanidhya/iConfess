@@ -25,8 +25,8 @@ export default function PaymentsManagementPanel({
   return (
     <div className="space-y-6 py-6">
       <section className="glass rounded-3xl p-5 sm:p-6">
-        <h1 className="text-2xl font-semibold mb-2" style={{ color: "#f0eeff" }}>{title}</h1>
-        <p className="text-sm" style={{ color: "#9b98c8" }}>
+        <h1 className="text-2xl font-semibold mb-2" style={{ color: "#3f2c1d" }}>{title}</h1>
+        <p className="text-sm" style={{ color: "#735a43" }}>
           Payment records are now tracked in one dedicated table so support and analytics can work off the same source of truth.
         </p>
       </section>
@@ -34,7 +34,7 @@ export default function PaymentsManagementPanel({
       <section className="glass rounded-3xl p-5 sm:p-6 overflow-x-auto">
         <table className="w-full min-w-[980px] text-sm">
           <thead>
-            <tr style={{ color: "#6f6b98" }}>
+            <tr style={{ color: "#9b7c5d" }}>
               <th className="text-left py-3">User</th>
               <th className="text-left py-3">Type</th>
               <th className="text-left py-3">Amount</th>
@@ -46,11 +46,11 @@ export default function PaymentsManagementPanel({
           </thead>
           <tbody>
             {payments.map((payment) => (
-              <tr key={payment.id} className="border-t" style={{ borderColor: "#1e1e3f", color: "#f0eeff" }}>
+              <tr key={payment.id} className="border-t" style={{ borderColor: "rgba(184,159,126,0.22)", color: "#3f2c1d" }}>
                 <td className="py-3">
                   <div>
                     <p>{payment.user.name}</p>
-                    <p className="text-xs" style={{ color: "#9b98c8" }}>{payment.user.phone}</p>
+                    <p className="text-xs" style={{ color: "#9b7c5d" }}>{payment.user.phone}</p>
                   </div>
                 </td>
                 <td className="py-3">{payment.type}</td>

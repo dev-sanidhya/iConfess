@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { StaffPermission, StaffRole, StaffStatus } from "@prisma/client";
 import { hashPassword, normalizeUsername } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth";
+import {
+  STAFF_PERMISSIONS,
+  STAFF_ROLES,
+  STAFF_STATUSES,
+  type StaffPermission,
+  type StaffRole,
+  type StaffStatus,
+} from "@/lib/staff-types";
 
 function getNormalizedPermissions(role: StaffRole, permissions: unknown) {
-  if (role === StaffRole.ADMIN) {
-    return Object.values(StaffPermission);
+  if (role === "ADMIN") {
+    return [...STAFF_PERMISSIONS];
   }
 
   if (!Array.isArray(permissions)) {
@@ -14,14 +21,14 @@ function getNormalizedPermissions(role: StaffRole, permissions: unknown) {
   }
 
   return permissions.filter((permission): permission is StaffPermission =>
-    Object.values(StaffPermission).includes(permission as StaffPermission)
+    STAFF_PERMISSIONS.includes(permission as StaffPermission)
   );
 }
 
 export async function GET() {
   try {
     const staff = await getStaffSession();
-    if (!staff || staff.role !== StaffRole.ADMIN) {
+    if (!staff || staff.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -49,13 +56,13 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const staff = await getStaffSession();
-    if (!staff || staff.role !== StaffRole.ADMIN) {
+    if (!staff || staff.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { name, username, password, role, permissions } = await req.json();
     const normalizedUsername = normalizeUsername(username ?? "");
-    const normalizedRole = Object.values(StaffRole).includes(role as StaffRole)
+    const normalizedRole = STAFF_ROLES.includes(role as StaffRole)
       ? (role as StaffRole)
       : null;
 
@@ -113,7 +120,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getStaffSession();
-    if (!session || session.role !== StaffRole.ADMIN) {
+    if (!session || session.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -127,10 +134,10 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
 
-    const normalizedRole = Object.values(StaffRole).includes(role as StaffRole)
+    const normalizedRole = STAFF_ROLES.includes(role as StaffRole)
       ? (role as StaffRole)
       : existing.role;
-    const normalizedStatus = Object.values(StaffStatus).includes(status as StaffStatus)
+    const normalizedStatus = STAFF_STATUSES.includes(status as StaffStatus)
       ? (status as StaffStatus)
       : existing.status;
     const normalizedUsername = username ? normalizeUsername(username) : existing.username;
@@ -196,7 +203,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getStaffSession();
-    if (!session || session.role !== StaffRole.ADMIN) {
+    if (!session || session.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

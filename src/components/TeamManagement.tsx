@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { StaffPermission, StaffRole, StaffStatus } from "@prisma/client";
 import { toast } from "sonner";
+import {
+  STAFF_PERMISSIONS,
+  STAFF_ROLES,
+  STAFF_STATUSES,
+  type StaffPermission,
+  type StaffRole,
+  type StaffStatus,
+} from "@/lib/staff-types";
 
 type StaffAccount = {
   id: string;
@@ -19,7 +26,7 @@ type TeamManagementProps = {
   initialAccounts: StaffAccount[];
 };
 
-const employeePermissions = Object.values(StaffPermission);
+const employeePermissions = [...STAFF_PERMISSIONS];
 
 export default function TeamManagement({ initialAccounts }: TeamManagementProps) {
   const [accounts, setAccounts] = useState(initialAccounts);
@@ -108,8 +115,8 @@ export default function TeamManagement({ initialAccounts }: TeamManagementProps)
   return (
     <div className="space-y-6">
       <section className="glass rounded-3xl p-5 sm:p-6">
-        <h1 className="text-2xl font-semibold mb-2" style={{ color: "#f0eeff" }}>Staff Access Management</h1>
-        <p className="text-sm mb-5" style={{ color: "#9b98c8" }}>
+        <h1 className="text-2xl font-semibold mb-2" style={{ color: "#3f2c1d" }}>Staff Access Management</h1>
+        <p className="text-sm mb-5" style={{ color: "#735a43" }}>
           Admins can create, change, and delete both admin and employee login credentials here.
         </p>
         <form
@@ -120,32 +127,32 @@ export default function TeamManagement({ initialAccounts }: TeamManagementProps)
           }}
           className="grid gap-3 md:grid-cols-2"
         >
-          <input name="name" placeholder="Full name" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-          <input name="username" placeholder="Username" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-          <input type="password" name="password" placeholder="Password" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} required />
-          <select name="role" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} defaultValue={StaffRole.EMPLOYEE}>
-            <option value={StaffRole.EMPLOYEE}>EMPLOYEE</option>
-            <option value={StaffRole.ADMIN}>ADMIN</option>
+          <input name="name" placeholder="Full name" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }} required />
+          <input name="username" placeholder="Username" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }} required />
+          <input type="password" name="password" placeholder="Password" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }} required />
+          <select name="role" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }} defaultValue={STAFF_ROLES[1]}>
+            <option value={STAFF_ROLES[1]}>EMPLOYEE</option>
+            <option value={STAFF_ROLES[0]}>ADMIN</option>
           </select>
           <div className="md:col-span-2 grid gap-2 sm:grid-cols-3">
             {employeePermissions.map((permission) => (
-              <label key={permission} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm" style={{ background: "rgba(30,30,63,0.28)", color: "#9b98c8" }}>
+              <label key={permission} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm" style={{ background: "rgba(255,251,245,0.88)", color: "#8c7257", border: "1px solid rgba(184,159,126,0.2)" }}>
                 <input type="checkbox" name={permission} defaultChecked />
                 {permission}
               </label>
             ))}
           </div>
-          <button type="submit" disabled={loading} className="md:col-span-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50" style={{ background: "linear-gradient(135deg, #0f766e 0%, #34d399 100%)" }}>
+          <button type="submit" disabled={loading} className="md:col-span-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50" style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
             {loading ? "Saving..." : "Create Staff Account"}
           </button>
         </form>
       </section>
 
       <section className="glass rounded-3xl p-5 sm:p-6">
-        <h2 className="text-lg font-medium mb-4" style={{ color: "#f0eeff" }}>Existing Accounts</h2>
+        <h2 className="text-lg font-medium mb-4" style={{ color: "#3f2c1d" }}>Existing Accounts</h2>
         <div className="space-y-3">
           {accounts.map((account) => (
-            <div key={account.id} className="rounded-2xl p-4" style={{ background: "rgba(30,30,63,0.28)" }}>
+            <div key={account.id} className="rounded-2xl p-4" style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}>
               <form
                 onSubmit={async (event) => {
                   event.preventDefault();
@@ -157,7 +164,7 @@ export default function TeamManagement({ initialAccounts }: TeamManagementProps)
                     password: String(formData.get("password") ?? ""),
                     role,
                     status: formData.get("status") as StaffStatus,
-                    permissions: role === StaffRole.ADMIN
+                    permissions: role === "ADMIN"
                       ? employeePermissions
                       : employeePermissions.filter((permission) => formData.get(`${account.id}-${permission}`) === "on"),
                   });
@@ -165,22 +172,22 @@ export default function TeamManagement({ initialAccounts }: TeamManagementProps)
                 className="space-y-4"
               >
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <input name="name" defaultValue={account.name} className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} />
-                  <input name="username" defaultValue={account.username} className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} />
-                  <input name="password" type="password" placeholder="New password (optional)" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }} />
-                  <select name="role" defaultValue={account.role} className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}>
-                    <option value={StaffRole.EMPLOYEE}>EMPLOYEE</option>
-                    <option value={StaffRole.ADMIN}>ADMIN</option>
+                  <input name="name" defaultValue={account.name} className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }} />
+                  <input name="username" defaultValue={account.username} className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }} />
+                  <input name="password" type="password" placeholder="New password (optional)" className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }} />
+                  <select name="role" defaultValue={account.role} className="px-4 py-2.5 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}>
+                    <option value={STAFF_ROLES[1]}>EMPLOYEE</option>
+                    <option value={STAFF_ROLES[0]}>ADMIN</option>
                   </select>
-                  <select name="status" defaultValue={account.status} className="px-4 py-2.5 rounded-xl text-sm border xl:col-span-1" style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}>
-                    <option value={StaffStatus.ACTIVE}>ACTIVE</option>
-                    <option value={StaffStatus.INACTIVE}>INACTIVE</option>
+                  <select name="status" defaultValue={account.status} className="px-4 py-2.5 rounded-xl text-sm border xl:col-span-1" style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}>
+                    <option value={STAFF_STATUSES[0]}>ACTIVE</option>
+                    <option value={STAFF_STATUSES[1]}>INACTIVE</option>
                   </select>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-3">
                   {employeePermissions.map((permission) => (
-                    <label key={`${account.id}-${permission}`} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm" style={{ background: "rgba(30,30,63,0.28)", color: "#9b98c8" }}>
+                    <label key={`${account.id}-${permission}`} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm" style={{ background: "rgba(255,251,245,0.88)", color: "#8c7257", border: "1px solid rgba(184,159,126,0.2)" }}>
                       <input type="checkbox" name={`${account.id}-${permission}`} defaultChecked={account.permissions.includes(permission)} />
                       {permission}
                     </label>
@@ -191,7 +198,7 @@ export default function TeamManagement({ initialAccounts }: TeamManagementProps)
                   <button
                     type="submit"
                     className="px-3 py-2 rounded-xl text-xs font-medium"
-                    style={{ background: "rgba(15,118,110,0.18)", color: "#34d399" }}
+                    style={{ background: "rgba(143,106,70,0.12)", color: "#8f6a46" }}
                   >
                     Save changes
                   </button>
@@ -199,7 +206,7 @@ export default function TeamManagement({ initialAccounts }: TeamManagementProps)
                     type="button"
                     onClick={() => handleDelete(account.id)}
                     className="px-3 py-2 rounded-xl text-xs font-medium"
-                    style={{ background: "rgba(190,24,93,0.18)", color: "#f472b6" }}
+                    style={{ background: "rgba(198,145,85,0.14)", color: "#9f6c31" }}
                   >
                     Delete
                   </button>

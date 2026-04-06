@@ -24,8 +24,8 @@ export default function UsersManagementPanel({
   return (
     <div className="space-y-6 py-6">
       <section className="glass rounded-3xl p-5 sm:p-6">
-        <h1 className="text-2xl font-semibold mb-2" style={{ color: "#f0eeff" }}>{title}</h1>
-        <p className="text-sm" style={{ color: "#9b98c8" }}>
+        <h1 className="text-2xl font-semibold mb-2" style={{ color: "#3f2c1d" }}>{title}</h1>
+        <p className="text-sm" style={{ color: "#735a43" }}>
           Users are shown with their fixed DOB, current profile identity handles, and activity counts for support workflows.
         </p>
       </section>
@@ -38,12 +38,12 @@ export default function UsersManagementPanel({
             defaultValue={phoneQuery}
             placeholder="Search by phone number"
             className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-            style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+            style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
           />
           <button
             type="submit"
             className="px-4 py-2.5 rounded-xl text-sm font-medium text-white"
-            style={{ background: "linear-gradient(135deg, #0f766e 0%, #34d399 100%)" }}
+            style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
           >
             Search
           </button>
@@ -53,7 +53,7 @@ export default function UsersManagementPanel({
       <section className="glass rounded-3xl p-5 sm:p-6 overflow-x-auto">
         <table className="w-full min-w-[880px] text-sm">
           <thead>
-            <tr style={{ color: "#6f6b98" }}>
+            <tr style={{ color: "#9b7c5d" }}>
               <th className="text-left py-3">User</th>
               <th className="text-left py-3">Phone</th>
               <th className="text-left py-3">Gender</th>
@@ -66,11 +66,11 @@ export default function UsersManagementPanel({
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-t" style={{ borderColor: "#1e1e3f", color: "#f0eeff" }}>
+              <tr key={user.id} className="border-t" style={{ borderColor: "rgba(184,159,126,0.22)", color: "#3f2c1d" }}>
                 <td className="py-3">
                   <div>
                     <p>{user.name}</p>
-                    <p className="text-xs" style={{ color: "#9b98c8" }}>{user.phone}</p>
+                    <p className="text-xs" style={{ color: "#9b7c5d" }}>{user.phone}</p>
                   </div>
                 </td>
                 <td className="py-3">{user.phone}</td>
@@ -85,7 +85,7 @@ export default function UsersManagementPanel({
           </tbody>
         </table>
         {users.length === 0 && (
-          <p className="text-sm mt-4" style={{ color: "#9b98c8" }}>
+          <p className="text-sm mt-4" style={{ color: "#9b7c5d" }}>
             No users found for this phone search.
           </p>
         )}

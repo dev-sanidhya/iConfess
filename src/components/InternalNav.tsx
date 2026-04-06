@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { BarChart3, CreditCard, LogOut, Menu, Shield, Users, MessageSquare, X } from "lucide-react";
-import { StaffPermission, StaffRole } from "@prisma/client";
+import { STAFF_PERMISSIONS, type StaffPermission, type StaffRole } from "@/lib/staff-types";
 
 type InternalNavProps = {
   staff: {
@@ -19,7 +19,7 @@ export default function InternalNav({ staff }: InternalNavProps) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const links = staff.role === StaffRole.ADMIN
+  const links = staff.role === "ADMIN"
     ? [
         { href: "/admin", label: "Analytics", icon: BarChart3 },
         { href: "/admin/team", label: "Staff Access", icon: Shield },
@@ -28,13 +28,13 @@ export default function InternalNav({ staff }: InternalNavProps) {
         { href: "/admin/confessions", label: "Confessions", icon: MessageSquare },
       ]
     : [
-        ...(staff.permissions.includes(StaffPermission.MANAGE_USERS)
+        ...(staff.permissions.includes(STAFF_PERMISSIONS[0])
           ? [{ href: "/employee/users", label: "Users", icon: Users }]
           : []),
-        ...(staff.permissions.includes(StaffPermission.MANAGE_PAYMENTS)
+        ...(staff.permissions.includes(STAFF_PERMISSIONS[1])
           ? [{ href: "/employee/payments", label: "Payments", icon: CreditCard }]
           : []),
-        ...(staff.permissions.includes(StaffPermission.MANAGE_CONFESSIONS)
+        ...(staff.permissions.includes(STAFF_PERMISSIONS[2])
           ? [{ href: "/employee/confessions", label: "Confessions", icon: MessageSquare }]
           : []),
       ];
@@ -48,24 +48,24 @@ export default function InternalNav({ staff }: InternalNavProps) {
     <>
       <div className="px-3 mb-8">
         <span className="text-xl font-bold gradient-text">iConfess Internal</span>
-        <p className="text-xs mt-1" style={{ color: "#4a4870" }}>
-          {staff.role === StaffRole.ADMIN ? "Admin panel" : "Employee panel"}
+        <p className="text-xs mt-1" style={{ color: "#9b7c5d" }}>
+          {staff.role === "ADMIN" ? "Admin panel" : "Employee panel"}
         </p>
       </div>
 
       <div
         className="flex items-center gap-3 px-3 py-3 rounded-xl mb-6"
-        style={{ background: "rgba(30,30,63,0.3)" }}
+        style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
       >
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white"
-          style={{ background: "linear-gradient(135deg, #0f766e, #34d399)" }}
+          style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
         >
           {staff.name[0]?.toUpperCase() ?? "I"}
         </div>
         <div>
-          <p className="text-sm font-medium" style={{ color: "#f0eeff" }}>{staff.name}</p>
-          <p className="text-xs" style={{ color: "#6f6b98" }}>{staff.role}</p>
+          <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>{staff.name}</p>
+          <p className="text-xs" style={{ color: "#9b7c5d" }}>{staff.role}</p>
         </div>
       </div>
 
@@ -77,9 +77,9 @@ export default function InternalNav({ staff }: InternalNavProps) {
               <div
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
                 style={{
-                  background: active ? "rgba(16,185,129,0.16)" : "transparent",
-                  color: active ? "#34d399" : "#9b98c8",
-                  border: active ? "1px solid rgba(52,211,153,0.24)" : "1px solid transparent",
+                  background: active ? "rgba(143,106,70,0.12)" : "transparent",
+                  color: active ? "#8f6a46" : "#8c7257",
+                  border: active ? "1px solid rgba(179,148,111,0.24)" : "1px solid transparent",
                 }}
               >
                 <item.icon className="w-4 h-4" />
@@ -94,7 +94,7 @@ export default function InternalNav({ staff }: InternalNavProps) {
         type="button"
         onClick={handleLogout}
         className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all w-full"
-        style={{ color: "#6f6b98" }}
+        style={{ color: "#8c7257" }}
       >
         <LogOut className="w-4 h-4" />
         Sign Out
@@ -106,17 +106,17 @@ export default function InternalNav({ staff }: InternalNavProps) {
     <>
       <div
         className="md:hidden fixed top-0 inset-x-0 z-40 px-4 py-3 flex items-center justify-between"
-        style={{ background: "rgba(5,5,15,0.92)", borderBottom: "1px solid #1e1e3f", backdropFilter: "blur(20px)" }}
+        style={{ background: "rgba(247,239,228,0.94)", borderBottom: "1px solid rgba(184,159,126,0.24)", backdropFilter: "blur(20px)" }}
       >
         <div>
           <span className="text-lg font-bold gradient-text">iConfess Internal</span>
-          <p className="text-[11px] mt-0.5" style={{ color: "#4a4870" }}>{staff.role}</p>
+          <p className="text-[11px] mt-0.5" style={{ color: "#9b7c5d" }}>{staff.role}</p>
         </div>
         <button
           type="button"
           onClick={() => setMobileOpen((current) => !current)}
           className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: "rgba(30,30,63,0.45)", border: "1px solid #1e1e3f", color: "#34d399" }}
+          style={{ background: "rgba(255,251,245,0.9)", border: "1px solid rgba(184,159,126,0.24)", color: "#8f6a46" }}
           aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -136,7 +136,7 @@ export default function InternalNav({ staff }: InternalNavProps) {
         className={`fixed left-0 top-0 z-50 h-screen w-[min(82vw,20rem)] md:w-64 flex flex-col py-6 md:py-8 px-4 transition-transform duration-300 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
-        style={{ background: "rgba(5,5,15,0.97)", borderRight: "1px solid #1e1e3f", backdropFilter: "blur(20px)" }}
+        style={{ background: "rgba(247,239,228,0.97)", borderRight: "1px solid rgba(184,159,126,0.24)", backdropFilter: "blur(20px)" }}
       >
         {navContent}
       </aside>

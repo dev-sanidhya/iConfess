@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { StaffPermission, StaffRole } from "@prisma/client";
 import { getStaffSession, hasPermission } from "@/lib/staff-auth";
+import type { StaffPermission } from "@/lib/staff-types";
 
 export async function requireAdmin() {
   const staff = await getStaffSession();
@@ -8,7 +8,7 @@ export async function requireAdmin() {
     redirect("/staff/login");
   }
 
-  if (staff.role !== StaffRole.ADMIN) {
+  if (staff.role !== "ADMIN") {
     redirect("/employee");
   }
 
@@ -22,7 +22,7 @@ export async function requireStaffPermission(permission: StaffPermission) {
   }
 
   if (!hasPermission(staff.permissions, staff.role, permission)) {
-    redirect(staff.role === StaffRole.ADMIN ? "/admin" : "/employee");
+    redirect(staff.role === "ADMIN" ? "/admin" : "/employee");
   }
 
   return staff;

@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { StaffRole } from "@prisma/client";
 import DashboardBackground from "@/components/DashboardBackground";
 import InternalNav from "@/components/InternalNav";
 import { getStaffSession } from "@/lib/staff-auth";
@@ -10,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/staff/login");
   }
 
-  if (staff.role !== StaffRole.ADMIN) {
+  if (staff.role !== "ADMIN") {
     redirect("/employee");
   }
 

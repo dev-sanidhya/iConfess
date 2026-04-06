@@ -34,7 +34,7 @@ export default function PaymentStatusForm({ paymentId, status }: { paymentId: st
       onChange={(event) => handleChange(event.target.value as PaymentStatus)}
       disabled={pending}
       className="px-3 py-2 rounded-xl text-xs border"
-      style={{ background: "rgba(30,30,63,0.5)", borderColor: "#1e1e3f", color: "#f0eeff" }}
+      style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
     >
       {Object.values(PaymentStatus).map((option) => (
         <option key={option} value={option}>{option}</option>
