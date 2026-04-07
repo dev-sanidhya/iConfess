@@ -8,6 +8,8 @@ type ManualPaymentMetadata = {
   confessionId?: string;
   targetUserId?: string;
   bundledPageUnlock?: boolean;
+  deliverOnSuccess?: boolean;
+  flow?: string;
   source?: string;
 };
 
@@ -250,6 +252,64 @@ async function applySelfConfession(payment: Payment) {
   });
 }
 
+async function applySendConfession(payment: Payment) {
+  const metadata = asRecord(payment.metadata);
+  const confessionId = getStringField(metadata, "confessionId");
+
+  if (!confessionId) {
+    throw new Error("Missing confession id for send payment");
+  }
+
+  const confession = await prisma.confession.findUnique({
+    where: { id: confessionId },
+    select: {
+      id: true,
+      senderId: true,
+      targetId: true,
+      isSelfConfession: true,
+      status: true,
+    },
+  });
+
+  if (!confession || confession.senderId !== payment.userId) {
+    throw new Error("Confession not found for this payment");
+  }
+
+  const deliverOnSuccess = getBooleanField(metadata, "deliverOnSuccess");
+
+  if (!deliverOnSuccess) {
+    return;
+  }
+
+  await prisma.confession.update({
+    where: { id: confession.id },
+    data: { status: "DELIVERED" },
+  });
+
+  if (confession.isSelfConfession || !confession.targetId || confession.targetId === payment.userId) {
+    return;
+  }
+
+  const reverse = await prisma.confession.findFirst({
+    where: {
+      senderId: confession.targetId,
+      targetId: payment.userId,
+      isSelfConfession: false,
+      status: "DELIVERED",
+    },
+    select: { id: true },
+  });
+
+  if (!reverse) {
+    return;
+  }
+
+  await prisma.confession.updateMany({
+    where: { id: { in: [confession.id, reverse.id] } },
+    data: { mutualDetected: true },
+  });
+}
+
 export async function applySuccessfulPayment(paymentId: string) {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
@@ -276,5 +336,10 @@ export async function applySuccessfulPayment(paymentId: string) {
 
   if (payment.type === PaymentType.SELF_CONFESSION) {
     await applySelfConfession(payment);
+    return;
+  }
+
+  if (payment.type === PaymentType.SEND_CONFESSION) {
+    await applySendConfession(payment);
   }
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, ArrowRight, MessageSquare, AtSign, CheckCircle2 } from "lucide-react";
+import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import {
   getConciseCategorySummary,
   locationCategories,
@@ -204,6 +205,7 @@ export default function SendConfession({
   const [directMatch, setDirectMatch] = useState<SearchResult | null>(null);
   const [directSearchState, setDirectSearchState] = useState<SearchState>("idle");
   const [showSelfConfirm, setShowSelfConfirm] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selfGenderOverride, setSelfGenderOverride] = useState<"MALE" | "FEMALE" | "OTHER">(currentUser.gender);
   const [selfPopupDismissed, setSelfPopupDismissed] = useState(false);
   const categoryFieldsRef = useRef<HTMLDivElement | null>(null);
@@ -376,7 +378,7 @@ export default function SendConfession({
     return true;
   }
 
-  async function submitConfession() {
+  async function submitConfession(transactionReference?: string) {
     if (!validateForm()) return;
 
     setLoading(true);
@@ -392,6 +394,7 @@ export default function SendConfession({
             lastName: lastName.trim(),
             message,
             selfGenderOverride: selfConfessionCandidate ? selfGenderOverride : null,
+            transactionReference,
           }
         : flow === "phone"
           ? {
@@ -402,6 +405,7 @@ export default function SendConfession({
               lastName: lastName.trim(),
               message,
               selfGenderOverride: selfConfessionCandidate ? selfGenderOverride : null,
+              transactionReference,
             }
           : {
               flow: "social",
@@ -412,6 +416,7 @@ export default function SendConfession({
               lastName: lastName.trim(),
               message,
               selfGenderOverride: selfConfessionCandidate ? selfGenderOverride : null,
+              transactionReference,
             };
 
       const res = await fetch("/api/confessions/send", {
@@ -423,7 +428,13 @@ export default function SendConfession({
       if (!res.ok) throw new Error(data.error);
 
       if (data.requiresPayment) {
-        toast.info(`Payment required: ${formatInr(pricing.sendConfession)}. Razorpay coming soon.`);
+        setShowPaymentDialog(true);
+        toast.info(`Payment required: ${formatInr(pricing.sendConfession)}. Submit your UTR after payment.`);
+      } else if (data.pendingReview) {
+        setShowPaymentDialog(false);
+        setSentMessage("Your confession is queued. It will move forward after payment review.");
+        setSent(true);
+        toast.success("Payment submitted for review.");
       } else {
         const deliveryMode = (data.deliveryMode ?? (data.matchFound ? "delivered" : "pending_registration")) as DeliveryMode;
         setSentMessage(getDeliveryMessage(deliveryMode));
@@ -451,6 +462,10 @@ export default function SendConfession({
     await submitConfession();
   }
 
+  async function handleManualPaymentSubmit(transactionReference: string) {
+    await submitConfession(transactionReference);
+  }
+
   function resetForm() {
     setSent(false);
     setSentMessage("We'll keep you updated on every step.");
@@ -469,6 +484,7 @@ export default function SendConfession({
     setDirectMatch(null);
     setDirectSearchState("idle");
     setShowSelfConfirm(false);
+    setShowPaymentDialog(false);
     setSelfGenderOverride(currentUser.gender);
     setSelfPopupDismissed(false);
   }
@@ -1063,6 +1079,20 @@ export default function SendConfession({
           </motion.div>
         )}
       </AnimatePresence>
+      <ManualPaymentDialog
+        open={showPaymentDialog}
+        title={selfConfessionCandidate ? "Pay To Send This To Yourself" : "Pay To Send This Confession"}
+        description={
+          selfConfessionCandidate
+            ? `Pay ${formatInr(pricing.sendConfession)} and submit the UTR. Your confession-to-yourself card is created now but only delivered after payment review.`
+            : `Pay ${formatInr(pricing.sendConfession)} and submit the UTR. The confession will only be delivered after payment review.`
+        }
+        amount={pricing.sendConfession}
+        pending={loading}
+        submitLabel="Submit Send Payment"
+        onClose={() => setShowPaymentDialog(false)}
+        onSubmit={handleManualPaymentSubmit}
+      />
     </div>
   );
 }

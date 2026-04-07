@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Gender, Prisma } from "@prisma/client";
 import { getSession, normalizeSocialHandle } from "@/lib/auth";
 import { findMatches } from "@/lib/matching";
-import { recordPayment } from "@/lib/payments";
+import { createManualPaymentRequest } from "@/lib/payments";
 import { pricing } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { buildSharedProfileOptionsFromUser, getSharedProfileOptionByCategory } from "@/lib/shared-profile-context";
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { flow, location, matchDetails, message, targetPhone, firstName, lastName, platform, handle, targetUserId, sharedProfileCategory, selfGenderOverride } = body;
+    const { flow, location, matchDetails, message, targetPhone, firstName, lastName, platform, handle, targetUserId, sharedProfileCategory, selfGenderOverride, transactionReference } = body;
 
     if (!message?.trim()) {
       return NextResponse.json({ error: "Message required" }, { status: 400 });
@@ -64,11 +64,6 @@ export async function POST(req: NextRequest) {
       ? (selfGenderOverride as Gender)
       : null;
 
-    if (!isFree) {
-      // Payment check — Razorpay integration will go here
-      // For now we proceed; in production verify payment first
-    }
-
     const expiresAt = addDays(new Date(), 90);
 
     // ── Flow 2: Phone number ──────────────────────────────────────
@@ -88,6 +83,7 @@ export async function POST(req: NextRequest) {
         }
 
         if (existingUser.id === user.id) {
+          const shouldCharge = !isFree;
           const confession = await createAndCheckMutual(
             user.id,
             user.id,
@@ -96,14 +92,24 @@ export async function POST(req: NextRequest) {
             confessionMatchDetails,
             message,
             expiresAt,
-            "DELIVERED",
+            shouldCharge ? "PENDING" : "DELIVERED",
             {
               isSelfConfession: true,
               billingCategory: "CONFESSION_TO_YOURSELF",
               billingState: "PAID",
               selfGenderOverride: validSelfGenderOverride,
+              detectMutual: false,
             }
           );
+          const paymentResponse = await queueSendPaymentIfNeeded({
+            userId: user.id,
+            isFree,
+            confessionId: confession.id,
+            flow: "phone",
+            transactionReference,
+            deliverOnSuccess: true,
+          });
+          if (paymentResponse) return paymentResponse;
           return NextResponse.json({
             success: true,
             matchFound: true,
@@ -122,10 +128,23 @@ export async function POST(req: NextRequest) {
 
         const confession = await createAndCheckMutual(
           user.id, existingUser.id, null,
-          "COLLEGE", confessionMatchDetails, message, expiresAt, "DELIVERED",
-          { isSelfConfession: false, billingCategory: "CONFESSION_TO_OTHERS", billingState: isFree ? "FREE" : "PAID" }
+          "COLLEGE", confessionMatchDetails, message, expiresAt, isFree ? "DELIVERED" : "PENDING",
+          {
+            isSelfConfession: false,
+            billingCategory: "CONFESSION_TO_OTHERS",
+            billingState: isFree ? "FREE" : "PAID",
+            detectMutual: isFree,
+          }
         );
-        await recordSendPaymentIfNeeded(user.id, isFree, confession.id, "phone");
+        const paymentResponse = await queueSendPaymentIfNeeded({
+          userId: user.id,
+          isFree,
+          confessionId: confession.id,
+          flow: "phone",
+          transactionReference,
+          deliverOnSuccess: true,
+        });
+        if (paymentResponse) return paymentResponse;
         return NextResponse.json({
           success: true,
           matchFound: true,
@@ -149,7 +168,15 @@ export async function POST(req: NextRequest) {
           billingState: isFree ? "FREE" : "PAID",
         },
       });
-      await recordSendPaymentIfNeeded(user.id, isFree, confession.id, "phone");
+      const paymentResponse = await queueSendPaymentIfNeeded({
+        userId: user.id,
+        isFree,
+        confessionId: confession.id,
+        flow: "phone",
+        transactionReference,
+        deliverOnSuccess: false,
+      });
+      if (paymentResponse) return paymentResponse;
 
       // In production: send WhatsApp via Meta API
       console.log(`[DEV] WhatsApp to ${targetPhone}: Someone has a confession for you on iConfess!`);
@@ -197,7 +224,15 @@ export async function POST(req: NextRequest) {
             billingState: isFree ? "FREE" : "PAID",
           },
         });
-        await recordSendPaymentIfNeeded(user.id, isFree, confession.id, "social");
+        const paymentResponse = await queueSendPaymentIfNeeded({
+          userId: user.id,
+          isFree,
+          confessionId: confession.id,
+          flow: "social",
+          transactionReference,
+          deliverOnSuccess: false,
+        });
+        if (paymentResponse) return paymentResponse;
 
         return NextResponse.json({
           success: true,
@@ -213,6 +248,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (existingUser.id === user.id) {
+        const shouldCharge = !isFree;
         const confession = await createAndCheckMutual(
           user.id,
           user.id,
@@ -225,14 +261,24 @@ export async function POST(req: NextRequest) {
           },
           message,
           expiresAt,
-          "DELIVERED",
+          shouldCharge ? "PENDING" : "DELIVERED",
           {
             isSelfConfession: true,
             billingCategory: "CONFESSION_TO_YOURSELF",
             billingState: "PAID",
             selfGenderOverride: validSelfGenderOverride,
+            detectMutual: false,
           }
         );
+        const paymentResponse = await queueSendPaymentIfNeeded({
+          userId: user.id,
+          isFree,
+          confessionId: confession.id,
+          flow: "social",
+          transactionReference,
+          deliverOnSuccess: true,
+        });
+        if (paymentResponse) return paymentResponse;
 
         return NextResponse.json({
           success: true,
@@ -261,9 +307,23 @@ export async function POST(req: NextRequest) {
         },
         message,
         expiresAt,
-        "DELIVERED",
-        { isSelfConfession: false, billingCategory: "CONFESSION_TO_OTHERS", billingState: isFree ? "FREE" : "PAID" }
+        isFree ? "DELIVERED" : "PENDING",
+        {
+          isSelfConfession: false,
+          billingCategory: "CONFESSION_TO_OTHERS",
+          billingState: isFree ? "FREE" : "PAID",
+          detectMutual: isFree,
+        }
       );
+      const paymentResponse = await queueSendPaymentIfNeeded({
+        userId: user.id,
+        isFree,
+        confessionId: confession.id,
+        flow: "social",
+        transactionReference,
+        deliverOnSuccess: true,
+      });
+      if (paymentResponse) return paymentResponse;
 
       return NextResponse.json({
         success: true,
@@ -290,6 +350,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (target.id === user.id) {
+        const shouldCharge = !isFree;
         const confession = await createAndCheckMutual(
           user.id,
           user.id,
@@ -298,14 +359,24 @@ export async function POST(req: NextRequest) {
           confessionMatchDetails,
           message,
           expiresAt,
-          "DELIVERED",
+          shouldCharge ? "PENDING" : "DELIVERED",
           {
             isSelfConfession: true,
             billingCategory: "CONFESSION_TO_YOURSELF",
             billingState: "PAID",
             selfGenderOverride: validSelfGenderOverride,
+            detectMutual: false,
           }
         );
+        const paymentResponse = await queueSendPaymentIfNeeded({
+          userId: user.id,
+          isFree,
+          confessionId: confession.id,
+          flow: "profile",
+          transactionReference,
+          deliverOnSuccess: true,
+        });
+        if (paymentResponse) return paymentResponse;
 
         return NextResponse.json({
           success: true,
@@ -330,10 +401,23 @@ export async function POST(req: NextRequest) {
         confessionMatchDetails,
         message,
         expiresAt,
-        "DELIVERED",
-        { isSelfConfession: false, billingCategory: "CONFESSION_TO_OTHERS", billingState: isFree ? "FREE" : "PAID" }
+        isFree ? "DELIVERED" : "PENDING",
+        {
+          isSelfConfession: false,
+          billingCategory: "CONFESSION_TO_OTHERS",
+          billingState: isFree ? "FREE" : "PAID",
+          detectMutual: isFree,
+        }
       );
-      await recordSendPaymentIfNeeded(user.id, isFree, confession.id, "profile");
+      const paymentResponse = await queueSendPaymentIfNeeded({
+        userId: user.id,
+        isFree,
+        confessionId: confession.id,
+        flow: "profile",
+        transactionReference,
+        deliverOnSuccess: true,
+      });
+      if (paymentResponse) return paymentResponse;
 
       return NextResponse.json({
         success: true,
@@ -356,7 +440,15 @@ export async function POST(req: NextRequest) {
         billingState: isFree ? "FREE" : "PAID",
       },
     });
-    await recordSendPaymentIfNeeded(user.id, isFree, confession.id, "profile");
+    const paymentResponse = await queueSendPaymentIfNeeded({
+      userId: user.id,
+      isFree,
+      confessionId: confession.id,
+      flow: "profile",
+      transactionReference,
+      deliverOnSuccess: false,
+    });
+    if (paymentResponse) return paymentResponse;
 
     return NextResponse.json({
       success: true,
@@ -439,21 +531,46 @@ async function canRepeatConfessForTesting(sender: SessionUser, target: SessionUs
 }
 
 // ── Create confession + auto-detect mutual ────────────────────────
-async function recordSendPaymentIfNeeded(
-  userId: string,
-  isFree: boolean,
-  confessionId: string,
-  flow: "phone" | "social" | "profile"
-) {
-  if (isFree) {
-    return;
+async function queueSendPaymentIfNeeded(params: {
+  userId: string;
+  isFree: boolean;
+  confessionId: string;
+  flow: "phone" | "social" | "profile";
+  transactionReference?: string;
+  deliverOnSuccess: boolean;
+}) {
+  if (params.isFree) {
+    return null;
   }
 
-  await recordPayment({
-    userId,
+  if (!params.transactionReference || typeof params.transactionReference !== "string") {
+    return NextResponse.json(
+      {
+        requiresPayment: true,
+        amount: pricing.sendConfession,
+      },
+      { status: 402 }
+    );
+  }
+
+  await createManualPaymentRequest({
+    userId: params.userId,
     type: "SEND_CONFESSION",
     amount: pricing.sendConfession,
-    metadata: { confessionId, flow },
+    transactionReference: params.transactionReference,
+    metadata: {
+      confessionId: params.confessionId,
+      flow: params.flow,
+      deliverOnSuccess: params.deliverOnSuccess,
+      source: "send-confession",
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    pendingReview: true,
+    confessionId: params.confessionId,
+    deliveryMode: params.deliverOnSuccess ? "delivered" : "pending_registration",
   });
 }
 
@@ -471,6 +588,7 @@ async function createAndCheckMutual(
     billingCategory: "CONFESSION_TO_OTHERS" | "CONFESSION_TO_YOURSELF";
     billingState: "FREE" | "PAID";
     selfGenderOverride?: Gender | null;
+    detectMutual?: boolean;
   }
 ) {
   const confession = await prisma.confession.create({
@@ -491,7 +609,7 @@ async function createAndCheckMutual(
   });
 
   // Check if target has already confessed this sender (mutual)
-  if (options.isSelfConfession || senderId === targetId) {
+  if (options.isSelfConfession || senderId === targetId || options.detectMutual === false) {
     return confession;
   }
 
