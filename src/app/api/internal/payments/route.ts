@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PaymentStatus, StaffPermission } from "@prisma/client";
+import { applySuccessfulPayment } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { getStaffSession, hasPermission } from "@/lib/staff-auth";
 
@@ -26,6 +27,10 @@ export async function PATCH(req: NextRequest) {
         managedByStaffId: staff.id,
       },
     });
+
+    if (status === PaymentStatus.SUCCESS) {
+      await applySuccessfulPayment(id);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

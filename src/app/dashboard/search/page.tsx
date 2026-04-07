@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, User, Heart, ArrowRight, Phone, AtSign, Lock } from "lucide-react";
 import Link from "next/link";
+import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { toast } from "sonner";
 import {
   locationCategories,
@@ -156,6 +157,7 @@ export default function SearchPage() {
   const [insightsByUser, setInsightsByUser] = useState<Record<string, ProfileInsight[]>>({});
   const [loadingInsightsFor, setLoadingInsightsFor] = useState<string | null>(null);
   const [pendingInsightUnlock, setPendingInsightUnlock] = useState<SearchResult | null>(null);
+  const [showInsightPaymentDialog, setShowInsightPaymentDialog] = useState(false);
   const [viewerSentCount, setViewerSentCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -215,29 +217,9 @@ export default function SearchPage() {
     }
   }
 
-  async function loadInsights(targetUserId: string, alreadyUnlocked: boolean) {
+  async function loadInsights(targetUserId: string) {
     setLoadingInsightsFor(targetUserId);
     try {
-      if (!alreadyUnlocked) {
-        const unlockRes = await fetch("/api/payments/unlock-profile-insights", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ targetUserId }),
-        });
-        const unlockData = await unlockRes.json();
-        if (!unlockRes.ok) throw new Error(unlockData.error);
-        setResults((current) => current.map((result) => (
-          result.id === targetUserId
-            ? {
-                ...result,
-                hasUnlockedInsights: true,
-                unlockedInsightCount: result.unlockedInsightCount + result.lockedInsightCount,
-                lockedInsightCount: 0,
-              }
-            : result
-        )));
-      }
-
       const res = await fetch(`/api/users/search/insights?targetUserId=${targetUserId}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -263,7 +245,7 @@ export default function SearchPage() {
   async function handleInsightAccess(result: SearchResult) {
     if (result.hasUnlockedInsights) {
       try {
-        await loadInsights(result.id, true);
+        await loadInsights(result.id);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load insights";
         toast.error(message);
@@ -277,12 +259,29 @@ export default function SearchPage() {
   async function confirmInsightUnlock() {
     if (!pendingInsightUnlock) return;
 
+    setShowInsightPaymentDialog(true);
+  }
+
+  async function submitInsightPayment(transactionReference: string) {
+    if (!pendingInsightUnlock) return;
+
     try {
-      await loadInsights(pendingInsightUnlock.id, false);
+      setLoadingInsightsFor(pendingInsightUnlock.id);
+      const unlockRes = await fetch("/api/payments/unlock-profile-insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: pendingInsightUnlock.id, transactionReference }),
+      });
+      const unlockData = await unlockRes.json();
+      if (!unlockRes.ok) throw new Error(unlockData.error);
+      toast.success("Payment submitted for review.");
+      setShowInsightPaymentDialog(false);
       setPendingInsightUnlock(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load insights";
       toast.error(message);
+    } finally {
+      setLoadingInsightsFor(null);
     }
   }
 
@@ -711,13 +710,23 @@ export default function SearchPage() {
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
                   style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
-                  {loadingInsightsFor === pendingInsightUnlock.id ? "Processing..." : `Unlock for ${formatInr(pricing.viewInsights)}`}
+                  {loadingInsightsFor === pendingInsightUnlock.id ? "Processing..." : `Continue To Payment (${formatInr(pricing.viewInsights)})`}
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+      <ManualPaymentDialog
+        open={showInsightPaymentDialog && Boolean(pendingInsightUnlock)}
+        title={pendingInsightUnlock ? `Unlock ${pendingInsightUnlock.name}'s insights` : "Unlock profile insights"}
+        description={`Pay ${formatInr(pricing.viewInsights)} and submit the UTR. Insights unlock only after staff review confirms the payment.`}
+        amount={pricing.viewInsights}
+        pending={loadingInsightsFor !== null}
+        submitLabel="Submit Insight Payment"
+        onClose={() => setShowInsightPaymentDialog(false)}
+        onSubmit={submitInsightPayment}
+      />
     </div>
   );
 }

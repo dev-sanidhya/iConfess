@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, AtSign, Lock, Pencil, Phone, PlusCircle, Save, Shield, User, X } from "lucide-react";
+import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { toast } from "sonner";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 import { maskPhone } from "@/lib/utils";
@@ -219,6 +220,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
   >(getProfileDetailsByCategory(user));
   const [saving, setSaving] = useState(false);
   const [pendingSelfClaimId, setPendingSelfClaimId] = useState<string | null>(null);
+  const [showSelfClaimPaymentDialog, setShowSelfClaimPaymentDialog] = useState(false);
   const [processingSelfClaim, setProcessingSelfClaim] = useState(false);
   const missingCategories = useMemo(
     () => locationCategories.filter((category) => !selectedCategories.includes(category.id)),
@@ -337,7 +339,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
     }
   }
 
-  async function handleSelfClaimPayment() {
+  async function handleSelfClaimPayment(transactionReference: string) {
     if (!pendingSelfClaimId) return;
 
     setProcessingSelfClaim(true);
@@ -345,14 +347,15 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
       const res = await fetch("/api/payments/self-confession", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confessionId: pendingSelfClaimId }),
+        body: JSON.stringify({ confessionId: pendingSelfClaimId, transactionReference }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("This confession has been converted to Confession to Yourself.");
+      toast.success("Payment submitted for review.");
+      setShowSelfClaimPaymentDialog(false);
       setPendingSelfClaimId(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to process payment");
+      toast.error(error instanceof Error ? error.message : "Failed to submit payment");
     } finally {
       setProcessingSelfClaim(false);
     }
@@ -768,18 +771,28 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                 </button>
                 <button
                   type="button"
-                  onClick={handleSelfClaimPayment}
+                  onClick={() => setShowSelfClaimPaymentDialog(true)}
                   disabled={processingSelfClaim}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
                   style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
-                  {processingSelfClaim ? "Processing..." : `Pay ${formatInr(pricing.sendConfession)}`}
+                  {processingSelfClaim ? "Processing..." : `Continue To Payment (${formatInr(pricing.sendConfession)})`}
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+      <ManualPaymentDialog
+        open={showSelfClaimPaymentDialog && Boolean(pendingSelfClaimId)}
+        title="Pay To Claim This As Yours"
+        description={`Pay ${formatInr(pricing.selfConfession)} and submit the UTR so staff can convert this card into a Confession to Yourself after review.`}
+        amount={pricing.selfConfession}
+        pending={processingSelfClaim}
+        submitLabel="Submit Self-Claim Payment"
+        onClose={() => setShowSelfClaimPaymentDialog(false)}
+        onSubmit={handleSelfClaimPayment}
+      />
     </div>
   );
 }

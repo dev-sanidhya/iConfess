@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { recordPayment } from "@/lib/payments";
+import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { pricing } from "@/lib/pricing";
 
@@ -9,14 +9,13 @@ export async function POST(req: NextRequest) {
     const user = await getSession();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { confessionId } = await req.json();
+    const { confessionId, transactionReference } = await req.json();
 
     const confession = await prisma.confession.findUnique({ where: { id: confessionId } });
     if (!confession || confession.targetId !== user.id) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    // In production: verify Razorpay payment before creating UnlockedCard
     const existing = await prisma.unlockedCard.findUnique({
       where: { userId_confessionId: { userId: user.id, confessionId } },
     });
@@ -28,37 +27,39 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    await prisma.$transaction(async (tx) => {
-      if (!user.confessionPageUnlocked) {
-        await tx.user.update({
-          where: { id: user.id },
-          data: { confessionPageUnlocked: true },
-        });
-      }
-
-      await tx.unlockedCard.create({ data: { userId: user.id, confessionId } });
-      await tx.confession.update({ where: { id: confessionId }, data: { status: "OPENED" } });
+    const existingPending = await findExistingPendingManualPayment({
+      userId: user.id,
+      type: "UNLOCK_CONFESSION_CARD",
+      confessionId,
     });
-
-    if (!user.confessionPageUnlocked) {
-      await recordPayment({
-        userId: user.id,
-        type: "UNLOCK_CONFESSION_PAGE",
-        amount: pricing.unlockReceivedConfessionPage,
-        metadata: { confessionId, bundledWithCardUnlock: true },
+    if (existingPending) {
+      return NextResponse.json({
+        success: true,
+        pendingReview: true,
+        paymentId: existingPending.id,
       });
     }
 
-    await recordPayment({
+    const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "UNLOCK_CONFESSION_CARD",
-      amount: pricing.unlockReceivedConfessionCard,
-      metadata: { confessionId },
+      amount: user.confessionPageUnlocked
+        ? pricing.unlockReceivedConfessionCard
+        : pricing.unlockReceivedConfessionCard + pricing.unlockReceivedConfessionPage,
+      transactionReference,
+      metadata: {
+        confessionId,
+        bundledPageUnlock: !user.confessionPageUnlocked,
+        source: "unlock-card",
+      },
     });
 
-    return NextResponse.json({ success: true, pageUnlocked: true });
+    return NextResponse.json({ success: true, pendingReview: true, paymentId: payment.id });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }
