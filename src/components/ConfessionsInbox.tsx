@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Inbox, Lock, MessageSquare, Send, Sparkles } from "lucide-react";
+import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { formatInr, pricing } from "@/lib/pricing";
 import { toast } from "sonner";
 
@@ -319,10 +320,15 @@ export default function ConfessionsInbox({
   const [sentItems] = useState(sentConfessions);
   const [unlockingPage, setUnlockingPage] = useState(false);
   const [pendingUnlockCardId, setPendingUnlockCardId] = useState<string | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<
+    | { kind: "page"; amount: number }
+    | { kind: "card"; confessionId: string; amount: number }
+    | null
+  >(null);
   const [pendingRevealConfession, setPendingRevealConfession] = useState<Confession | null>(null);
   const [unlockingCardId, setUnlockingCardId] = useState<string | null>(null);
   const [revealingConfessionId, setRevealingConfessionId] = useState<string | null>(null);
-  const [currentPageUnlocked, setCurrentPageUnlocked] = useState(pageUnlocked);
+  const [currentPageUnlocked] = useState(pageUnlocked);
   const revealPricing = pendingRevealConfession
     ? getIdentityRevealPricing(currentPageUnlocked, pendingRevealConfession.isUnlocked)
     : null;
@@ -337,37 +343,42 @@ export default function ConfessionsInbox({
   const shouldLockEntirePage = !currentPageUnlocked && lockedReceivedCount === 0;
 
   async function handleUnlockPage() {
+    setPaymentDialog({ kind: "page", amount: pricing.unlockReceivedConfessionPage });
+  }
+
+  async function submitUnlockPagePayment(transactionReference: string) {
     setUnlockingPage(true);
     try {
-      const res = await fetch("/api/payments/unlock-page", { method: "POST" });
+      const res = await fetch("/api/payments/unlock-page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionReference }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("Confession page unlocked!");
-      setCurrentPageUnlocked(true);
+      toast.success("Payment submitted for review.");
+      setPaymentDialog(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Payment failed");
+      toast.error(err instanceof Error ? err.message : "Payment request failed");
     } finally {
       setUnlockingPage(false);
     }
   }
 
-  async function performUnlockCard(confessionId: string) {
+  async function submitUnlockCardPayment(confessionId: string, transactionReference: string) {
     try {
       setUnlockingCardId(confessionId);
       const res = await fetch("/api/payments/unlock-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confessionId }),
+        body: JSON.stringify({ confessionId, transactionReference }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("Card unlocked!");
-      if (data.pageUnlocked) {
-        setCurrentPageUnlocked(true);
-      }
-      setReceivedItems((prev) => prev.map((item) => item.id === confessionId ? { ...item, isUnlocked: true, status: "OPENED" } : item));
+      toast.success("Payment submitted for review.");
+      setPaymentDialog(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Payment failed");
+      toast.error(err instanceof Error ? err.message : "Payment request failed");
     } finally {
       setUnlockingCardId(null);
     }
@@ -379,14 +390,24 @@ export default function ConfessionsInbox({
       return;
     }
 
-    await performUnlockCard(confessionId);
+    setPaymentDialog({
+      kind: "card",
+      confessionId,
+      amount: pricing.unlockReceivedConfessionCard,
+    });
   }
 
   async function confirmUnlockCard() {
     if (!pendingUnlockCardId) return;
     const confessionId = pendingUnlockCardId;
     setPendingUnlockCardId(null);
-    await performUnlockCard(confessionId);
+    setPaymentDialog({
+      kind: "card",
+      confessionId,
+      amount: currentPageUnlocked
+        ? pricing.unlockReceivedConfessionCard
+        : pricing.unlockReceivedConfessionCard + pricing.unlockReceivedConfessionPage,
+    });
   }
 
   async function handleReply(confessionId: string, reply: string) {
@@ -572,6 +593,35 @@ export default function ConfessionsInbox({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ManualPaymentDialog
+        open={paymentDialog?.kind === "page"}
+        title="Unlock My Confessions"
+        description={`Pay ${formatInr(pricing.unlockReceivedConfessionPage)} to unlock your inbox page for ${pricing.unlockReceivedConfessionPageMonths} months.`}
+        amount={pricing.unlockReceivedConfessionPage}
+        pending={unlockingPage}
+        submitLabel="Submit Page Payment"
+        onClose={() => setPaymentDialog(null)}
+        onSubmit={submitUnlockPagePayment}
+      />
+
+      <ManualPaymentDialog
+        open={paymentDialog?.kind === "card"}
+        title="Unlock Confession Card"
+        description={
+          paymentDialog?.kind === "card" && paymentDialog.amount === pricing.unlockReceivedConfessionCard
+            ? `Pay ${formatInr(pricing.unlockReceivedConfessionCard)} to unlock this received confession card.`
+            : `Pay ${formatInr(pricing.unlockReceivedConfessionCard + pricing.unlockReceivedConfessionPage)} to unlock this card and activate your inbox page for ${pricing.unlockReceivedConfessionPageMonths} months.`
+        }
+        amount={paymentDialog?.kind === "card" ? paymentDialog.amount : pricing.unlockReceivedConfessionCard}
+        pending={unlockingCardId !== null}
+        submitLabel="Submit Card Payment"
+        onClose={() => setPaymentDialog(null)}
+        onSubmit={async (transactionReference) => {
+          if (paymentDialog?.kind !== "card") return;
+          await submitUnlockCardPayment(paymentDialog.confessionId, transactionReference);
+        }}
+      />
 
       <AnimatePresence>
         {pendingRevealConfession && (

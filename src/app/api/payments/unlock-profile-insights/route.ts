@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { recordPayment } from "@/lib/payments";
+import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { pricing } from "@/lib/pricing";
 
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const user = await getSession();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { targetUserId } = await req.json();
+    const { targetUserId, transactionReference } = await req.json();
     if (!targetUserId || typeof targetUserId !== "string") {
       return NextResponse.json({ error: "Target user is required" }, { status: 400 });
     }
@@ -26,23 +26,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Target not found" }, { status: 404 });
     }
 
-    await prisma.unlockedProfileInsight.create({
-      data: {
+    const existingUnlock = await prisma.unlockedProfileInsight.findFirst({
+      where: {
         viewerId: user.id,
         targetUserId,
       },
+      orderBy: { unlockedAt: "desc" },
     });
+    if (existingUnlock) {
+      return NextResponse.json({ success: true, alreadyUnlocked: true });
+    }
 
-    await recordPayment({
+    const existingPending = await findExistingPendingManualPayment({
+      userId: user.id,
+      type: "UNLOCK_PROFILE_INSIGHTS",
+      targetUserId,
+    });
+    if (existingPending) {
+      return NextResponse.json({
+        success: true,
+        pendingReview: true,
+        paymentId: existingPending.id,
+      });
+    }
+
+    const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "UNLOCK_PROFILE_INSIGHTS",
       amount: pricing.viewInsights,
-      metadata: { targetUserId },
+      transactionReference,
+      metadata: { targetUserId, source: "unlock-profile-insights" },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, pendingReview: true, paymentId: payment.id });
   } catch (error) {
     console.error("[Unlock Profile Insights Error]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }

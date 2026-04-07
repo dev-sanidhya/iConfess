@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { recordPayment } from "@/lib/payments";
+import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { pricing } from "@/lib/pricing";
 import {
   buildSelfClaimSnapshot,
   confessionMatchesSelfClaim,
-  convertConfessionToSelf,
 } from "@/lib/confessions";
 
 export async function POST(req: NextRequest) {
@@ -14,7 +13,7 @@ export async function POST(req: NextRequest) {
     const user = await getSession();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { confessionId } = await req.json();
+    const { confessionId, transactionReference } = await req.json();
     if (!confessionId || typeof confessionId !== "string") {
       return NextResponse.json({ error: "Confession id is required" }, { status: 400 });
     }
@@ -46,20 +45,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "This card does not need self-confession payment" }, { status: 400 });
     }
 
-    await prisma.$transaction(async (tx) => {
-      await convertConfessionToSelf(confession.id, user.id, tx);
+    const existingPending = await findExistingPendingManualPayment({
+      userId: user.id,
+      type: "SELF_CONFESSION",
+      confessionId,
     });
+    if (existingPending) {
+      return NextResponse.json({
+        success: true,
+        pendingReview: true,
+        paymentId: existingPending.id,
+      });
+    }
 
-    await recordPayment({
+    const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "SELF_CONFESSION",
       amount: pricing.selfConfession,
-      metadata: { confessionId },
+      transactionReference,
+      metadata: { confessionId, source: "self-confession" },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, pendingReview: true, paymentId: payment.id });
   } catch (error) {
     console.error("[Self Confession Payment Error]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { recordPayment } from "@/lib/payments";
-import { prisma } from "@/lib/prisma";
+import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
 import { pricing } from "@/lib/pricing";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
     const user = await getSession();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,22 +12,33 @@ export async function POST() {
       return NextResponse.json({ success: true, alreadyUnlocked: true });
     }
 
-    // In production: verify Razorpay payment_id before unlocking
-    // For now (dev), unlock directly
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { confessionPageUnlocked: true },
+    const existingPending = await findExistingPendingManualPayment({
+      userId: user.id,
+      type: "UNLOCK_CONFESSION_PAGE",
     });
+    if (existingPending) {
+      return NextResponse.json({
+        success: true,
+        pendingReview: true,
+        paymentId: existingPending.id,
+      });
+    }
 
-    await recordPayment({
+    const { transactionReference } = await req.json();
+    const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "UNLOCK_CONFESSION_PAGE",
       amount: pricing.unlockReceivedConfessionPage,
+      transactionReference,
+      metadata: { source: "unlock-page" },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, pendingReview: true, paymentId: payment.id });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }
