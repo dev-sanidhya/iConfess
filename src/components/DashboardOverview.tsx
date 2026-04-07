@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Compass, Heart, KeyRound, Lock, Shield, Search } from "lucide-react";
+import { Compass, Heart, KeyRound, Lock, Mail, Shield, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { maskPhone } from "@/lib/utils";
 
 type Stat = { label: string; value: number | "locked"; icon: React.ElementType; color: string; note: string };
@@ -31,9 +32,10 @@ export default function DashboardOverview({
         ? "Unlock your inbox page to access received confessions"
         : "Total confessions delivered to your inbox",
     },
-    { label: "Profile Insight Unlocks", value: stats.profileInsightUnlockCount, icon: KeyRound, color: "#60a5fa", note: "How many times people unlocked your profile insights" },
+    { label: "Profile Insight Unlocks", value: stats.profileInsightUnlockCount, icon: KeyRound, color: "#60a5fa", note: "How many times people paid to unlocked your profile insights" },
     { label: "Searchable Places", value: user.searchablePlaces, icon: Compass, color: "#34d399", note: "Active profile categories linked to you" },
   ];
+  const feedbackEmailHref = "mailto:ciarocid01@gmail.com?subject=iConfess%20Feedback%20%26%20Suggestions";
 
   return (
     <div className="py-2">
@@ -122,6 +124,40 @@ export default function DashboardOverview({
         ))}
       </div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.28, duration: 0.5 }}
+        className="rounded-2xl p-6"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,251,245,0.94) 0%, rgba(244,227,205,0.72) 100%)",
+          border: "1px solid rgba(179,148,111,0.22)",
+        }}
+      >
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "#9b7c5d" }}>
+              Feedback & Suggestions
+            </p>
+            <h2 className="text-xl sm:text-2xl font-semibold mt-2" style={{ color: "#3f2c1d" }}>
+              Help us improve iConfess
+            </h2>
+            <p className="text-sm mt-2 leading-relaxed" style={{ color: "#735a43" }}>
+              Found something we should improve or have an idea you want to share? Send it to us directly.
+            </p>
+          </div>
+          <Button
+            asChild
+            className="h-11 rounded-xl px-5 text-sm font-semibold"
+            style={{ backgroundColor: "#3f2c1d", color: "#fff8f1" }}
+          >
+            <a href={feedbackEmailHref}>
+              <Mail className="w-4 h-4" />
+              Send Feedback
+            </a>
+          </Button>
+        </div>
+      </motion.div>
     </div>
   );
 }
