@@ -7,6 +7,7 @@ import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { formatInr, pricing } from "@/lib/pricing";
 import { toast } from "sonner";
 import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
+import { PaymentStatus } from "@prisma/client";
 
 type Confession = {
   id: string;
@@ -27,6 +28,8 @@ type Confession = {
   counterpartName: string | null;
   counterpartGender: "MALE" | "FEMALE" | "OTHER" | null;
   counterpartContext: string | null;
+  paymentVerificationStatus?: PaymentStatus | null;
+  canRetryPayment?: boolean;
 };
 
 type TabKey = "received" | "sent";
@@ -37,6 +40,21 @@ function formatGenderLabel(gender: "MALE" | "FEMALE" | "OTHER" | null) {
   if (gender === "MALE") return "Male";
   if (gender === "FEMALE") return "Female";
   return "Other";
+}
+
+function getSentCardStatus(confession: Confession) {
+  if (confession.paymentVerificationStatus === PaymentStatus.PENDING) {
+    return { label: "Verifying", className: "status-verifying" };
+  }
+
+  if (confession.paymentVerificationStatus === PaymentStatus.FAILED) {
+    return { label: "Failed", className: "status-failed" };
+  }
+
+  return {
+    label: confession.status.charAt(0) + confession.status.slice(1).toLowerCase(),
+    className: `status-${confession.status.toLowerCase()}`,
+  };
 }
 
 function getIdentityRevealPricing(pageUnlocked: boolean, cardUnlocked: boolean) {
@@ -99,12 +117,14 @@ function ConfessionCard({
   onUnlockCard,
   onReply,
   onRevealConsent,
+  onRetryPayment,
 }: {
   confession: Confession;
   pageUnlocked: boolean;
   onUnlockCard: (id: string) => Promise<void>;
   onReply: (id: string, reply: string) => Promise<void>;
   onRevealConsent: (id: string) => void;
+  onRetryPayment: (confession: Confession) => void;
 }) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -125,6 +145,7 @@ function ConfessionCard({
       ? confession.counterpartContext
       : "Anonymous sender";
   const previewGender = isReceived && !confession.revealedAt ? formatGenderLabel(confession.counterpartGender) : null;
+  const sentCardStatus = getSentCardStatus(confession);
 
   async function submitReply(e: React.FormEvent) {
     e.preventDefault();
@@ -205,9 +226,9 @@ function ConfessionCard({
             </p>
             {!isReceived && (
               <span
-                className={`mt-0.5 text-xs px-2.5 py-1 rounded-full whitespace-nowrap status-${confession.status.toLowerCase()}`}
+                className={`mt-0.5 text-xs px-2.5 py-1 rounded-full whitespace-nowrap ${sentCardStatus.className}`}
               >
-                {confession.status.charAt(0) + confession.status.slice(1).toLowerCase()}
+                {sentCardStatus.label}
               </span>
             )}
           </div>
@@ -302,6 +323,19 @@ function ConfessionCard({
             <p className="text-sm" style={{ color: "#3f2c1d" }}>{confession.reply}</p>
           </div>
         )}
+
+        {isSent && confession.canRetryPayment && confession.paymentVerificationStatus === PaymentStatus.FAILED && (
+          <div className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() => onRetryPayment(confession)}
+              className="px-4 py-2 rounded-xl text-xs font-medium text-white"
+              style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
+            >
+              Pay For This Card
+            </button>
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -318,12 +352,13 @@ export default function ConfessionsInbox({
 }) {
   const [activeTab, setActiveTab] = useState<TabKey>("received");
   const [receivedItems, setReceivedItems] = useState(receivedConfessions);
-  const [sentItems] = useState(sentConfessions);
+  const [sentItems, setSentItems] = useState(sentConfessions);
   const [unlockingPage, setUnlockingPage] = useState(false);
   const [pendingUnlockCardId, setPendingUnlockCardId] = useState<string | null>(null);
   const [paymentDialog, setPaymentDialog] = useState<
     | { kind: "page"; amount: number }
     | { kind: "card"; confessionId: string; amount: number }
+    | { kind: "send"; confessionId: string; amount: number }
     | null
   >(null);
   const [pendingRevealConfession, setPendingRevealConfession] = useState<Confession | null>(null);
@@ -459,6 +494,37 @@ export default function ConfessionsInbox({
     await handleRevealConsent(confessionId);
   }
 
+  function requestSendPayment(confession: Confession) {
+    setPaymentDialog({
+      kind: "send",
+      confessionId: confession.id,
+      amount: pricing.sendConfession,
+    });
+  }
+
+  async function submitSendPayment(confessionId: string, transactionReference: string) {
+    try {
+      const res = await fetch("/api/payments/send-confession", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confessionId, transactionReference }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(getResponseErrorMessage(data, "Payment request failed"));
+      toast.success("Payment submitted for review.");
+      setSentItems((prev) =>
+        prev.map((item) =>
+          item.id === confessionId
+            ? { ...item, paymentVerificationStatus: PaymentStatus.PENDING, canRetryPayment: false }
+            : item
+        )
+      );
+      setPaymentDialog(null);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Payment request failed"));
+    }
+  }
+
   return (
     <div className="py-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
@@ -532,6 +598,7 @@ export default function ConfessionsInbox({
                 onUnlockCard={handleUnlockCard}
                 onReply={handleReply}
                 onRevealConsent={requestRevealConsent}
+                onRetryPayment={requestSendPayment}
               />
             ))}
           </AnimatePresence>
@@ -621,6 +688,19 @@ export default function ConfessionsInbox({
         onSubmit={async (transactionReference) => {
           if (paymentDialog?.kind !== "card") return;
           await submitUnlockCardPayment(paymentDialog.confessionId, transactionReference);
+        }}
+      />
+
+      <ManualPaymentDialog
+        open={paymentDialog?.kind === "send"}
+        title="Retry Confession Payment"
+        description={`Pay ${formatInr(pricing.sendConfession)} and submit your UTR to send this confession for review again.`}
+        amount={pricing.sendConfession}
+        submitLabel="Submit Payment"
+        onClose={() => setPaymentDialog(null)}
+        onSubmit={async (transactionReference) => {
+          if (paymentDialog?.kind !== "send") return;
+          await submitSendPayment(paymentDialog.confessionId, transactionReference);
         }}
       />
 

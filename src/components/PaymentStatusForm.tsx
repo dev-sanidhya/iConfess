@@ -4,6 +4,13 @@ import { useTransition } from "react";
 import { PaymentStatus } from "@prisma/client";
 import { toast } from "sonner";
 
+function getStatusLabel(status: PaymentStatus) {
+  if (status === PaymentStatus.PENDING) return "Verifying";
+  if (status === PaymentStatus.SUCCESS) return "Success";
+  if (status === PaymentStatus.FAILED) return "Failed";
+  return "Refunded";
+}
+
 export default function PaymentStatusForm({ paymentId, status }: { paymentId: string; status: PaymentStatus }) {
   const [pending, startTransition] = useTransition();
 
@@ -37,7 +44,7 @@ export default function PaymentStatusForm({ paymentId, status }: { paymentId: st
       style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
     >
       {Object.values(PaymentStatus).map((option) => (
-        <option key={option} value={option}>{option}</option>
+        <option key={option} value={option}>{getStatusLabel(option)}</option>
       ))}
     </select>
   );

@@ -103,9 +103,11 @@ body {
 
 /* Status badges */
 .status-pending   { color: #8e7658; background: rgba(184,159,126,0.14); }
+.status-verifying { color: #8f6a46; background: rgba(143,106,70,0.14); }
 .status-delivered { color: #7b6cf0; background: rgba(123,108,240,0.1); }
 .status-opened    { color: #9d7f62; background: rgba(157,127,98,0.12); }
 .status-replied   { color: #3f9a76; background: rgba(63,154,118,0.12); }
+.status-failed    { color: #c25b4c; background: rgba(194,91,76,0.12); }
 .status-ghosted   { color: #d46b67; background: rgba(212,107,103,0.1); }
 .status-expired   { color: #8b8379; background: rgba(139,131,121,0.1); }
 .status-mutual    { color: #b87962; background: rgba(184,121,98,0.12); }

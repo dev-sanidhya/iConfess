@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import ConfessionsInbox from "@/components/ConfessionsInbox";
 import { prisma } from "@/lib/prisma";
 import { formatSharedProfileDetails, getStoredSharedProfileSnapshot } from "@/lib/shared-profile-context";
+import { PaymentStatus } from "@prisma/client";
 
 function buildAnonymousId(value: string) {
   return `AID-${value.slice(-6).toUpperCase()}`;
@@ -14,6 +15,15 @@ function buildTrashAnonymousId(confessionId: string) {
 function getStringDetail(details: Record<string, unknown>, key: string) {
   const value = details[key];
   return typeof value === "string" ? value : "";
+}
+
+function getPaymentConfessionId(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const confessionId = (metadata as Record<string, unknown>).confessionId;
+  return typeof confessionId === "string" ? confessionId : null;
 }
 
 function normalizeJsonValue(value: unknown): unknown {
@@ -195,7 +205,7 @@ export default async function ConfessionsPage() {
   const user = await getSession();
   if (!user) return null;
 
-  const [receivedConfessions, sentConfessions] = await Promise.all([
+  const [receivedConfessions, sentConfessions, sendPayments] = await Promise.all([
     prisma.confession.findMany({
       where: { targetId: user.id },
       orderBy: { createdAt: "desc" },
@@ -233,7 +243,35 @@ export default async function ConfessionsPage() {
         },
       },
     }),
+    prisma.payment.findMany({
+      where: {
+        userId: user.id,
+        type: "SEND_CONFESSION",
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        status: true,
+        metadata: true,
+      },
+    }),
   ]);
+
+  const latestSendPaymentByConfessionId = new Map<
+    string,
+    { id: string; status: PaymentStatus }
+  >();
+  for (const payment of sendPayments) {
+    const confessionId = getPaymentConfessionId(payment.metadata);
+    if (!confessionId || latestSendPaymentByConfessionId.has(confessionId)) {
+      continue;
+    }
+
+    latestSendPaymentByConfessionId.set(confessionId, {
+      id: payment.id,
+      status: payment.status,
+    });
+  }
 
   const received = receivedConfessions.map((confession) => {
     const matchDetails = confession.matchDetails as Record<string, unknown>;
@@ -269,6 +307,7 @@ export default async function ConfessionsPage() {
   const sent = dedupeSentConfessions(sentConfessions).map((confession) => {
     const matchDetails = confession.matchDetails as Record<string, unknown>;
     const fallbackRecipientName = buildEnteredRecipientName(matchDetails);
+    const latestSendPayment = latestSendPaymentByConfessionId.get(confession.id);
 
     return {
       id: confession.id,
@@ -288,6 +327,8 @@ export default async function ConfessionsPage() {
       counterpartAnonymousId: confession.targetId ? buildAnonymousId(confession.targetId) : buildAnonymousId(confession.id),
       counterpartName: confession.target?.name ?? fallbackRecipientName,
       counterpartGender: confession.target?.gender ?? null,
+      paymentVerificationStatus: latestSendPayment?.status ?? null,
+      canRetryPayment: latestSendPayment?.status === PaymentStatus.FAILED,
       counterpartContext:
         buildLocationContext(confession.location, confession.target) ??
         buildEnteredRecipientContext(confession.location, matchDetails, confession.targetPhone),
