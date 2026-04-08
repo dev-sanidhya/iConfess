@@ -3,6 +3,7 @@ import ConfessionsInbox from "@/components/ConfessionsInbox";
 import { prisma } from "@/lib/prisma";
 import { formatSharedProfileDetails, getStoredSharedProfileSnapshot } from "@/lib/shared-profile-context";
 import { PaymentStatus } from "@prisma/client";
+import { dedupeSentConfessions } from "@/lib/confessions";
 
 function buildAnonymousId(value: string) {
   return `AID-${value.slice(-6).toUpperCase()}`;
@@ -24,71 +25,6 @@ function getPaymentConfessionId(metadata: unknown) {
 
   const confessionId = (metadata as Record<string, unknown>).confessionId;
   return typeof confessionId === "string" ? confessionId : null;
-}
-
-function normalizeJsonValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((entry) => normalizeJsonValue(entry));
-  }
-
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, entryValue]) => [key, normalizeJsonValue(entryValue)])
-    );
-  }
-
-  if (typeof value === "string") {
-    return value.trim();
-  }
-
-  return value;
-}
-
-function buildSentDedupKey(confession: {
-  targetId: string | null;
-  targetPhone: string | null;
-  location: string;
-  message: string;
-  matchDetails: unknown;
-  status: string;
-  reply: string | null;
-  revealedAt: Date | null;
-}) {
-  return JSON.stringify({
-    targetId: confession.targetId,
-    targetPhone: confession.targetPhone,
-    location: confession.location,
-    message: confession.message.trim(),
-    matchDetails: normalizeJsonValue(confession.matchDetails),
-    status: confession.status,
-    reply: confession.reply,
-    revealedAt: confession.revealedAt?.toISOString() ?? null,
-  });
-}
-
-function dedupeSentConfessions<T extends {
-  targetId: string | null;
-  targetPhone: string | null;
-  location: string;
-  message: string;
-  matchDetails: unknown;
-  status: string;
-  reply: string | null;
-  revealedAt: Date | null;
-}>(confessions: T[]) {
-  const seen = new Set<string>();
-
-  return confessions.filter((confession) => {
-    const key = buildSentDedupKey(confession);
-    if (seen.has(key)) {
-      return false;
-    }
-
-    seen.add(key);
-    return true;
-  });
 }
 
 function buildEnteredRecipientName(details: Record<string, unknown>) {

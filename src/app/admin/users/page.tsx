@@ -1,4 +1,5 @@
 import UsersManagementPanel from "@/components/UsersManagementPanel";
+import { buildCanonicalSentCountsBySender } from "@/lib/confessions";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/staff-guards";
 
@@ -23,7 +24,6 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     include: {
       _count: {
         select: {
-          sentConfessions: true,
           receivedConfessions: true,
           payments: true,
         },
@@ -32,5 +32,34 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     take: 100,
   });
 
-  return <UsersManagementPanel title="Users Management" users={users} phoneQuery={phoneQuery} />;
+  const sentConfessions = await prisma.confession.findMany({
+    where: {
+      senderId: { in: users.map((user) => user.id) },
+      isSelfConfession: false,
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      senderId: true,
+      targetId: true,
+      targetPhone: true,
+      location: true,
+      message: true,
+      matchDetails: true,
+      status: true,
+      reply: true,
+      revealedAt: true,
+    },
+  });
+  const sentCounts = buildCanonicalSentCountsBySender(sentConfessions);
+
+  return (
+    <UsersManagementPanel
+      title="Users Management"
+      users={users.map((user) => ({
+        ...user,
+        sentCount: sentCounts.get(user.id) ?? 0,
+      }))}
+      phoneQuery={phoneQuery}
+    />
+  );
 }

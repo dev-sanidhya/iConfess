@@ -5,8 +5,8 @@ type UserRow = {
   gender: string;
   dateOfBirth: Date | null;
   createdAt: Date;
+  sentCount: number;
   _count: {
-    sentConfessions: number;
     receivedConfessions: number;
     payments: number;
   };
@@ -76,7 +76,7 @@ export default function UsersManagementPanel({
                 <td className="py-3">{user.phone}</td>
                 <td className="py-3">{user.gender}</td>
                 <td className="py-3">{user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : "Not set"}</td>
-                <td className="py-3">{user._count.sentConfessions}</td>
+                <td className="py-3">{user.sentCount}</td>
                 <td className="py-3">{user._count.receivedConfessions}</td>
                 <td className="py-3">{user._count.payments}</td>
                 <td className="py-3">{user.createdAt.toISOString().slice(0, 10)}</td>

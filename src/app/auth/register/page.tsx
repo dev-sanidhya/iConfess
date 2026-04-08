@@ -167,7 +167,7 @@ function RegisterForm() {
                 <button type="submit" disabled={loading}
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
                   style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
-                  <Phone className="w-4 h-4" />{loading ? "Sending..." : "Send OTP"}
+                  <Phone className="w-4 h-4" />{loading ? "Sending..." : "Send OTP (via Call)"}
                 </button>
               </form>
             </motion.div>

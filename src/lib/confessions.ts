@@ -20,6 +20,18 @@ type SelfClaimSnapshot = {
   profiles: Partial<Record<LocationCategory, Record<string, string>>>;
 };
 
+type SentConfessionLike = {
+  senderId?: string;
+  targetId: string | null;
+  targetPhone: string | null;
+  location: string;
+  message: string;
+  matchDetails: unknown;
+  status: string;
+  reply: string | null;
+  revealedAt: Date | null;
+};
+
 export function normalizeComparableValue(value: unknown) {
   if (typeof value !== "string") return "";
   return value.trim().replace(/\s+/g, " ").toLowerCase();
@@ -43,12 +55,85 @@ function getMatchDetailsRecord(confession: Pick<Confession, "matchDetails">) {
 }
 
 export async function countSentConfessionsToOthers(userId: string, db: Tx) {
-  return db.confession.count({
+  const confessions = await db.confession.findMany({
     where: {
       senderId: userId,
       isSelfConfession: false,
     },
+    orderBy: { createdAt: "desc" },
+    select: {
+      targetId: true,
+      targetPhone: true,
+      location: true,
+      message: true,
+      matchDetails: true,
+      status: true,
+      reply: true,
+      revealedAt: true,
+    },
   });
+
+  return dedupeSentConfessions(confessions).length;
+}
+
+function normalizeJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeJsonValue(entry));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entryValue]) => [key, normalizeJsonValue(entryValue)])
+    );
+  }
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  return value;
+}
+
+function buildSentDedupKey(confession: SentConfessionLike) {
+  return JSON.stringify({
+    targetId: confession.targetId,
+    targetPhone: confession.targetPhone,
+    location: confession.location,
+    message: confession.message.trim(),
+    matchDetails: normalizeJsonValue(confession.matchDetails),
+    status: confession.status,
+    reply: confession.reply,
+    revealedAt: confession.revealedAt?.toISOString() ?? null,
+  });
+}
+
+export function dedupeSentConfessions<T extends SentConfessionLike>(confessions: T[]) {
+  const seen = new Set<string>();
+
+  return confessions.filter((confession) => {
+    const key = buildSentDedupKey(confession);
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+export function buildCanonicalSentCountsBySender<T extends SentConfessionLike & { senderId: string }>(
+  confessions: T[]
+) {
+  const deduped = dedupeSentConfessions(confessions);
+  const counts = new Map<string, number>();
+
+  for (const confession of deduped) {
+    counts.set(confession.senderId, (counts.get(confession.senderId) ?? 0) + 1);
+  }
+
+  return counts;
 }
 
 export function buildSelfClaimSnapshot(

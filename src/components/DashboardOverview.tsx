@@ -29,7 +29,7 @@ export default function DashboardOverview({
       icon: Heart,
       color: "#9f6c31",
       note: !confessionPageUnlocked && stats.lockedReceivedConfessionCount === 0
-        ? "Unlock your inbox page to access received confessions"
+        ? "Unlock My Confessions page to access received confessions"
         : "Total confessions delivered to your inbox",
     },
     { label: "Profile Insight Unlocks", value: stats.profileInsightUnlockCount, icon: KeyRound, color: "#60a5fa", note: "How many times people paid to unlocked your profile insights" },
