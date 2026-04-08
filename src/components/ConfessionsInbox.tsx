@@ -6,6 +6,7 @@ import { Inbox, Lock, MessageSquare, Send, Sparkles } from "lucide-react";
 import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { formatInr, pricing } from "@/lib/pricing";
 import { toast } from "sonner";
+import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
 
 type Confession = {
   id: string;
@@ -355,11 +356,11 @@ export default function ConfessionsInbox({
         body: JSON.stringify({ transactionReference }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(getResponseErrorMessage(data, "Payment request failed"));
       toast.success("Payment submitted for review.");
       setPaymentDialog(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Payment request failed");
+      toast.error(getErrorMessage(err, "Payment request failed"));
     } finally {
       setUnlockingPage(false);
     }
@@ -374,11 +375,11 @@ export default function ConfessionsInbox({
         body: JSON.stringify({ confessionId, transactionReference }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(getResponseErrorMessage(data, "Payment request failed"));
       toast.success("Payment submitted for review.");
       setPaymentDialog(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Payment request failed");
+      toast.error(getErrorMessage(err, "Payment request failed"));
     } finally {
       setUnlockingCardId(null);
     }

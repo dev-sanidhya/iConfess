@@ -5,6 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+export function getResponseErrorMessage(data: unknown, fallback: string): string {
+  if (
+    data &&
+    typeof data === "object" &&
+    "error" in data &&
+    typeof data.error === "string" &&
+    data.error.trim()
+  ) {
+    return data.error;
+  }
+
+  return fallback;
+}
+
 export function formatPhone(phone: string): string {
   return phone.startsWith("+91") ? phone : `+91${phone}`;
 }

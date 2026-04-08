@@ -6,6 +6,7 @@ import { Search, User, Heart, ArrowRight, Phone, AtSign, Lock } from "lucide-rea
 import Link from "next/link";
 import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { toast } from "sonner";
+import PhoneNumberField from "@/components/PhoneNumberField";
 import {
   locationCategories,
   locationFields,
@@ -13,6 +14,7 @@ import {
   type SearchResultProfileSection,
 } from "@/lib/matching";
 import { formatInr, pricing } from "@/lib/pricing";
+import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
 
 type SearchMode = "profile" | "phone" | "social";
 
@@ -222,7 +224,7 @@ export default function SearchPage() {
     try {
       const res = await fetch(`/api/users/search/insights?targetUserId=${targetUserId}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(getResponseErrorMessage(data, "Failed to load insights"));
       setInsightsByUser((current) => ({ ...current, [targetUserId]: data.insights ?? [] }));
       setResults((current) => current.map((result) => (
         result.id === targetUserId
@@ -235,8 +237,7 @@ export default function SearchPage() {
           : result
       )));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load insights";
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, "Failed to load insights"));
     } finally {
       setLoadingInsightsFor(null);
     }
@@ -273,13 +274,12 @@ export default function SearchPage() {
         body: JSON.stringify({ targetUserId: pendingInsightUnlock.id, transactionReference }),
       });
       const unlockData = await unlockRes.json();
-      if (!unlockRes.ok) throw new Error(unlockData.error);
+      if (!unlockRes.ok) throw new Error(getResponseErrorMessage(unlockData, "Failed to submit payment"));
       toast.success("Payment submitted for review.");
       setShowInsightPaymentDialog(false);
       setPendingInsightUnlock(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load insights";
-      toast.error(message);
+      toast.error(getErrorMessage(error, "Failed to submit payment"));
     } finally {
       setLoadingInsightsFor(null);
     }
@@ -324,24 +324,14 @@ export default function SearchPage() {
           {mode === "phone" && (
             <motion.div key="phone" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <h3 className="text-sm font-medium mb-3" style={{ color: "#8c7257" }}>Search by phone number</h3>
-              <div className="flex gap-2">
-                <span
-                  className="flex items-center px-3 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#8c7257" }}
-                >
-                  +91
-                </span>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={10}
-                  placeholder="9876543210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
-                />
-              </div>
+              <PhoneNumberField
+                maxLength={10}
+                placeholder="9876543210"
+                value={phone}
+                onChange={setPhone}
+                prefixClassName="bg-[rgba(255,251,245,0.92)] border-[rgba(184,159,126,0.35)] text-[#8c7257]"
+                inputClassName="bg-[rgba(255,251,245,0.92)] border-[rgba(184,159,126,0.35)] text-[#3f2c1d]"
+              />
             </motion.div>
           )}
 

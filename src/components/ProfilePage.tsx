@@ -6,7 +6,7 @@ import { ArrowRight, AtSign, Lock, Pencil, Phone, PlusCircle, Save, Shield, User
 import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { toast } from "sonner";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
-import { maskPhone } from "@/lib/utils";
+import { getErrorMessage, getResponseErrorMessage, maskPhone } from "@/lib/utils";
 import { formatInr, pricing } from "@/lib/pricing";
 
 type UserProfile = {
@@ -350,12 +350,12 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         body: JSON.stringify({ confessionId: pendingSelfClaimId, transactionReference }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(getResponseErrorMessage(data, "Failed to submit payment"));
       toast.success("Payment submitted for review.");
       setShowSelfClaimPaymentDialog(false);
       setPendingSelfClaimId(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to submit payment");
+      toast.error(getErrorMessage(error, "Failed to submit payment"));
     } finally {
       setProcessingSelfClaim(false);
     }

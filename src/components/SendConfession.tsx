@@ -16,6 +16,8 @@ import { formatInr, pricing } from "@/lib/pricing";
 import { type SharedProfileOption } from "@/lib/shared-profile-context";
 import { toast } from "sonner";
 import { normalizeComparableFullName, normalizeComparableHandle } from "@/lib/confessions";
+import PhoneNumberField from "@/components/PhoneNumberField";
+import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
 
 type FlowType = "profile" | "phone" | "social";
 type DeliveryMode = "delivered" | "phone_outreach" | "pending_registration";
@@ -425,11 +427,15 @@ export default function SendConfession({
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
 
-      if (data.requiresPayment) {
+      if (res.status === 402 || data.requiresPayment) {
         setShowPaymentDialog(true);
-        toast.info(`Payment required: ${formatInr(pricing.sendConfession)}. Submit your UTR after payment.`);
+        toast.info(`Payment required: ${formatInr(data.amount ?? pricing.sendConfession)}. Submit your UTR after payment.`);
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(getResponseErrorMessage(data, "Failed to send confession"));
       } else if (data.pendingReview) {
         setShowPaymentDialog(false);
         setSentMessage("Your confession is queued. It will move forward after payment review.");
@@ -448,7 +454,7 @@ export default function SendConfession({
         }
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send confession");
+      toast.error(getErrorMessage(err, "Failed to send confession"));
     } finally {
       setLoading(false);
     }
@@ -490,21 +496,39 @@ export default function SendConfession({
   }
 
   const selectedProfile = profileMatches.find((result) => result.id === selectedProfileId) ?? null;
-  const baseRecipientPreview = selectedProfile
-    ? buildMatchedPreview(selectedProfile, flow, selectedCategory)
-    : directMatch
-      ? buildMatchedPreview(directMatch, flow, selectedCategory)
-      : flow !== "profile" && directSearchState === "loading"
-        ? buildSearchingPreview(flow, firstName, lastName, selectedCategory, matchDetails, targetPhone, socialPlatform, socialHandle)
-        : buildEnteredPreview(flow, firstName, lastName, selectedCategory, matchDetails, targetPhone, socialPlatform, socialHandle);
-  const recipientPreview = selfConfessionCandidate && baseRecipientPreview
-    ? {
-        ...baseRecipientPreview,
-        statusLabel: "Confession To Yourself",
-        statusText: "These details belong to you.",
-        note: `This card will go to your Received section.`,
-      }
-    : baseRecipientPreview;
+  const recipientPreview = useMemo(() => {
+    const baseRecipientPreview = selectedProfile
+      ? buildMatchedPreview(selectedProfile, flow, selectedCategory)
+      : directMatch
+        ? buildMatchedPreview(directMatch, flow, selectedCategory)
+        : flow !== "profile" && directSearchState === "loading"
+          ? buildSearchingPreview(flow, firstName, lastName, selectedCategory, matchDetails, targetPhone, socialPlatform, socialHandle)
+          : buildEnteredPreview(flow, firstName, lastName, selectedCategory, matchDetails, targetPhone, socialPlatform, socialHandle);
+
+    if (!selfConfessionCandidate || !baseRecipientPreview) {
+      return baseRecipientPreview;
+    }
+
+    return {
+      ...baseRecipientPreview,
+      statusLabel: "Confession To Yourself",
+      statusText: "These details belong to you.",
+      note: "This card will go to your Received section.",
+    };
+  }, [
+    directMatch,
+    directSearchState,
+    firstName,
+    flow,
+    lastName,
+    matchDetails,
+    selectedCategory,
+    selectedProfile,
+    selfConfessionCandidate,
+    socialHandle,
+    socialPlatform,
+    targetPhone,
+  ]);
   const selectedSharedProfileOption = sharedProfileOptions.find((option) => option.category === selectedSharedProfileCategory) ?? null;
 
   useEffect(() => {
@@ -761,21 +785,14 @@ export default function SendConfession({
           ) : flow === "phone" ? (
             <motion.div key="phone-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-2xl p-4 sm:p-5">
               <h3 className="text-sm font-medium mb-3" style={{ color: "#735a43" }}>Their phone number</h3>
-              <div className="flex items-stretch gap-2 min-w-0">
-                <span className="flex items-center px-3 rounded-xl text-sm border flex-shrink-0" style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#80664c" }}>
-                  +91
-                </span>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={10}
-                  placeholder="9876543210"
-                  value={targetPhone}
-                  onChange={(e) => setTargetPhone(e.target.value.replace(/\D/g, ""))}
-                  className="flex-1 min-w-0 w-0 px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
-                />
-              </div>
+              <PhoneNumberField
+                maxLength={10}
+                placeholder="9876543210"
+                value={targetPhone}
+                onChange={setTargetPhone}
+                prefixClassName="bg-[rgba(255,251,245,0.84)] border-[rgba(179,148,111,0.24)] text-[#80664c]"
+                inputClassName="bg-[rgba(255,251,245,0.84)] border-[rgba(179,148,111,0.24)] text-[#3f2c1d]"
+              />
             </motion.div>
           ) : (
             <motion.div key="social-flow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-2xl p-4 sm:p-5">
