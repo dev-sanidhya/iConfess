@@ -369,13 +369,34 @@ export default function SendConfession({
       : formatInr(pricing.sendConfession);
 
   function validateForm() {
-    if (!message.trim()) return toast.error("Write your confession first");
-    if (!firstName.trim()) return toast.error("First name is required");
-    if (flow === "profile" && !selectedCategory) return toast.error("Select a location category");
-    if (flow === "phone" && !/^\d{10}$/.test(targetPhone)) return toast.error("Enter a valid 10-digit number");
-    if (flow === "social" && !socialHandle.trim()) return toast.error("Enter a valid social handle");
-    if (sharedProfileOptions.length === 0) return toast.error("Complete at least one of your own profile fields before sending a confession");
-    if (!selectedSharedProfileCategory) return toast.error("Choose which of your profile fields connects you to this person");
+    if (!message.trim()) {
+      toast.error("Write your confession first");
+      return false;
+    }
+    if (!firstName.trim()) {
+      toast.error("First name is required");
+      return false;
+    }
+    if (flow === "profile" && !selectedCategory) {
+      toast.error("Select a location category");
+      return false;
+    }
+    if (flow === "phone" && !/^\d{10}$/.test(targetPhone)) {
+      toast.error("Enter a valid 10-digit number");
+      return false;
+    }
+    if (flow === "social" && !socialHandle.trim()) {
+      toast.error("Enter a valid social handle");
+      return false;
+    }
+    if (sharedProfileOptions.length === 0) {
+      toast.error("Complete at least one of your own profile fields before sending a confession");
+      return false;
+    }
+    if (!selectedSharedProfileCategory) {
+      toast.error("Choose which of your profile fields connects you to this person");
+      return false;
+    }
 
     return true;
   }
@@ -462,9 +483,6 @@ export default function SendConfession({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (!validateForm()) return;
-
     await submitConfession();
   }
 
