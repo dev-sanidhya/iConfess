@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowRight, LockKeyhole, Phone, KeyRound, ArrowLeft } from "lucide-react";
+import PhoneNumberField from "@/components/PhoneNumberField";
 
 type ViewMode = "login" | "recover";
 type RecoveryStep = "phone" | "otp" | "reset";
@@ -186,23 +187,16 @@ export default function LoginPage() {
                   <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
                     Phone number
                   </label>
-                  <div className="flex gap-2">
-                    <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#80664c" }}>
-                      +91
-                    </span>
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      autoComplete="tel"
-                      maxLength={10}
-                      placeholder="9876543210"
-                      value={loginPhone}
-                      onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, ""))}
-                      className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-                      style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
-                      required
-                    />
-                  </div>
+                  <PhoneNumberField
+                    autoComplete="tel"
+                    maxLength={10}
+                    placeholder="9876543210"
+                    value={loginPhone}
+                    onChange={setLoginPhone}
+                    prefixClassName="bg-[rgba(255,251,245,0.84)] border-[rgba(179,148,111,0.24)] text-[#80664c]"
+                    inputClassName="bg-[rgba(255,251,245,0.84)] border-[rgba(179,148,111,0.24)] text-[#3f2c1d]"
+                    required
+                  />
                 </div>
 
                 <div>
@@ -284,22 +278,15 @@ export default function LoginPage() {
                     <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
                       Registered mobile number
                     </label>
-                    <div className="flex gap-2">
-                      <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#80664c" }}>
-                        +91
-                      </span>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={10}
-                        placeholder="9876543210"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                        className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-                        style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
-                        required
-                      />
-                    </div>
+                    <PhoneNumberField
+                      maxLength={10}
+                      placeholder="9876543210"
+                      value={phone}
+                      onChange={setPhone}
+                      prefixClassName="bg-[rgba(255,251,245,0.84)] border-[rgba(179,148,111,0.24)] text-[#80664c]"
+                      inputClassName="bg-[rgba(255,251,245,0.84)] border-[rgba(179,148,111,0.24)] text-[#3f2c1d]"
+                      required
+                    />
                   </div>
                   <button
                     type="submit"
@@ -308,7 +295,7 @@ export default function LoginPage() {
                     style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
                   >
                     <Phone className="w-4 h-4" />
-                    {loading ? "Sending..." : "Send OTP"}
+                    {loading ? "Sending..." : "Send OTP (via Call)"}
                   </button>
                 </form>
               )}

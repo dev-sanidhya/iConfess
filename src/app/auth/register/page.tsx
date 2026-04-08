@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Phone, User, MapPin, LockKeyhole } from "lucide-react";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 import type { Gender } from "@prisma/client";
+import PhoneNumberField from "@/components/PhoneNumberField";
 
 type Step = "phone" | "otp" | "name" | "profile";
 function RegisterForm() {
@@ -153,13 +154,15 @@ function RegisterForm() {
               <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
                 <div>
                   <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>Phone Number</label>
-                  <div className="flex gap-2">
-                    <span className="flex items-center px-3 rounded-xl text-sm border" style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#80664c" }}>+91</span>
-                    <input type="tel" inputMode="numeric" maxLength={10} placeholder="9876543210" value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                      className="flex-1 px-4 py-2.5 rounded-xl text-sm border"
-                      style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
-                  </div>
+                  <PhoneNumberField
+                    maxLength={10}
+                    placeholder="9876543210"
+                    value={phone}
+                    onChange={setPhone}
+                    prefixClassName="bg-[rgba(255,251,245,0.84)] border-[rgba(179,148,111,0.24)] text-[#80664c]"
+                    inputClassName="bg-[rgba(255,251,245,0.84)] border-[rgba(179,148,111,0.24)] text-[#3f2c1d]"
+                    required
+                  />
                 </div>
                 <button type="submit" disabled={loading}
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
