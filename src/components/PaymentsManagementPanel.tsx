@@ -16,23 +16,6 @@ type PaymentRow = {
   };
 };
 
-function getPaymentContext(payment: PaymentRow) {
-  if (!payment.metadata || typeof payment.metadata !== "object" || Array.isArray(payment.metadata)) {
-    return payment.gatewayTransactionId ?? "-";
-  }
-
-  const metadata = payment.metadata as Record<string, unknown>;
-  if (typeof metadata.confessionId === "string") {
-    return `Confession ${metadata.confessionId.slice(-6).toUpperCase()}`;
-  }
-
-  if (typeof metadata.targetUserId === "string") {
-    return `User ${metadata.targetUserId.slice(-6).toUpperCase()}`;
-  }
-
-  return payment.gatewayTransactionId ?? "-";
-}
-
 export default function PaymentsManagementPanel({
   title,
   payments,
@@ -56,7 +39,6 @@ export default function PaymentsManagementPanel({
               <th className="text-left py-3">User</th>
               <th className="text-left py-3">Type</th>
               <th className="text-left py-3">Amount</th>
-              <th className="text-left py-3">Context</th>
               <th className="text-left py-3">Status</th>
               <th className="text-left py-3">Gateway</th>
               <th className="text-left py-3">Txn Id</th>
@@ -74,7 +56,6 @@ export default function PaymentsManagementPanel({
                 </td>
                 <td className="py-3">{payment.type}</td>
                 <td className="py-3">Rs. {payment.amount}</td>
-                <td className="py-3">{getPaymentContext(payment)}</td>
                 <td className="py-3"><PaymentStatusForm paymentId={payment.id} status={payment.status} /></td>
                 <td className="py-3">{payment.gateway ?? "manual/dev"}</td>
                 <td className="py-3">{payment.gatewayTransactionId ?? "-"}</td>
