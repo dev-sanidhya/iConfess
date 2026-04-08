@@ -211,6 +211,7 @@ export default function SendConfession({
   const [selfGenderOverride, setSelfGenderOverride] = useState<"MALE" | "FEMALE" | "OTHER">(currentUser.gender);
   const [selfPopupDismissed, setSelfPopupDismissed] = useState(false);
   const categoryFieldsRef = useRef<HTMLDivElement | null>(null);
+  const submitInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!selectedCategory) return;
@@ -402,8 +403,13 @@ export default function SendConfession({
   }
 
   async function submitConfession(transactionReference?: string) {
+    if (submitInFlightRef.current) {
+      return;
+    }
+
     if (!validateForm()) return;
 
+    submitInFlightRef.current = true;
     setLoading(true);
     try {
       const body = flow === "profile"
@@ -477,6 +483,7 @@ export default function SendConfession({
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to send confession"));
     } finally {
+      submitInFlightRef.current = false;
       setLoading(false);
     }
   }

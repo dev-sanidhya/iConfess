@@ -13,6 +13,8 @@ import {
   normalizeComparableHandle,
 } from "@/lib/confessions";
 
+const DUPLICATE_CONFESSION_WINDOW_MS = 2 * 60 * 1000;
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getSession();
@@ -155,6 +157,35 @@ export async function POST(req: NextRequest) {
       }
 
       // Unregistered — queue via phone
+      const existingPhoneDuplicate = await findRecentDuplicateConfession({
+        senderId: user.id,
+        targetId: null,
+        targetPhone,
+        location: "COLLEGE",
+        message,
+        matchDetails: confessionMatchDetails,
+        isSelfConfession: false,
+      });
+      if (existingPhoneDuplicate) {
+        const paymentResponse = await queueSendPaymentIfNeeded({
+          userId: user.id,
+          isFree,
+          confessionId: existingPhoneDuplicate.id,
+          flow: "phone",
+          transactionReference,
+          deliverOnSuccess: false,
+        });
+        if (paymentResponse) return paymentResponse;
+
+        return NextResponse.json({
+          success: true,
+          matchFound: false,
+          confessionId: existingPhoneDuplicate.id,
+          isFree,
+          deliveryMode: "phone_outreach",
+        });
+      }
+
       const confession = await prisma.confession.create({
         data: {
           senderId: user.id,
@@ -208,16 +239,46 @@ export async function POST(req: NextRequest) {
         normalizeComparableHandle(normalizedHandle) === normalizeComparableHandle(ownHandle ?? "");
 
       if (!existingUser) {
+        const socialMatchDetails = {
+          ...confessionMatchDetails,
+          platform,
+          handle: normalizedHandle,
+        };
+        const existingSocialDuplicate = await findRecentDuplicateConfession({
+          senderId: user.id,
+          targetId: null,
+          targetPhone: null,
+          location: "COLLEGE",
+          message,
+          matchDetails: socialMatchDetails,
+          isSelfConfession: false,
+        });
+        if (existingSocialDuplicate) {
+          const paymentResponse = await queueSendPaymentIfNeeded({
+            userId: user.id,
+            isFree,
+            confessionId: existingSocialDuplicate.id,
+            flow: "social",
+            transactionReference,
+            deliverOnSuccess: false,
+          });
+          if (paymentResponse) return paymentResponse;
+
+          return NextResponse.json({
+            success: true,
+            matchFound: false,
+            confessionId: existingSocialDuplicate.id,
+            isFree,
+            deliveryMode: "pending_registration",
+          });
+        }
+
         const confession = await prisma.confession.create({
           data: {
             senderId: user.id,
             message,
             location: "COLLEGE",
-            matchDetails: {
-              ...confessionMatchDetails,
-              platform,
-              handle: normalizedHandle,
-            } as Prisma.InputJsonValue,
+            matchDetails: socialMatchDetails as Prisma.InputJsonValue,
             status: "PENDING",
             expiresAt,
             billingCategory: "CONFESSION_TO_OTHERS",
@@ -428,6 +489,35 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const existingProfileDuplicate = await findRecentDuplicateConfession({
+      senderId: user.id,
+      targetId: null,
+      targetPhone: null,
+      location,
+      message,
+      matchDetails: confessionMatchDetails,
+      isSelfConfession: false,
+    });
+    if (existingProfileDuplicate) {
+      const paymentResponse = await queueSendPaymentIfNeeded({
+        userId: user.id,
+        isFree,
+        confessionId: existingProfileDuplicate.id,
+        flow: "profile",
+        transactionReference,
+        deliverOnSuccess: false,
+      });
+      if (paymentResponse) return paymentResponse;
+
+      return NextResponse.json({
+        success: true,
+        matchFound: false,
+        confessionId: existingProfileDuplicate.id,
+        isFree,
+        deliveryMode: "pending_registration",
+      });
+    }
+
     const confession = await prisma.confession.create({
       data: {
         senderId: user.id,
@@ -493,6 +583,62 @@ async function hasExistingConfession(senderId: string, targetId: string) {
   });
 
   return Boolean(existing);
+}
+
+async function findRecentDuplicateConfession(params: {
+  senderId: string;
+  targetId: string | null;
+  targetPhone: string | null;
+  location: "COLLEGE" | "SCHOOL" | "WORKPLACE" | "GYM" | "NEIGHBOURHOOD";
+  message: string;
+  matchDetails: Record<string, unknown>;
+  isSelfConfession: boolean;
+}) {
+  const recentConfessions = await prisma.confession.findMany({
+    where: {
+      senderId: params.senderId,
+      targetId: params.targetId,
+      targetPhone: params.targetPhone,
+      location: params.location,
+      message: params.message,
+      isSelfConfession: params.isSelfConfession,
+      createdAt: {
+        gte: new Date(Date.now() - DUPLICATE_CONFESSION_WINDOW_MS),
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      matchDetails: true,
+    },
+  });
+
+  const targetMatchDetails = JSON.stringify(normalizeJsonValue(params.matchDetails));
+  return (
+    recentConfessions.find((confession) => {
+      return JSON.stringify(normalizeJsonValue(confession.matchDetails)) === targetMatchDetails;
+    }) ?? null
+  );
+}
+
+function normalizeJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeJsonValue(entry));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entryValue]) => [key, normalizeJsonValue(entryValue)])
+    );
+  }
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  return value;
 }
 
 function getConfiguredTestProfileIdentifiers() {

@@ -16,6 +16,71 @@ function getStringDetail(details: Record<string, unknown>, key: string) {
   return typeof value === "string" ? value : "";
 }
 
+function normalizeJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeJsonValue(entry));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entryValue]) => [key, normalizeJsonValue(entryValue)])
+    );
+  }
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  return value;
+}
+
+function buildSentDedupKey(confession: {
+  targetId: string | null;
+  targetPhone: string | null;
+  location: string;
+  message: string;
+  matchDetails: unknown;
+  status: string;
+  reply: string | null;
+  revealedAt: Date | null;
+}) {
+  return JSON.stringify({
+    targetId: confession.targetId,
+    targetPhone: confession.targetPhone,
+    location: confession.location,
+    message: confession.message.trim(),
+    matchDetails: normalizeJsonValue(confession.matchDetails),
+    status: confession.status,
+    reply: confession.reply,
+    revealedAt: confession.revealedAt?.toISOString() ?? null,
+  });
+}
+
+function dedupeSentConfessions<T extends {
+  targetId: string | null;
+  targetPhone: string | null;
+  location: string;
+  message: string;
+  matchDetails: unknown;
+  status: string;
+  reply: string | null;
+  revealedAt: Date | null;
+}>(confessions: T[]) {
+  const seen = new Set<string>();
+
+  return confessions.filter((confession) => {
+    const key = buildSentDedupKey(confession);
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 function buildEnteredRecipientName(details: Record<string, unknown>) {
   const fullName = getStringDetail(details, "fullName").trim();
   if (fullName) return fullName;
@@ -201,7 +266,7 @@ export default async function ConfessionsPage() {
     };
   });
 
-  const sent = sentConfessions.map((confession) => {
+  const sent = dedupeSentConfessions(sentConfessions).map((confession) => {
     const matchDetails = confession.matchDetails as Record<string, unknown>;
     const fallbackRecipientName = buildEnteredRecipientName(matchDetails);
 
