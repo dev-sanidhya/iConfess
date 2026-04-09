@@ -41,3 +41,7 @@ export function addDays(date: Date, days: number): Date {
   result.setDate(result.getDate() + days);
   return result;
 }
+
+export function getDisplayUserCode(userId: string, publicCode?: string | null): string {
+  return (publicCode?.trim() || userId.slice(-6)).toString();
+}

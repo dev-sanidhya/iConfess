@@ -12,11 +12,22 @@ import {
   COOKIE_NAME_EXPORT,
   hashPassword,
   normalizeSocialHandle,
+  generatePublicUserCode,
 } from "@/lib/auth";
 import { parseDateOfBirth } from "@/lib/age";
 import { formatPhone, addDays } from "@/lib/utils";
 
 type Tx = Prisma.TransactionClient;
+
+async function createUniquePublicUserCode(tx: Tx) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const publicCode = generatePublicUserCode(6);
+    const existingUser = await tx.user.findUnique({ where: { publicCode } });
+    if (!existingUser) return publicCode;
+  }
+
+  throw new Error("Failed to generate a unique public user code");
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -119,6 +130,7 @@ export async function POST(req: NextRequest) {
 
       const newUser = await tx.user.create({
         data: {
+          publicCode: await createUniquePublicUserCode(tx),
           phone: formattedPhone,
           name: name.trim(),
           dateOfBirth: parsedDateOfBirth,

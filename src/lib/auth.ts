@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { randomInt } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
@@ -70,6 +71,12 @@ export function normalizeSocialHandle(handle: string) {
   }
 
   return normalized;
+}
+
+const PUBLIC_USER_CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+export function generatePublicUserCode(length = 6) {
+  return Array.from({ length }, () => PUBLIC_USER_CODE_ALPHABET[randomInt(PUBLIC_USER_CODE_ALPHABET.length)]).join("");
 }
 
 export async function hashPassword(password: string) {

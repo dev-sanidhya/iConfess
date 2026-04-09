@@ -6,11 +6,12 @@ import { ArrowRight, AtSign, Lock, Pencil, Phone, PlusCircle, Save, Shield, User
 import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { toast } from "sonner";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
-import { getErrorMessage, getResponseErrorMessage, maskPhone } from "@/lib/utils";
+import { getDisplayUserCode, getErrorMessage, getResponseErrorMessage, maskPhone } from "@/lib/utils";
 import { formatInr, pricing } from "@/lib/pricing";
 
 type UserProfile = {
   id: string;
+  publicCode?: string | null;
   name: string;
   phone: string;
   gender: "MALE" | "FEMALE" | "OTHER";
@@ -206,7 +207,7 @@ function CompactPlaceCard({
 }
 
 export default function ProfilePage({ user }: { user: UserProfile }) {
-  const shortId = user.id.slice(-8).toUpperCase();
+  const shortId = getDisplayUserCode(user.id, user.publicCode);
   const initialSelectedCategories = useMemo(() => getSelectedCategories(user), [user]);
 
   const [isEditing, setIsEditing] = useState(false);

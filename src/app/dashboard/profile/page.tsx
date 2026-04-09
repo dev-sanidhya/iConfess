@@ -9,6 +9,7 @@ export default async function Profile() {
     <ProfilePage
       user={{
         id: user.id,
+        publicCode: user.publicCode,
         name: user.name,
         phone: user.phone,
         gender: user.gender,

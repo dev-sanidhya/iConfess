@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Heart, Send, Search, User, LogOut, Inbox, Menu, X } from "lucide-react";
 import { toast } from "sonner";
+import { getDisplayUserCode } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: Heart },
@@ -15,7 +16,7 @@ const navItems = [
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
 
-export default function DashboardNav({ user }: { user: { id: string; name: string } }) {
+export default function DashboardNav({ user }: { user: { id: string; name: string; publicCode?: string | null } }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,7 +46,16 @@ export default function DashboardNav({ user }: { user: { id: string; name: strin
         </div>
         <div className="min-w-0">
           <p className="text-sm font-medium truncate" style={{ color: "#3f2c1d" }}>{user.name}</p>
-          <p className="text-xs" style={{ color: "#9b7c5d" }}>#{user.id.slice(-6).toUpperCase()}</p>
+          <span
+            className="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-mono font-medium tracking-[0.08em]"
+            style={{
+              background: "rgba(143,106,70,0.12)",
+              color: "#8f6a46",
+              border: "1px solid rgba(179,148,111,0.24)",
+            }}
+          >
+            #{getDisplayUserCode(user.id, user.publicCode)}
+          </span>
         </div>
       </div>
 
