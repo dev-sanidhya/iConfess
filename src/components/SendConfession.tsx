@@ -76,11 +76,11 @@ function getSelectedSection(result: SearchResult, selectedCategory: LocationCate
 
 function getEnteredProfileSummary(category: LocationCategory | null, details: Record<string, string>) {
   if (!category) return "Choose the place you know them from.";
-  if (category === "COLLEGE") return [details.collegeName?.trim(), details.course?.trim(), details.branch?.trim(), details.yearOfPassing?.trim()].filter(Boolean).join(" · ");
-  if (category === "SCHOOL") return [details.schoolName?.trim(), details.board?.trim(), details.yearOfCompletion?.trim()].filter(Boolean).join(" · ");
-  if (category === "WORKPLACE") return [details.companyName?.trim(), details.department?.trim(), details.city?.trim()].filter(Boolean).join(" · ");
-  if (category === "GYM") return [details.gymName?.trim(), details.city?.trim(), details.timing?.trim()].filter(Boolean).join(" · ");
-  return [details.premisesName?.trim(), details.city?.trim(), details.homeNumber?.trim()].filter(Boolean).join(" · ");
+  if (category === "COLLEGE") return [details.branch?.trim(), details.section?.trim(), details.yearOfPassing?.trim(), details.collegeName?.trim()].filter(Boolean).join(" · ");
+  if (category === "SCHOOL") return [details.yearOfCompletion?.trim(), details.schoolName?.trim()].filter(Boolean).join(" · ");
+  if (category === "WORKPLACE") return [details.companyName?.trim(), details.city?.trim()].filter(Boolean).join(" · ");
+  if (category === "GYM") return [details.gymName?.trim(), details.pinCode?.trim(), details.timing?.trim()].filter(Boolean).join(" · ");
+  return [details.homeNumber?.trim(), details.premisesName?.trim(), details.city?.trim(), details.state?.trim(), details.pinCode?.trim()].filter(Boolean).join(" · ");
 }
 
 function buildMatchedPreview(result: SearchResult, flow: FlowType, selectedCategory: LocationCategory | null): RecipientPreview {
@@ -789,9 +789,12 @@ export default function SendConfession({
                                   onClick={() => setSelectedProfileId(isSelected ? null : result.id)}
                                   className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto"
                                   style={{
-                                    background: isSelected ? "rgba(34,197,94,0.14)" : "rgba(143,106,70,0.16)",
-                                    border: `1px solid ${isSelected ? "rgba(74,222,128,0.28)" : "rgba(179,148,111,0.25)"}`,
-                                    color: isSelected ? "#86efac" : "#8f6a46",
+                                    background: isSelected
+                                      ? "linear-gradient(135deg, rgba(187,247,208,0.92), rgba(134,239,172,0.82))"
+                                      : "rgba(143,106,70,0.16)",
+                                    border: `1px solid ${isSelected ? "rgba(34,197,94,0.36)" : "rgba(179,148,111,0.25)"}`,
+                                    color: isSelected ? "#166534" : "#8f6a46",
+                                    boxShadow: isSelected ? "inset 0 1px 0 rgba(255,255,255,0.4)" : "none",
                                   }}
                                 >
                                   {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -879,27 +882,31 @@ export default function SendConfession({
               {recipientPreview.statusLabel && (
                 <span
                   className="inline-flex max-w-full items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] sm:self-start whitespace-normal break-words leading-tight"
-                  style={{
-                    background:
-                      recipientPreview.mode === "matched"
-                        ? "rgba(34,197,94,0.14)"
+                   style={{
+                     background:
+                       recipientPreview.mode === "matched"
+                        ? "linear-gradient(135deg, rgba(187,247,208,0.92), rgba(134,239,172,0.82))"
                         : recipientPreview.mode === "searching"
                         ? "rgba(143,106,70,0.16)"
                           : "rgba(245,158,11,0.14)",
-                    color:
-                      recipientPreview.mode === "matched"
-                        ? "#86efac"
+                     color:
+                       recipientPreview.mode === "matched"
+                        ? "#166534"
                         : recipientPreview.mode === "searching"
                           ? "#d8b4fe"
                           : "#fde68a",
-                    border:
-                      recipientPreview.mode === "matched"
-                        ? "1px solid rgba(74,222,128,0.22)"
+                     border:
+                       recipientPreview.mode === "matched"
+                        ? "1px solid rgba(34,197,94,0.36)"
                         : recipientPreview.mode === "searching"
                           ? "1px solid rgba(179,148,111,0.22)"
                           : "1px solid rgba(251,191,36,0.22)",
-                  }}
-                >
+                     boxShadow:
+                       recipientPreview.mode === "matched"
+                         ? "inset 0 1px 0 rgba(255,255,255,0.4)"
+                         : "none",
+                   }}
+                 >
                   {recipientPreview.statusLabel}
                 </span>
               )}

@@ -24,8 +24,8 @@ export function buildSharedProfileOptionsFromUser(user: {
   college?: { branch: string; section: string; yearOfPassing: number; collegeName: string } | null;
   school?: { yearOfCompletion: number; schoolName: string } | null;
   workplace?: { companyName: string; city: string } | null;
-  gym?: { gymName: string; city: string } | null;
-  neighbourhood?: { city: string; state: string; pinCode: string } | null;
+  gym?: { gymName: string; pinCode: string; timing: string } | null;
+  neighbourhood?: { homeNumber: string; premisesName: string; city: string; state: string; pinCode: string } | null;
 }) {
   const options: SharedProfileOption[] = [];
 
@@ -76,7 +76,8 @@ export function buildSharedProfileOptionsFromUser(user: {
   if (user.gym) {
     const details = [
       { label: "Gym Name", value: user.gym.gymName },
-      { label: "City", value: user.gym.city },
+      { label: "Pin Code", value: user.gym.pinCode },
+      { label: "Timing", value: user.gym.timing },
     ];
 
     options.push({
@@ -89,6 +90,8 @@ export function buildSharedProfileOptionsFromUser(user: {
 
   if (user.neighbourhood) {
     const details = [
+      { label: "Home Number", value: user.neighbourhood.homeNumber },
+      { label: "Society / Premises Name", value: user.neighbourhood.premisesName },
       { label: "City", value: user.neighbourhood.city },
       { label: "State", value: user.neighbourhood.state },
       { label: "Pin Code", value: user.neighbourhood.pinCode },
@@ -109,8 +112,8 @@ export function buildSharedProfileOptions(user: {
   college?: { branch: string; section: string; yearOfPassing: number; collegeName: string } | null;
   school?: { yearOfCompletion: number; schoolName: string } | null;
   workplace?: { companyName: string; city: string } | null;
-  gym?: { gymName: string; city: string } | null;
-  neighbourhood?: { city: string; state: string; pinCode: string } | null;
+  gym?: { gymName: string; pinCode: string; timing: string } | null;
+  neighbourhood?: { homeNumber: string; premisesName: string; city: string; state: string; pinCode: string } | null;
 }) {
   return buildSharedProfileOptionsFromUser(user);
 }

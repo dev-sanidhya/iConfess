@@ -58,25 +58,23 @@ function buildEnteredRecipientContext(
 
   if (location === "COLLEGE") {
     return [
-      getStringDetail(details, "collegeName"),
-      getStringDetail(details, "course"),
       getStringDetail(details, "branch"),
+      getStringDetail(details, "section"),
       getStringDetail(details, "yearOfPassing"),
+      getStringDetail(details, "collegeName"),
     ].filter(Boolean).join(" · ") || null;
   }
 
   if (location === "SCHOOL") {
     return [
-      getStringDetail(details, "schoolName"),
-      getStringDetail(details, "board"),
       getStringDetail(details, "yearOfCompletion"),
+      getStringDetail(details, "schoolName"),
     ].filter(Boolean).join(" · ") || null;
   }
 
   if (location === "WORKPLACE") {
     return [
       getStringDetail(details, "companyName"),
-      getStringDetail(details, "department"),
       getStringDetail(details, "city"),
     ].filter(Boolean).join(" · ") || null;
   }
@@ -84,16 +82,18 @@ function buildEnteredRecipientContext(
   if (location === "GYM") {
     return [
       getStringDetail(details, "gymName"),
-      getStringDetail(details, "city"),
+      getStringDetail(details, "pinCode"),
       getStringDetail(details, "timing"),
     ].filter(Boolean).join(" · ") || null;
   }
 
   if (location === "NEIGHBOURHOOD") {
     return [
+      getStringDetail(details, "homeNumber"),
       getStringDetail(details, "premisesName"),
       getStringDetail(details, "city"),
-      getStringDetail(details, "homeNumber"),
+      getStringDetail(details, "state"),
+      getStringDetail(details, "pinCode"),
     ].filter(Boolean).join(" · ") || null;
   }
 
@@ -104,34 +104,55 @@ function buildLocationContext(
   location: string,
   profile:
     | {
-        college?: { collegeName: string; course: string; branch: string; yearOfPassing: number } | null;
-        school?: { schoolName: string; board: string; yearOfCompletion: number } | null;
-        workplace?: { companyName: string; department: string; city: string } | null;
-        gym?: { gymName: string; city: string; timing: string } | null;
-        neighbourhood?: { premisesName: string; city: string; homeNumber: string } | null;
+        college?: { collegeName: string; branch: string; section: string; yearOfPassing: number } | null;
+        school?: { schoolName: string; yearOfCompletion: number } | null;
+        workplace?: { companyName: string; city: string } | null;
+        gym?: { gymName: string; pinCode: string; timing: string } | null;
+        neighbourhood?: { premisesName: string; city: string; state: string; pinCode: string; homeNumber: string } | null;
       }
     | null
 ) {
   if (!profile) return null;
 
   if (location === "COLLEGE" && profile.college) {
-    return `${profile.college.collegeName} · ${profile.college.course} · ${profile.college.branch} · ${profile.college.yearOfPassing}`;
+    return [
+      profile.college.branch,
+      profile.college.section,
+      String(profile.college.yearOfPassing),
+      profile.college.collegeName,
+    ].filter(Boolean).join(" · ");
   }
 
   if (location === "SCHOOL" && profile.school) {
-    return `${profile.school.schoolName} · ${profile.school.board} · ${profile.school.yearOfCompletion}`;
+    return [
+      String(profile.school.yearOfCompletion),
+      profile.school.schoolName,
+    ].filter(Boolean).join(" · ");
   }
 
   if (location === "WORKPLACE" && profile.workplace) {
-    return `${profile.workplace.companyName} · ${profile.workplace.department} · ${profile.workplace.city}`;
+    return [
+      profile.workplace.companyName,
+      profile.workplace.city,
+    ].filter(Boolean).join(" · ");
   }
 
   if (location === "GYM" && profile.gym) {
-    return `${profile.gym.gymName} · ${profile.gym.city} · ${profile.gym.timing}`;
+    return [
+      profile.gym.gymName,
+      profile.gym.pinCode,
+      profile.gym.timing,
+    ].filter(Boolean).join(" · ");
   }
 
   if (location === "NEIGHBOURHOOD" && profile.neighbourhood) {
-    return `${profile.neighbourhood.premisesName} · ${profile.neighbourhood.city} · Home ${profile.neighbourhood.homeNumber}`;
+    return [
+      profile.neighbourhood.homeNumber,
+      profile.neighbourhood.premisesName,
+      profile.neighbourhood.city,
+      profile.neighbourhood.state,
+      profile.neighbourhood.pinCode,
+    ].filter(Boolean).join(" · ");
   }
 
   return null;
@@ -152,11 +173,11 @@ export default async function ConfessionsPage() {
             id: true,
             name: true,
             gender: true,
-            college: { select: { collegeName: true, course: true, branch: true, yearOfPassing: true } },
-            school: { select: { schoolName: true, board: true, yearOfCompletion: true } },
-            workplace: { select: { companyName: true, department: true, city: true } },
-            gym: { select: { gymName: true, city: true, timing: true } },
-            neighbourhood: { select: { premisesName: true, city: true, homeNumber: true } },
+            college: { select: { collegeName: true, branch: true, section: true, yearOfPassing: true } },
+            school: { select: { schoolName: true, yearOfCompletion: true } },
+            workplace: { select: { companyName: true, city: true } },
+            gym: { select: { gymName: true, pinCode: true, timing: true } },
+            neighbourhood: { select: { premisesName: true, city: true, state: true, pinCode: true, homeNumber: true } },
           },
         },
       },
@@ -170,11 +191,11 @@ export default async function ConfessionsPage() {
             id: true,
             name: true,
             gender: true,
-            college: { select: { collegeName: true, course: true, branch: true, yearOfPassing: true } },
-            school: { select: { schoolName: true, board: true, yearOfCompletion: true } },
-            workplace: { select: { companyName: true, department: true, city: true } },
-            gym: { select: { gymName: true, city: true, timing: true } },
-            neighbourhood: { select: { premisesName: true, city: true, homeNumber: true } },
+            college: { select: { collegeName: true, branch: true, section: true, yearOfPassing: true } },
+            school: { select: { schoolName: true, yearOfCompletion: true } },
+            workplace: { select: { companyName: true, city: true } },
+            gym: { select: { gymName: true, pinCode: true, timing: true } },
+            neighbourhood: { select: { premisesName: true, city: true, state: true, pinCode: true, homeNumber: true } },
           },
         },
       },

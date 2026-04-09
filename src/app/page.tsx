@@ -133,11 +133,11 @@ export default function LandingPage() {
           className={`${playfair.className} text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight leading-[0.98] mb-5 sm:mb-6`}
           style={{ color: "#3f2c1d" }}
         >
-          Say what you{" "}
+          What if they{" "}
           <span style={{ color: "#9e7349" }}>feel</span>
           <br />
-          without the{" "}
-          <span style={{ color: "#9e7349" }}>fear</span>
+          the{" "}
+          <span style={{ color: "#9e7349" }}>same?</span>
         </motion.h1>
 
         <motion.p
@@ -148,8 +148,8 @@ export default function LandingPage() {
           className="text-base sm:text-lg leading-relaxed mb-8 sm:mb-10 max-w-xl px-1"
           style={{ color: "#735a43" }}
         >
-          Confess your feelings to someone you&apos;ve noticed. We find them, deliver your words,
-          and keep your identity completely hidden.
+          Tell them how you really feel. We find them, deliver your message,
+          and keep your identity hidden unless it&apos;s a match.
         </motion.p>
 
         <motion.div

@@ -14,7 +14,7 @@ export default function TermsAndConditionsPage() {
       description="These Terms and Conditions govern access to and use of iConfess. By using the platform, you agree to comply with these terms."
     >
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           1. Platform Nature
         </h2>
         <p>
@@ -23,7 +23,7 @@ export default function TermsAndConditionsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           2. Eligibility
         </h2>
         <p>
@@ -32,14 +32,14 @@ export default function TermsAndConditionsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           3. Acceptable Use
         </h2>
         <p>Users must not misuse the platform. Prohibited conduct includes harassment, impersonation, threats, abusive content, unlawful activity, spam, unauthorized data collection, and attempts to compromise system security or privacy.</p>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           4. User Content
         </h2>
         <p>
@@ -48,7 +48,7 @@ export default function TermsAndConditionsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           5. Payments and Digital Features
         </h2>
         <p>
@@ -63,7 +63,7 @@ export default function TermsAndConditionsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           6. Privacy and Data Handling
         </h2>
         <p>
@@ -72,7 +72,7 @@ export default function TermsAndConditionsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           7. Suspension and Termination
         </h2>
         <p>
@@ -81,7 +81,7 @@ export default function TermsAndConditionsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           8. Disclaimer
         </h2>
         <p>
@@ -90,7 +90,7 @@ export default function TermsAndConditionsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           9. Limitation of Liability
         </h2>
         <p>
@@ -99,7 +99,7 @@ export default function TermsAndConditionsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           10. Contact
         </h2>
         <p>

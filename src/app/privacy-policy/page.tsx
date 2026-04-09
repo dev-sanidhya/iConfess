@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
       description="This Privacy Policy explains how iConfess collects, uses, stores, and protects user information while operating the platform."
     >
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           1. Information Collected
         </h2>
         <p>
@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           2. Purpose of Use
         </h2>
         <p>
@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           3. Sharing
         </h2>
         <p>
@@ -40,7 +40,7 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           4. Security
         </h2>
         <p>
@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           5. Retention
         </h2>
         <p>
@@ -58,7 +58,7 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           6. Contact
         </h2>
         <p>

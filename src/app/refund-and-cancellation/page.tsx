@@ -14,7 +14,7 @@ export default function RefundAndCancellationPage() {
       description="This policy applies to payments made for digital services and product features offered through iConfess."
     >
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           1. Nature of Services
         </h2>
         <p>
@@ -26,7 +26,7 @@ export default function RefundAndCancellationPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           2. Cancellation
         </h2>
         <p>
@@ -35,7 +35,7 @@ export default function RefundAndCancellationPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           3. Refund Eligibility
         </h2>
         <p>Refunds may be considered only in limited situations, including:</p>
@@ -47,7 +47,7 @@ export default function RefundAndCancellationPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           4. Non-Refundable Cases
         </h2>
         <p>Refunds will ordinarily not be granted for:</p>
@@ -60,7 +60,7 @@ export default function RefundAndCancellationPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold" style={{ color: "#f0eeff" }}>
+        <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
           5. Refund Request Process
         </h2>
         <p>

@@ -249,24 +249,13 @@ export default function LoginPage() {
               exit={{ opacity: 0, y: -16 }}
               className="glass rounded-2xl p-5 sm:p-6"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 mb-4">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-4 h-4" style={{ color: "#8f6a46" }} />
                   <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>
                     Recover access
                   </h2>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewMode("login");
-                    resetRecoveryState();
-                  }}
-                  className="text-xs"
-                  style={{ color: "#80664c" }}
-                >
-                  Back to sign in
-                </button>
               </div>
 
               {recoveryStep === "phone" && (
@@ -395,12 +384,28 @@ export default function LoginPage() {
           )}
         </AnimatePresence>
 
-        <p className="text-center text-xs mt-4" style={{ color: "#9b7c5d" }}>
+        <div className="mt-4 flex flex-col items-center gap-2 text-center text-xs" style={{ color: "#9b7c5d" }}>
+          {viewMode === "recover" && (
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode("login");
+                resetRecoveryState();
+              }}
+              className="font-medium"
+              style={{ color: "#80664c" }}
+            >
+              Back to sign in
+            </button>
+          )}
+
+          <p>
           New here?{" "}
           <Link href="/auth/register" className="gradient-text font-medium">
             Create account
           </Link>
-        </p>
+          </p>
+        </div>
       </motion.div>
     </main>
   );

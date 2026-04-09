@@ -270,21 +270,18 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
     return selectedCategories.map((category) => {
       const details = profileDetailsByCategory[category] ?? {};
       const mainPartsByCategory: Record<LocationCategory, string[]> = {
-        COLLEGE: [details.collegeName, details.course, details.branch, details.yearOfPassing],
-        SCHOOL: [details.schoolName, details.board, details.yearOfCompletion],
-        WORKPLACE: [details.companyName, details.department, details.city],
-        GYM: [details.gymName, details.city, details.timing],
-        NEIGHBOURHOOD: [details.premisesName, details.city, details.homeNumber],
+        COLLEGE: [details.branch, details.section, details.yearOfPassing, details.collegeName],
+        SCHOOL: [details.yearOfCompletion, details.schoolName],
+        WORKPLACE: [details.companyName, details.city],
+        GYM: [details.gymName, details.pinCode, details.timing],
+        NEIGHBOURHOOD: [details.homeNumber, details.premisesName, details.city, details.state, details.pinCode],
       };
       const metaPartsByCategory: Record<LocationCategory, string[]> = {
-        COLLEGE: [details.pinCode ? `PIN ${details.pinCode}` : "", details.section ? `Section ${details.section}` : ""],
-        SCHOOL: [details.pinCode ? `PIN ${details.pinCode}` : "", details.section ? `Section ${details.section}` : ""],
+        COLLEGE: [],
+        SCHOOL: [],
         WORKPLACE: [],
-        GYM: [details.pinCode ? `PIN ${details.pinCode}` : ""],
-        NEIGHBOURHOOD: [
-          details.state ? `State ${details.state}` : "",
-          details.pinCode ? `PIN ${details.pinCode}` : "",
-        ],
+        GYM: [],
+        NEIGHBOURHOOD: [],
       };
 
       return {
@@ -369,14 +366,14 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#3f2c1d" }}>Profile</h1>
           </div>
           <button
             type="button"
             onClick={() => setIsEditing((current) => !current)}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium shrink-0"
             style={{
               background: isEditing ? "rgba(198,145,85,0.14)" : "rgba(143,106,70,0.12)",
               border: `1px solid ${isEditing ? "rgba(198,145,85,0.22)" : "rgba(179,148,111,0.24)"}`,
@@ -468,7 +465,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                     </span>
                   </p>
                   <p className="text-xs mt-2 leading-relaxed" style={{ color: "#9b7c5d" }}>
-                    Tap here to open profile editing and add these searchable places.
+                    Complete all fields, even past details, to make your profile easier to find.
                   </p>
                 </div>
                 <div
@@ -541,24 +538,34 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
               <h3 className="font-semibold text-sm" style={{ color: "#3f2c1d" }}>Social Handles</h3>
             </div>
             <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                value={instagramHandle}
-                onChange={(e) => setInstagramHandle(e.target.value)}
-                placeholder="Instagram handle or NA"
-                className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
-                required
-              />
-              <input
-                type="text"
-                value={snapchatHandle}
-                onChange={(e) => setSnapchatHandle(e.target.value)}
-                placeholder="Snapchat handle or NA"
-                className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
-                required
-              />
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
+                  Instagram
+                </label>
+                <input
+                  type="text"
+                  value={instagramHandle}
+                  onChange={(e) => setInstagramHandle(e.target.value)}
+                  placeholder="Instagram handle or NA"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
+                  Snapchat
+                </label>
+                <input
+                  type="text"
+                  value={snapchatHandle}
+                  onChange={(e) => setSnapchatHandle(e.target.value)}
+                  placeholder="Snapchat handle or NA"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
+                  required
+                />
+              </div>
             </div>
           </div>
 

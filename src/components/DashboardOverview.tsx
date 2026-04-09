@@ -1,9 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Compass, Heart, KeyRound, Lock, Mail, Shield, Search } from "lucide-react";
+import { Compass, Heart, KeyRound, Lock, Mail, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { maskPhone } from "@/lib/utils";
 
 type Stat = { label: string; value: number | "locked"; icon: React.ElementType; color: string; note: string };
 
@@ -51,47 +50,6 @@ export default function DashboardOverview({
         <p className="text-sm mt-1" style={{ color: "#735a43" }}>
           Your profile is searchable through {user.searchablePlaces} field{user.searchablePlaces !== 1 ? "s" : ""}. Keep your details sharp so people can find you accurately.
         </p>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08, duration: 0.5 }}
-        className="rounded-2xl p-6 mb-8"
-        style={{
-          background: "linear-gradient(135deg, rgba(214,185,150,0.24) 0%, rgba(255,255,255,0.5) 100%)",
-          border: "1px solid rgba(179,148,111,0.22)",
-        }}
-      >
-        <div className="flex flex-col lg:flex-row items-start justify-between gap-4 lg:gap-6">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "#9b7c5d" }}>
-              Profile Snapshot
-            </p>
-            <h2 className="text-xl sm:text-2xl font-semibold mt-2 break-all sm:break-normal" style={{ color: "#3f2c1d" }}>
-              {maskPhone(user.phone)}
-            </h2>
-            <p className="text-sm mt-2 max-w-xl" style={{ color: "#735a43" }}>
-              Primary profile: {user.primaryCategory.toLowerCase()}. Your confession inbox is {confessionPageUnlocked ? "unlocked" : "still locked"} and your public identity map is currently spread across {user.searchablePlaces} searchable context{user.searchablePlaces !== 1 ? "s" : ""}.
-            </p>
-          </div>
-          <div
-            className="rounded-2xl px-4 py-3 w-full lg:w-auto lg:min-w-[180px]"
-            style={{ background: "rgba(255,251,245,0.72)", border: "1px solid rgba(179,148,111,0.22)" }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4" style={{ color: confessionPageUnlocked ? "#3f9a76" : "#8f6a46" }} />
-              <span className="text-sm font-medium" style={{ color: "#3f2c1d" }}>
-                Inbox Access
-              </span>
-            </div>
-            <p className="text-xs" style={{ color: "#735a43" }}>
-              {confessionPageUnlocked
-                ? "Received confessions can be opened from the inbox."
-                : "Received confessions stay locked until the inbox is unlocked."}
-            </p>
-          </div>
-        </div>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">

@@ -156,25 +156,23 @@ export function getConciseCategorySummary(section: SearchResultProfileSection) {
 
   if (section.key === "COLLEGE") {
     return [
-      detailMap["College Name"],
-      detailMap["Course"],
       detailMap["Branch"],
+      detailMap["Section"],
       detailMap["Year of Passing"],
+      detailMap["College Name"],
     ].filter(Boolean).join(" · ");
   }
 
   if (section.key === "SCHOOL") {
     return [
-      detailMap["School Name"],
-      detailMap["Board"],
       detailMap["Year of Completion"],
+      detailMap["School Name"],
     ].filter(Boolean).join(" · ");
   }
 
   if (section.key === "WORKPLACE") {
     return [
       detailMap["Company Name"],
-      detailMap["Department"],
       detailMap["City"],
     ].filter(Boolean).join(" · ");
   }
@@ -182,15 +180,17 @@ export function getConciseCategorySummary(section: SearchResultProfileSection) {
   if (section.key === "GYM") {
     return [
       detailMap["Gym Name"],
-      detailMap["City"],
+      detailMap["Pin Code"],
       detailMap["Timing"],
     ].filter(Boolean).join(" · ");
   }
 
   return [
+    detailMap["Home Number"],
     detailMap["Society / Premises Name"],
     detailMap["City"],
-    detailMap["Home Number"],
+    detailMap["State"],
+    detailMap["Pin Code"],
   ].filter(Boolean).join(" · ");
 }
 
@@ -444,13 +444,13 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string,
           : null,
       ].filter((section): section is SearchResultProfileSection => Boolean(section)),
       college: u.college
-        ? `${u.college.collegeName} · ${u.college.branch} · ${u.college.yearOfPassing}`
+        ? `${u.college.branch} · ${u.college.section} · ${u.college.yearOfPassing} · ${u.college.collegeName}`
         : null,
-      school: u.school ? `${u.school.schoolName} · ${u.school.yearOfCompletion}` : null,
+      school: u.school ? `${u.school.yearOfCompletion} · ${u.school.schoolName}` : null,
       workplace: u.workplace ? `${u.workplace.companyName} · ${u.workplace.city}` : null,
-      gym: u.gym ? `${u.gym.gymName} · ${u.gym.city}` : null,
+      gym: u.gym ? `${u.gym.gymName} · ${u.gym.pinCode} · ${u.gym.timing}` : null,
       neighbourhood: u.neighbourhood
-        ? `${u.neighbourhood.premisesName} · ${u.neighbourhood.city} · ${u.neighbourhood.homeNumber}`
+        ? `${u.neighbourhood.homeNumber} · ${u.neighbourhood.premisesName} · ${u.neighbourhood.city} · ${u.neighbourhood.state} · ${u.neighbourhood.pinCode}`
         : null,
       };
     });
@@ -464,14 +464,17 @@ export function buildProfileMatchContext(
   const entries: string[] = [];
 
   if (location === "COLLEGE") {
-    if (details.collegeName && result.college) entries.push(result.college.split(" · ")[0]);
-    if (details.branch && result.college) entries.push(result.college.split(" · ")[1] ?? "");
-    if (details.yearOfPassing && result.college) entries.push(result.college.split(" · ")[2] ?? "");
+    const [branch, section, yearOfPassing, collegeName] = result.college?.split(" · ") ?? [];
+    if (details.branch && branch) entries.push(branch);
+    if (details.section && section) entries.push(section);
+    if (details.yearOfPassing && yearOfPassing) entries.push(yearOfPassing);
+    if (details.collegeName && collegeName) entries.push(collegeName);
   }
 
   if (location === "SCHOOL" && result.school) {
-    if (details.schoolName) entries.push(result.school.split(" · ")[0]);
-    if (details.yearOfCompletion) entries.push(result.school.split(" · ")[1] ?? "");
+    const [yearOfCompletion, schoolName] = result.school.split(" · ");
+    if (details.yearOfCompletion && yearOfCompletion) entries.push(yearOfCompletion);
+    if (details.schoolName && schoolName) entries.push(schoolName);
   }
 
   if (location === "WORKPLACE" && result.workplace) {
@@ -481,26 +484,25 @@ export function buildProfileMatchContext(
   }
 
   if (location === "GYM" && result.gym) {
-    const [gymName, city] = result.gym.split(" · ");
-    if (details.gymName) entries.push(gymName);
-    if (details.city && city) entries.push(city);
+    const [gymName, pinCode, timing] = result.gym.split(" · ");
+    if (details.gymName && gymName) entries.push(gymName);
+    if (details.pinCode && pinCode) entries.push(pinCode);
+    if (details.timing && timing) entries.push(timing);
   }
 
   if (location === "NEIGHBOURHOOD" && result.neighbourhood) {
-    const [premisesName, city, homeNumber] = result.neighbourhood.split(" · ");
-    if (details.premisesName) entries.push(premisesName);
-    if (details.city && city) entries.push(city);
+    const [homeNumber, premisesName, city, state, pinCode] = result.neighbourhood.split(" · ");
     if (details.homeNumber && homeNumber) entries.push(homeNumber);
+    if (details.premisesName && premisesName) entries.push(premisesName);
+    if (details.city && city) entries.push(city);
+    if (details.state && state) entries.push(state);
+    if (details.pinCode && pinCode) entries.push(pinCode);
   }
 
   if (details.fullName) entries.push(result.name);
-  if (details.pinCode) entries.push(`PIN ${details.pinCode}`);
-  if (details.course) entries.push(details.course);
-  if (details.section) entries.push(details.section);
+    if (details.course) entries.push(details.course);
   if (details.department) entries.push(details.department);
-  if (details.state) entries.push(details.state);
   if (details.board) entries.push(details.board);
-  if (details.timing) entries.push(details.timing);
 
   return entries.filter(Boolean);
 }

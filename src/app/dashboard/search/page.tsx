@@ -110,25 +110,23 @@ function getConciseCategorySummary(section: SearchResultProfileSection) {
 
   if (section.key === "COLLEGE") {
     return [
-      detailMap["College Name"],
-      detailMap["Course"],
       detailMap["Branch"],
+      detailMap["Section"],
       detailMap["Year of Passing"],
+      detailMap["College Name"],
     ].filter(Boolean).join(" · ");
   }
 
   if (section.key === "SCHOOL") {
     return [
-      detailMap["School Name"],
-      detailMap["Board"],
       detailMap["Year of Completion"],
+      detailMap["School Name"],
     ].filter(Boolean).join(" · ");
   }
 
   if (section.key === "WORKPLACE") {
     return [
       detailMap["Company Name"],
-      detailMap["Department"],
       detailMap["City"],
     ].filter(Boolean).join(" · ");
   }
@@ -136,15 +134,17 @@ function getConciseCategorySummary(section: SearchResultProfileSection) {
   if (section.key === "GYM") {
     return [
       detailMap["Gym Name"],
-      detailMap["City"],
+      detailMap["Pin Code"],
       detailMap["Timing"],
     ].filter(Boolean).join(" · ");
   }
 
   return [
+    detailMap["Home Number"],
     detailMap["Society / Premises Name"],
     detailMap["City"],
-    detailMap["Home Number"],
+    detailMap["State"],
+    detailMap["Pin Code"],
   ].filter(Boolean).join(" · ");
 }
 
