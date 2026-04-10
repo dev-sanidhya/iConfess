@@ -31,13 +31,6 @@ function getBooleanField(record: Record<string, Prisma.JsonValue> | null, key: s
   return typeof value === "boolean" ? value : false;
 }
 
-export function getManualPaymentConfig() {
-  return {
-    upiId: process.env.NEXT_PUBLIC_UPI_ID ?? process.env.MANUAL_PAYMENT_UPI_ID ?? "",
-    payeeName: process.env.NEXT_PUBLIC_UPI_PAYEE ?? process.env.MANUAL_PAYMENT_UPI_PAYEE ?? "iConfess",
-  };
-}
-
 export function normalizeTransactionReference(reference: string) {
   return reference.trim().replace(/\s+/g, "").toUpperCase();
 }
@@ -196,15 +189,28 @@ async function applyUnlockProfileInsights(payment: Payment) {
     throw new Error("Missing target user id for profile insights payment");
   }
 
-  const existing = await prisma.unlockedProfileInsight.findFirst({
-    where: {
-      viewerId: payment.userId,
-      targetUserId,
-    },
-    orderBy: { unlockedAt: "desc" },
-  });
+  const [existing, latestConfession] = await Promise.all([
+    prisma.unlockedProfileInsight.findFirst({
+      where: {
+        viewerId: payment.userId,
+        targetUserId,
+      },
+      orderBy: { unlockedAt: "desc" },
+    }),
+    prisma.confession.findFirst({
+      where: {
+        targetId: targetUserId,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
+  ]);
 
-  if (existing) {
+  if (!latestConfession) {
+    throw new Error("No insights are available for this profile");
+  }
+
+  if (existing && latestConfession.createdAt <= existing.unlockedAt) {
     return;
   }
 

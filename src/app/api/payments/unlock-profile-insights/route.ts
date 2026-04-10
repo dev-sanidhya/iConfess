@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { getPaymentAmount } from "@/lib/payment-catalog.server";
 import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
-import { pricing } from "@/lib/pricing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,6 +26,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Target not found" }, { status: 404 });
     }
 
+    const latestConfession = await prisma.confession.findFirst({
+      where: {
+        targetId: targetUserId,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+
+    if (!latestConfession) {
+      return NextResponse.json({ error: "No insights available for this profile yet" }, { status: 400 });
+    }
+
     const existingUnlock = await prisma.unlockedProfileInsight.findFirst({
       where: {
         viewerId: user.id,
@@ -33,7 +45,8 @@ export async function POST(req: NextRequest) {
       },
       orderBy: { unlockedAt: "desc" },
     });
-    if (existingUnlock) {
+
+    if (existingUnlock && latestConfession.createdAt <= existingUnlock.unlockedAt) {
       return NextResponse.json({ success: true, alreadyUnlocked: true });
     }
 
@@ -46,14 +59,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         pendingReview: true,
+        alreadyPending: true,
         paymentId: existingPending.id,
       });
     }
 
+    const viewInsightsAmount = await getPaymentAmount("viewInsights");
     const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "UNLOCK_PROFILE_INSIGHTS",
-      amount: pricing.viewInsights,
+      amount: viewInsightsAmount,
       transactionReference,
       metadata: { targetUserId, source: "unlock-profile-insights" },
     });

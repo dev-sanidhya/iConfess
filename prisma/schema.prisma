@@ -208,6 +208,15 @@ model Payment {
   @@index([status, createdAt])
 }
 
+model PaymentServiceConfig {
+  id            String            @id @default(cuid())
+  service       PaymentServiceKey @unique
+  amount        Int
+  qrCodeDataUrl String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
 model VisitSession {
   id             String         @id @default(cuid())
   userId         String?
@@ -318,6 +327,16 @@ enum PaymentType {
   UNLOCK_CONFESSION_PAGE
   UNLOCK_PROFILE_INSIGHTS
   SELF_CONFESSION
+}
+
+enum PaymentServiceKey {
+  SEND_CONFESSION
+  SELF_CONFESSION
+  UNLOCK_CONFESSION_CARD
+  UNLOCK_CONFESSION_CARD_WITH_PAGE
+  UNLOCK_CONFESSION_PAGE
+  UNLOCK_PROFILE_INSIGHTS
+  IDENTITY_REVEAL
 }
 
 enum PaymentStatus {

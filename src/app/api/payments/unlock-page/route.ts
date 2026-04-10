@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { getPaymentAmount } from "@/lib/payment-catalog.server";
 import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
-import { pricing } from "@/lib/pricing";
 
 export async function POST(req: Request) {
   try {
@@ -20,15 +20,17 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         pendingReview: true,
+        alreadyPending: true,
         paymentId: existingPending.id,
       });
     }
 
     const { transactionReference } = await req.json();
+    const unlockPageAmount = await getPaymentAmount("unlockReceivedConfessionPage");
     const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "UNLOCK_CONFESSION_PAGE",
-      amount: pricing.unlockReceivedConfessionPage,
+      amount: unlockPageAmount,
       transactionReference,
       metadata: { source: "unlock-page" },
     });

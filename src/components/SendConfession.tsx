@@ -12,11 +12,12 @@ import {
   type LocationCategory,
   type SearchResultProfileSection,
 } from "@/lib/matching";
-import { formatInr, pricing } from "@/lib/pricing";
+import { formatInr } from "@/lib/pricing";
 import { type SharedProfileOption } from "@/lib/shared-profile-context";
 import { toast } from "sonner";
 import { normalizeComparableFullName, normalizeComparableHandle } from "@/lib/confessions";
 import PhoneNumberField from "@/components/PhoneNumberField";
+import { usePaymentCatalog } from "@/lib/use-payment-catalog";
 import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
 
 type FlowType = "profile" | "phone" | "social";
@@ -187,6 +188,8 @@ export default function SendConfession({
   sharedProfileOptions: SharedProfileOption[];
   currentUser: CurrentUserSummary;
 }) {
+  const paymentCatalog = usePaymentCatalog();
+  const currentPricing = paymentCatalog.pricing;
   const [flow, setFlow] = useState<FlowType>("phone");
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | null>(null);
   const [matchDetails, setMatchDetails] = useState<Record<string, string>>({});
@@ -364,10 +367,10 @@ export default function SendConfession({
     targetPhone,
   ]);
   const sendPriceLabel = selfConfessionCandidate
-    ? formatInr(pricing.sendConfession)
+    ? formatInr(currentPricing.sendConfession)
     : sentCount === 0
       ? "Free"
-      : formatInr(pricing.sendConfession);
+      : formatInr(currentPricing.sendConfession);
 
   function validateForm() {
     if (!message.trim()) {
@@ -457,7 +460,7 @@ export default function SendConfession({
 
       if (res.status === 402 || data.requiresPayment) {
         setShowPaymentDialog(true);
-        toast.info(`Payment required: ${formatInr(data.amount ?? pricing.sendConfession)}. Submit your UTR after payment.`);
+        toast.info(`Payment required: ${formatInr(data.amount ?? currentPricing.sendConfession)}. Submit your UTR after payment.`);
         return;
       }
 
@@ -1133,10 +1136,11 @@ export default function SendConfession({
         title={selfConfessionCandidate ? "Pay To Send This To Yourself" : "Pay To Send This Confession"}
         description={
           selfConfessionCandidate
-            ? `Pay ${formatInr(pricing.sendConfession)} and submit the UTR. Your confession-to-yourself card is created now but only delivered after payment review.`
-            : `Pay ${formatInr(pricing.sendConfession)} and submit the UTR. The confession will only be delivered after payment review.`
+            ? `Pay ${formatInr(currentPricing.sendConfession)} and submit the UTR. Your confession-to-yourself card is created now but only delivered after payment review.`
+            : `Pay ${formatInr(currentPricing.sendConfession)} and submit the UTR. The confession will only be delivered after payment review.`
         }
-        amount={pricing.sendConfession}
+        amount={currentPricing.sendConfession}
+        qrCodeDataUrl={paymentCatalog.qrCodes.sendConfession}
         pending={loading}
         submitLabel="Submit Send Payment"
         onClose={() => setShowPaymentDialog(false)}

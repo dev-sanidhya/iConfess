@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/LegalPageShell";
-import { formatInr, getCombinedReceivedUnlockPrice, pricing } from "@/lib/pricing";
+import { getPaymentCatalog } from "@/lib/payment-catalog.server";
+import { formatInr, getCombinedReceivedUnlockPrice } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Pricing | iConfess",
   description: "Official pricing for paid iConfess features.",
 };
 
-export default function PricingPage() {
+export default async function PricingPage() {
   const exampleCards = 2;
+  const { pricing } = await getPaymentCatalog();
 
   return (
     <LegalPageShell
@@ -64,6 +66,17 @@ export default function PricingPage() {
               Unlocks the page for {pricing.unlockReceivedConfessionPageMonths} months. Individual cards are still paid separately.
             </p>
           </div>
+          <div className="rounded-2xl p-5" style={{ background: "rgba(255,251,245,0.78)", border: "1px solid rgba(179,148,111,0.22)" }}>
+            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>
+              First card + page unlock
+            </p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: "#3f2c1d" }}>
+              {formatInr(pricing.unlockReceivedConfessionCardWithPage)}
+            </p>
+            <p className="mt-2 text-sm" style={{ color: "#735a43" }}>
+              Used when the user unlocks a received card before unlocking the My Confessions page.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -76,6 +89,10 @@ export default function PricingPage() {
           {formatInr(pricing.unlockReceivedConfessionPage)} for {pricing.unlockReceivedConfessionPageMonths} months.
           Second, each received confession card can be unlocked individually for{" "}
           {formatInr(pricing.unlockReceivedConfessionCard)}.
+        </p>
+        <p>
+          If the page is still locked and the user unlocks a card directly, the bundled first-time unlock amount is{" "}
+          {formatInr(pricing.unlockReceivedConfessionCardWithPage)}.
         </p>
         <p>
           Under the current model, individually purchased cards remain purchased, but they are viewable only while the received confessions page access is active. If page access expires, the user must renew the page unlock to view those previously purchased cards again.

@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/LegalPageShell";
-import { formatInr, pricing } from "@/lib/pricing";
+import { getPaymentCatalog } from "@/lib/payment-catalog.server";
+import { formatInr } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions | iConfess",
   description: "Terms and conditions governing use of iConfess.",
 };
 
-export default function TermsAndConditionsPage() {
+export default async function TermsAndConditionsPage() {
+  const { pricing } = await getPaymentCatalog();
+
   return (
     <LegalPageShell
       title="Terms and Conditions"

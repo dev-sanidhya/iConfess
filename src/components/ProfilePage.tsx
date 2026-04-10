@@ -7,7 +7,8 @@ import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { toast } from "sonner";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 import { getDisplayUserCode, getErrorMessage, getResponseErrorMessage, maskPhone } from "@/lib/utils";
-import { formatInr, pricing } from "@/lib/pricing";
+import { formatInr } from "@/lib/pricing";
+import { usePaymentCatalog } from "@/lib/use-payment-catalog";
 
 type SocialPlatform = "INSTAGRAM" | "SNAPCHAT";
 
@@ -294,6 +295,8 @@ function SocialOwnershipCard({
 }
 
 export default function ProfilePage({ user }: { user: UserProfile }) {
+  const paymentCatalog = usePaymentCatalog();
+  const currentPricing = paymentCatalog.pricing;
   const shortId = getDisplayUserCode(user.id, user.publicCode);
   const initialSelectedCategories = useMemo(() => getSelectedCategories(user), [user]);
   const initialInstagramPendingRequest = useMemo(
@@ -558,6 +561,12 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(getResponseErrorMessage(data, "Failed to submit payment"));
+      if (data.alreadyPending) {
+        toast.success("Your earlier self-claim payment is already pending review.");
+        setShowSelfClaimPaymentDialog(false);
+        setPendingSelfClaimId(null);
+        return;
+      }
       toast.success("Payment submitted for review.");
       setShowSelfClaimPaymentDialog(false);
       setPendingSelfClaimId(null);
@@ -1238,7 +1247,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                   These details match one of your pending confession cards, so this card is now treated as a Confession to Yourself.
                 </p>
                 <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
-                  This specific card was originally your free first confession to someone else, so it cannot be claimed as yours until you pay {formatInr(pricing.sendConfession)}.
+                  This specific card was originally your free first confession to someone else, so it cannot be claimed as yours until you pay {formatInr(currentPricing.sendConfession)}.
                 </p>
                 <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
                   Once paid, it will move into your Received section, stay locked like a normal received card, and stop counting as a confession sent to others.
@@ -1260,7 +1269,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
                   style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
-                  {processingSelfClaim ? "Processing..." : `Continue To Payment (${formatInr(pricing.sendConfession)})`}
+                  {processingSelfClaim ? "Processing..." : `Continue To Payment (${formatInr(currentPricing.sendConfession)})`}
                 </button>
               </div>
             </motion.div>
@@ -1270,8 +1279,9 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
       <ManualPaymentDialog
         open={showSelfClaimPaymentDialog && Boolean(pendingSelfClaimId)}
         title="Pay To Claim This As Yours"
-        description={`Pay ${formatInr(pricing.selfConfession)} and submit the UTR so staff can convert this card into a Confession to Yourself after review.`}
-        amount={pricing.selfConfession}
+        description={`Pay ${formatInr(currentPricing.selfConfession)} and submit the UTR so staff can convert this card into a Confession to Yourself after review.`}
+        amount={currentPricing.selfConfession}
+        qrCodeDataUrl={paymentCatalog.qrCodes.selfConfession}
         pending={processingSelfClaim}
         submitLabel="Submit Self-Claim Payment"
         onClose={() => setShowSelfClaimPaymentDialog(false)}

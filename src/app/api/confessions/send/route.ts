@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { Gender, Prisma } from "@prisma/client";
 import { getSession, normalizeSocialHandle } from "@/lib/auth";
 import { findMatches } from "@/lib/matching";
+import { getPaymentAmount } from "@/lib/payment-catalog.server";
 import { createManualPaymentRequest } from "@/lib/payments";
-import { pricing } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { buildSharedProfileOptionsFromUser, getSharedProfileOptionByCategory } from "@/lib/shared-profile-context";
 import { addDays } from "@/lib/utils";
@@ -689,11 +689,13 @@ async function queueSendPaymentIfNeeded(params: {
     return null;
   }
 
+  const sendConfessionAmount = await getPaymentAmount("sendConfession");
+
   if (!params.transactionReference || typeof params.transactionReference !== "string") {
     return NextResponse.json(
       {
         requiresPayment: true,
-        amount: pricing.sendConfession,
+        amount: sendConfessionAmount,
       },
       { status: 402 }
     );
@@ -702,7 +704,7 @@ async function queueSendPaymentIfNeeded(params: {
   await createManualPaymentRequest({
     userId: params.userId,
     type: "SEND_CONFESSION",
-    amount: pricing.sendConfession,
+    amount: sendConfessionAmount,
     transactionReference: params.transactionReference,
     metadata: {
       confessionId: params.confessionId,

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { getPaymentAmount } from "@/lib/payment-catalog.server";
 import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
-import { pricing } from "@/lib/pricing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,16 +36,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         pendingReview: true,
+        alreadyPending: true,
         paymentId: existingPending.id,
       });
     }
+
+    const [unlockCardAmount, unlockCardWithPageAmount] = await Promise.all([
+      getPaymentAmount("unlockReceivedConfessionCard"),
+      getPaymentAmount("unlockReceivedConfessionCardWithPage"),
+    ]);
 
     const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "UNLOCK_CONFESSION_CARD",
       amount: user.confessionPageUnlocked
-        ? pricing.unlockReceivedConfessionCard
-        : pricing.unlockReceivedConfessionCard + pricing.unlockReceivedConfessionPage,
+        ? unlockCardAmount
+        : unlockCardWithPageAmount,
       transactionReference,
       metadata: {
         confessionId,

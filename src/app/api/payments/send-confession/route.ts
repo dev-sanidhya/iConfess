@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PaymentStatus } from "@prisma/client";
 import { getSession } from "@/lib/auth";
+import { getPaymentAmount } from "@/lib/payment-catalog.server";
 import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
-import { pricing } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         pendingReview: true,
+        alreadyPending: true,
         paymentId: existingPending.id,
       });
     }
@@ -73,10 +74,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "This confession payment is already approved" }, { status: 400 });
     }
 
+    const sendConfessionAmount = await getPaymentAmount("sendConfession");
     const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "SEND_CONFESSION",
-      amount: pricing.sendConfession,
+      amount: sendConfessionAmount,
       transactionReference,
       metadata: {
         confessionId,

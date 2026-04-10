@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/LegalPageShell";
-import { formatInr, pricing } from "@/lib/pricing";
+import { getPaymentCatalog } from "@/lib/payment-catalog.server";
+import { formatInr } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Refund & Cancellation | iConfess",
   description: "Refund and cancellation policy for digital purchases on iConfess.",
 };
 
-export default function RefundAndCancellationPage() {
+export default async function RefundAndCancellationPage() {
+  const { pricing } = await getPaymentCatalog();
+
   return (
     <LegalPageShell
       title="Refund and Cancellation Policy"

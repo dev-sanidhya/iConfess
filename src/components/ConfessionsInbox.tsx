@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Inbox, Lock, MessageSquare, Send, Sparkles } from "lucide-react";
 import ManualPaymentDialog from "@/components/ManualPaymentDialog";
-import { formatInr, pricing } from "@/lib/pricing";
+import { formatInr, type PricingShape } from "@/lib/pricing";
 import { toast } from "sonner";
 import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
 import { PaymentStatus } from "@prisma/client";
+import { usePaymentCatalog } from "@/lib/use-payment-catalog";
 
 type Confession = {
   id: string;
@@ -33,7 +34,6 @@ type Confession = {
 };
 
 type TabKey = "received" | "sent";
-const identityRevealPrice = 1499;
 
 function formatGenderLabel(gender: "MALE" | "FEMALE" | "OTHER" | null) {
   if (!gender) return null;
@@ -57,18 +57,18 @@ function getSentCardStatus(confession: Confession) {
   };
 }
 
-function getIdentityRevealPricing(pageUnlocked: boolean, cardUnlocked: boolean) {
+function getIdentityRevealPricing(pageUnlocked: boolean, cardUnlocked: boolean, currentPricing: PricingShape) {
   const needsPageUnlock = !pageUnlocked;
   const needsCardUnlock = !cardUnlocked;
   const total =
-    identityRevealPrice +
-    (needsCardUnlock ? pricing.unlockReceivedConfessionCard : 0) +
-    (needsPageUnlock ? pricing.unlockReceivedConfessionPage : 0);
+    currentPricing.identityReveal +
+    (needsCardUnlock ? currentPricing.unlockReceivedConfessionCard : 0) +
+    (needsPageUnlock ? currentPricing.unlockReceivedConfessionPage : 0);
 
   if (!needsPageUnlock && !needsCardUnlock) {
     return {
       total,
-      summary: `This mutual identity reveal will cost ${formatInr(identityRevealPrice)} for you.`,
+      summary: `This mutual identity reveal will cost ${formatInr(currentPricing.identityReveal)} for you.`,
       detail: "Your My Confessions page and this confession card are already unlocked, so only the identity reveal charge applies in your case.",
     };
   }
@@ -77,7 +77,7 @@ function getIdentityRevealPricing(pageUnlocked: boolean, cardUnlocked: boolean) 
     return {
       total,
       summary: `This mutual identity reveal will cost ${formatInr(total)} for you.`,
-      detail: `That includes ${formatInr(identityRevealPrice)} for identity reveal and ${formatInr(pricing.unlockReceivedConfessionCard)} to unlock this confession card.`,
+      detail: `That includes ${formatInr(currentPricing.identityReveal)} for identity reveal and ${formatInr(currentPricing.unlockReceivedConfessionCard)} to unlock this confession card.`,
     };
   }
 
@@ -85,14 +85,14 @@ function getIdentityRevealPricing(pageUnlocked: boolean, cardUnlocked: boolean) 
     return {
       total,
       summary: `This mutual identity reveal will cost ${formatInr(total)} for you.`,
-      detail: `That includes ${formatInr(identityRevealPrice)} for identity reveal and ${formatInr(pricing.unlockReceivedConfessionPage)} to unlock your My Confessions page.`,
+      detail: `That includes ${formatInr(currentPricing.identityReveal)} for identity reveal and ${formatInr(currentPricing.unlockReceivedConfessionPage)} to unlock your My Confessions page.`,
     };
   }
 
   return {
     total,
     summary: `This mutual identity reveal will cost ${formatInr(total)} for you.`,
-    detail: `That includes ${formatInr(identityRevealPrice)} for identity reveal, ${formatInr(pricing.unlockReceivedConfessionCard)} to unlock this confession card, and ${formatInr(pricing.unlockReceivedConfessionPage)} to unlock your My Confessions page.`,
+    detail: `That includes ${formatInr(currentPricing.identityReveal)} for identity reveal, ${formatInr(currentPricing.unlockReceivedConfessionCard)} to unlock this confession card, and ${formatInr(currentPricing.unlockReceivedConfessionPage)} to unlock your My Confessions page.`,
   };
 }
 
@@ -114,6 +114,7 @@ function EmptyState({ tab }: { tab: TabKey }) {
 function ConfessionCard({
   confession,
   pageUnlocked,
+  pricing,
   onUnlockCard,
   onReply,
   onRevealConsent,
@@ -121,6 +122,7 @@ function ConfessionCard({
 }: {
   confession: Confession;
   pageUnlocked: boolean;
+  pricing: PricingShape;
   onUnlockCard: (id: string) => Promise<void>;
   onReply: (id: string, reply: string) => Promise<void>;
   onRevealConsent: (id: string) => void;
@@ -131,7 +133,9 @@ function ConfessionCard({
   const [submitting, setSubmitting] = useState(false);
   const isReceived = confession.direction === "received";
   const canRead = !isReceived || (pageUnlocked && confession.isUnlocked);
-  const unlockCardPrice = pageUnlocked ? pricing.unlockReceivedConfessionCard : pricing.unlockReceivedConfessionCard + pricing.unlockReceivedConfessionPage;
+  const unlockCardPrice = pageUnlocked
+    ? pricing.unlockReceivedConfessionCard
+    : pricing.unlockReceivedConfessionCardWithPage;
   const isSent = confession.direction === "sent";
   const hasConsented = isReceived ? confession.targetRevealConsent : confession.senderRevealConsent;
   const identityLabel = isSent
@@ -350,6 +354,8 @@ export default function ConfessionsInbox({
   sentConfessions: Confession[];
   pageUnlocked: boolean;
 }) {
+  const paymentCatalog = usePaymentCatalog();
+  const currentPricing = paymentCatalog.pricing;
   const [activeTab, setActiveTab] = useState<TabKey>("received");
   const [receivedItems, setReceivedItems] = useState(receivedConfessions);
   const [sentItems, setSentItems] = useState(sentConfessions);
@@ -366,7 +372,7 @@ export default function ConfessionsInbox({
   const [revealingConfessionId, setRevealingConfessionId] = useState<string | null>(null);
   const [currentPageUnlocked] = useState(pageUnlocked);
   const revealPricing = pendingRevealConfession
-    ? getIdentityRevealPricing(currentPageUnlocked, pendingRevealConfession.isUnlocked)
+    ? getIdentityRevealPricing(currentPageUnlocked, pendingRevealConfession.isUnlocked, currentPricing)
     : null;
   const visibleItems = useMemo(
     () => (activeTab === "received" ? receivedItems : sentItems),
@@ -379,7 +385,7 @@ export default function ConfessionsInbox({
   const shouldLockEntirePage = !currentPageUnlocked && lockedReceivedCount === 0;
 
   async function handleUnlockPage() {
-    setPaymentDialog({ kind: "page", amount: pricing.unlockReceivedConfessionPage });
+    setPaymentDialog({ kind: "page", amount: currentPricing.unlockReceivedConfessionPage });
   }
 
   async function submitUnlockPagePayment(transactionReference: string) {
@@ -392,6 +398,16 @@ export default function ConfessionsInbox({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(getResponseErrorMessage(data, "Payment request failed"));
+      if (data.alreadyUnlocked) {
+        toast.success("Your My Confessions page is already unlocked.");
+        setPaymentDialog(null);
+        return;
+      }
+      if (data.alreadyPending) {
+        toast.success("Your earlier page unlock payment is already pending review.");
+        setPaymentDialog(null);
+        return;
+      }
       toast.success("Payment submitted for review.");
       setPaymentDialog(null);
     } catch (err) {
@@ -411,6 +427,16 @@ export default function ConfessionsInbox({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(getResponseErrorMessage(data, "Payment request failed"));
+      if (data.alreadyUnlocked) {
+        toast.success("This confession card is already unlocked.");
+        setPaymentDialog(null);
+        return;
+      }
+      if (data.alreadyPending) {
+        toast.success("Your earlier card unlock payment is already pending review.");
+        setPaymentDialog(null);
+        return;
+      }
       toast.success("Payment submitted for review.");
       setPaymentDialog(null);
     } catch (err) {
@@ -429,7 +455,7 @@ export default function ConfessionsInbox({
     setPaymentDialog({
       kind: "card",
       confessionId,
-      amount: pricing.unlockReceivedConfessionCard,
+      amount: currentPricing.unlockReceivedConfessionCard,
     });
   }
 
@@ -441,8 +467,8 @@ export default function ConfessionsInbox({
       kind: "card",
       confessionId,
       amount: currentPageUnlocked
-        ? pricing.unlockReceivedConfessionCard
-        : pricing.unlockReceivedConfessionCard + pricing.unlockReceivedConfessionPage,
+        ? currentPricing.unlockReceivedConfessionCard
+        : currentPricing.unlockReceivedConfessionCardWithPage,
     });
   }
 
@@ -498,7 +524,7 @@ export default function ConfessionsInbox({
     setPaymentDialog({
       kind: "send",
       confessionId: confession.id,
-      amount: pricing.sendConfession,
+      amount: currentPricing.sendConfession,
     });
   }
 
@@ -511,6 +537,11 @@ export default function ConfessionsInbox({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(getResponseErrorMessage(data, "Payment request failed"));
+      if (data.alreadyPending) {
+        toast.success("Your earlier confession payment is already pending review.");
+        setPaymentDialog(null);
+        return;
+      }
       toast.success("Payment submitted for review.");
       setSentItems((prev) =>
         prev.map((item) =>
@@ -548,7 +579,7 @@ export default function ConfessionsInbox({
             Unlock My Confessions
           </h2>
           <p className="text-sm mt-3 max-w-xl mx-auto leading-relaxed" style={{ color: "#735a43" }}>
-            Unlock this page to access your sent and received confessions for next {pricing.unlockReceivedConfessionPageMonths} months. Each received card must be unlocked separately.
+            Unlock this page to access your sent and received confessions for next {currentPricing.unlockReceivedConfessionPageMonths} months. Each received card must be unlocked separately.
           </p>
           <button
             onClick={handleUnlockPage}
@@ -557,7 +588,7 @@ export default function ConfessionsInbox({
             style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
           >
             <Lock className="w-4 h-4" />
-            {unlockingPage ? "Processing..." : `Unlock for ${pricing.unlockReceivedConfessionPageMonths} Months (${formatInr(pricing.unlockReceivedConfessionPage)})`}
+            {unlockingPage ? "Processing..." : `Unlock for ${currentPricing.unlockReceivedConfessionPageMonths} Months (${formatInr(currentPricing.unlockReceivedConfessionPage)})`}
           </button>
         </div>
       ) : (
@@ -595,6 +626,7 @@ export default function ConfessionsInbox({
                 key={confession.id}
                 confession={confession}
                 pageUnlocked={currentPageUnlocked}
+                pricing={currentPricing}
                 onUnlockCard={handleUnlockCard}
                 onReply={handleReply}
                 onRevealConsent={requestRevealConsent}
@@ -625,17 +657,17 @@ export default function ConfessionsInbox({
                 Confirm This Unlock
               </h2>
               <p className="text-sm mt-3 leading-relaxed" style={{ color: "#735a43" }}>
-                This payment is {formatInr(1299)} in total.
+                This payment is {formatInr(currentPricing.unlockReceivedConfessionCardWithPage)} in total.
               </p>
               <div
                 className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
                 style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
               >
                 <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
-                  {formatInr(999)} to unlock this card permanently.
+                  {formatInr(currentPricing.unlockReceivedConfessionCard)} to unlock this card permanently.
                 </p>
                 <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
-                  {formatInr(300)} unlocks your My Confessions page for the next {pricing.unlockReceivedConfessionPageMonths} months, so you won&apos;t pay this page-access amount again for other cards during that period.
+                  {formatInr(currentPricing.unlockReceivedConfessionPage)} unlocks your My Confessions page for the next {currentPricing.unlockReceivedConfessionPageMonths} months, so you won&apos;t pay this page-access amount again for other cards during that period.
                 </p>
               </div>
               <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
@@ -665,8 +697,9 @@ export default function ConfessionsInbox({
       <ManualPaymentDialog
         open={paymentDialog?.kind === "page"}
         title="Unlock My Confessions"
-        description={`Pay ${formatInr(pricing.unlockReceivedConfessionPage)} to unlock your inbox page for ${pricing.unlockReceivedConfessionPageMonths} months.`}
-        amount={pricing.unlockReceivedConfessionPage}
+        description={`Pay ${formatInr(currentPricing.unlockReceivedConfessionPage)} to unlock your inbox page for ${currentPricing.unlockReceivedConfessionPageMonths} months.`}
+        amount={currentPricing.unlockReceivedConfessionPage}
+        qrCodeDataUrl={paymentCatalog.qrCodes.unlockReceivedConfessionPage}
         pending={unlockingPage}
         submitLabel="Submit Page Payment"
         onClose={() => setPaymentDialog(null)}
@@ -677,11 +710,16 @@ export default function ConfessionsInbox({
         open={paymentDialog?.kind === "card"}
         title="Unlock Confession Card"
         description={
-          paymentDialog?.kind === "card" && paymentDialog.amount === pricing.unlockReceivedConfessionCard
-            ? `Pay ${formatInr(pricing.unlockReceivedConfessionCard)} to unlock this received confession card.`
-            : `Pay ${formatInr(pricing.unlockReceivedConfessionCard + pricing.unlockReceivedConfessionPage)} to unlock this card and activate your inbox page for ${pricing.unlockReceivedConfessionPageMonths} months.`
+          paymentDialog?.kind === "card" && paymentDialog.amount === currentPricing.unlockReceivedConfessionCard
+            ? `Pay ${formatInr(currentPricing.unlockReceivedConfessionCard)} to unlock this received confession card.`
+            : `Pay ${formatInr(currentPricing.unlockReceivedConfessionCardWithPage)} to unlock this card and activate your inbox page for ${currentPricing.unlockReceivedConfessionPageMonths} months.`
         }
-        amount={paymentDialog?.kind === "card" ? paymentDialog.amount : pricing.unlockReceivedConfessionCard}
+        amount={paymentDialog?.kind === "card" ? paymentDialog.amount : currentPricing.unlockReceivedConfessionCard}
+        qrCodeDataUrl={
+          paymentDialog?.kind === "card" && paymentDialog.amount === currentPricing.unlockReceivedConfessionCard
+            ? paymentCatalog.qrCodes.unlockReceivedConfessionCard
+            : paymentCatalog.qrCodes.unlockReceivedConfessionCardWithPage
+        }
         pending={unlockingCardId !== null}
         submitLabel="Submit Card Payment"
         onClose={() => setPaymentDialog(null)}
@@ -694,8 +732,9 @@ export default function ConfessionsInbox({
       <ManualPaymentDialog
         open={paymentDialog?.kind === "send"}
         title="Retry Confession Payment"
-        description={`Pay ${formatInr(pricing.sendConfession)} and submit your UTR to send this confession for review again.`}
-        amount={pricing.sendConfession}
+        description={`Pay ${formatInr(currentPricing.sendConfession)} and submit your UTR to send this confession for review again.`}
+        amount={currentPricing.sendConfession}
+        qrCodeDataUrl={paymentCatalog.qrCodes.sendConfession}
         submitLabel="Submit Payment"
         onClose={() => setPaymentDialog(null)}
         onSubmit={async (transactionReference) => {
@@ -759,7 +798,7 @@ export default function ConfessionsInbox({
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
                   style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
-                  {revealingConfessionId === pendingRevealConfession.id ? "Processing..." : `Yes, Reveal Identity (${formatInr(revealPricing?.total ?? identityRevealPrice)})`}
+                  {revealingConfessionId === pendingRevealConfession.id ? "Processing..." : `Yes, Reveal Identity (${formatInr(revealPricing?.total ?? currentPricing.identityReveal)})`}
                 </button>
               </div>
             </motion.div>

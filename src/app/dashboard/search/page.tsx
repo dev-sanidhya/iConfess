@@ -13,7 +13,8 @@ import {
   type LocationCategory,
   type SearchResultProfileSection,
 } from "@/lib/matching";
-import { formatInr, pricing } from "@/lib/pricing";
+import { formatInr } from "@/lib/pricing";
+import { usePaymentCatalog } from "@/lib/use-payment-catalog";
 import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
 
 type SearchMode = "profile" | "phone" | "social";
@@ -149,6 +150,8 @@ function getConciseCategorySummary(section: SearchResultProfileSection) {
 }
 
 export default function SearchPage() {
+  const paymentCatalog = usePaymentCatalog();
+  const currentPricing = paymentCatalog.pricing;
   const [mode, setMode] = useState<SearchMode>("profile");
   const [phone, setPhone] = useState("");
   const [platform, setPlatform] = useState<"instagram" | "snapchat">("instagram");
@@ -275,6 +278,22 @@ export default function SearchPage() {
       });
       const unlockData = await unlockRes.json();
       if (!unlockRes.ok) throw new Error(getResponseErrorMessage(unlockData, "Failed to submit payment"));
+      if (unlockData.alreadyUnlocked) {
+        toast.success("Insights are already unlocked for this profile.");
+        setShowInsightPaymentDialog(false);
+        const targetUserId = pendingInsightUnlock.id;
+        setPendingInsightUnlock(null);
+        await loadInsights(targetUserId);
+        return;
+      }
+
+      if (unlockData.alreadyPending) {
+        toast.success("Your earlier insight payment request is already pending review.");
+        setShowInsightPaymentDialog(false);
+        setPendingInsightUnlock(null);
+        return;
+      }
+
       toast.success("Payment submitted for review.");
       setShowInsightPaymentDialog(false);
       setPendingInsightUnlock(null);
@@ -490,13 +509,13 @@ export default function SearchPage() {
                       ? result.profileSections.find((section) => section.key === selectedCategory) ?? null
                       : null;
                   const insights = insightsByUser[result.id];
-                  const confessPriceLabel = viewerSentCount === 0 ? 'Free' : formatInr(pricing.sendConfession);
+                  const confessPriceLabel = viewerSentCount === 0 ? "Free" : formatInr(currentPricing.sendConfession);
                   const insightButtonLabel =
                     result.hasUnlockedInsights
                       ? result.lockedInsightCount > 0
                         ? `View insights (${result.lockedInsightCount} new locked)`
                         : "View insights"
-                      : `View insights (${formatInr(pricing.viewInsights)})`;
+                      : `View insights (${formatInr(currentPricing.viewInsights)})`;
                   const shouldHideSelfConfessionCount = result.isCurrentUser && !result.confessionPageUnlocked;
 
                   return (
@@ -582,7 +601,7 @@ export default function SearchPage() {
                         >
                           {loadingInsightsFor === result.id
                             ? "Loading..."
-                            : `Unlock all new insights (${formatInr(pricing.viewInsights)})`}
+                            : `Unlock all new insights (${formatInr(currentPricing.viewInsights)})`}
                         </button>
                       )}
                       {insights.length === 0 ? (
@@ -700,7 +719,7 @@ export default function SearchPage() {
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
                   style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
-                  {loadingInsightsFor === pendingInsightUnlock.id ? "Processing..." : `Continue To Payment (${formatInr(pricing.viewInsights)})`}
+                  {loadingInsightsFor === pendingInsightUnlock.id ? "Processing..." : `Continue To Payment (${formatInr(currentPricing.viewInsights)})`}
                 </button>
               </div>
             </motion.div>
@@ -710,8 +729,9 @@ export default function SearchPage() {
       <ManualPaymentDialog
         open={showInsightPaymentDialog && Boolean(pendingInsightUnlock)}
         title={pendingInsightUnlock ? `Unlock ${pendingInsightUnlock.name}'s insights` : "Unlock profile insights"}
-        description={`Pay ${formatInr(pricing.viewInsights)} and submit the UTR. Insights unlock only after staff review confirms the payment.`}
-        amount={pricing.viewInsights}
+        description={`Pay ${formatInr(currentPricing.viewInsights)} and submit the UTR. Insights unlock only after staff review confirms the payment.`}
+        amount={currentPricing.viewInsights}
+        qrCodeDataUrl={paymentCatalog.qrCodes.viewInsights}
         pending={loadingInsightsFor !== null}
         submitLabel="Submit Insight Payment"
         onClose={() => setShowInsightPaymentDialog(false)}

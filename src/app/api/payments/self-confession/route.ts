@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { getPaymentAmount } from "@/lib/payment-catalog.server";
 import { createManualPaymentRequest, findExistingPendingManualPayment } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
-import { pricing } from "@/lib/pricing";
 import {
   buildSelfClaimSnapshot,
   confessionMatchesSelfClaim,
@@ -54,14 +54,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         pendingReview: true,
+        alreadyPending: true,
         paymentId: existingPending.id,
       });
     }
 
+    const selfConfessionAmount = await getPaymentAmount("selfConfession");
     const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "SELF_CONFESSION",
-      amount: pricing.selfConfession,
+      amount: selfConfessionAmount,
       transactionReference,
       metadata: { confessionId, source: "self-confession" },
     });
