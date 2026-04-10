@@ -11,7 +11,6 @@ import {
   signToken,
   COOKIE_NAME_EXPORT,
   hashPassword,
-  normalizeSocialHandle,
   generatePublicUserCode,
 } from "@/lib/auth";
 import { parseDateOfBirth } from "@/lib/age";
@@ -37,24 +36,12 @@ export async function POST(req: NextRequest) {
       dateOfBirth,
       password,
       gender,
-      instagramHandle,
-      snapchatHandle,
       primaryCategory,
       selectedCategories,
       profileDetailsByCategory,
     } = await req.json();
     const formattedPhone = formatPhone(phone);
     const parsedDateOfBirth = parseDateOfBirth(dateOfBirth);
-    if (!instagramHandle?.trim() || !snapchatHandle?.trim()) {
-      return NextResponse.json(
-        { error: "Instagram and Snapchat handles are required. Type NA if not available." },
-        { status: 400 }
-      );
-    }
-
-    const normalizedInstagramHandle = normalizeSocialHandle(instagramHandle);
-    const normalizedSnapchatHandle = normalizeSocialHandle(snapchatHandle);
-
     if (!name?.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
@@ -97,24 +84,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User already registered" }, { status: 400 });
     }
 
-    if (normalizedInstagramHandle) {
-      const existingInstagram = await prisma.user.findUnique({
-        where: { instagramHandle: normalizedInstagramHandle },
-      });
-      if (existingInstagram) {
-        return NextResponse.json({ error: "Instagram handle is already taken" }, { status: 400 });
-      }
-    }
-
-    if (normalizedSnapchatHandle) {
-      const existingSnapchat = await prisma.user.findUnique({
-        where: { snapchatHandle: normalizedSnapchatHandle },
-      });
-      if (existingSnapchat) {
-        return NextResponse.json({ error: "Snapchat handle is already taken" }, { status: 400 });
-      }
-    }
-
     const passwordHash = await hashPassword(password);
 
     // Create user and profile in a transaction
@@ -122,8 +91,6 @@ export async function POST(req: NextRequest) {
       const carriedSearchCount = await claimPendingProfileSearchCounts(
         [
           { kind: PendingProfileSearchKind.PHONE, value: formattedPhone },
-          { kind: PendingProfileSearchKind.INSTAGRAM, value: normalizedInstagramHandle },
-          { kind: PendingProfileSearchKind.SNAPCHAT, value: normalizedSnapchatHandle },
         ],
         tx
       );
@@ -136,8 +103,6 @@ export async function POST(req: NextRequest) {
           dateOfBirth: parsedDateOfBirth,
           passwordHash,
           gender: gender as Gender,
-          instagramHandle: normalizedInstagramHandle,
-          snapchatHandle: normalizedSnapchatHandle,
           profileSearchCount: createInitialProfileSearchCount(carriedSearchCount),
           primaryCategory: primaryCategory as LocationCategory,
         },

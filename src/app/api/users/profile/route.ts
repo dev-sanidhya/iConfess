@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PendingProfileSearchKind } from "@prisma/client";
-import { getSession, normalizeSocialHandle } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { type LocationCategory } from "@/lib/matching";
 import { syncUserProfiles } from "@/lib/profile-details";
-import {
-  claimPendingProfileSearchCounts,
-  ensureProfileSearchCountSeeded,
-} from "@/lib/profile-search-count";
 import { prisma } from "@/lib/prisma";
 import {
   buildSelfClaimSnapshot,
@@ -21,26 +16,14 @@ export async function PATCH(req: NextRequest) {
 
     const {
       name,
-      instagramHandle,
-      snapchatHandle,
       primaryCategory,
       selectedCategories,
       profileDetailsByCategory,
     } =
       await req.json();
 
-    const normalizedInstagramHandle = normalizeSocialHandle(instagramHandle ?? "");
-    const normalizedSnapchatHandle = normalizeSocialHandle(snapchatHandle ?? "");
-
     if (!name?.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
-    }
-
-    if (!instagramHandle?.trim() || !snapchatHandle?.trim()) {
-      return NextResponse.json(
-        { error: "Instagram and Snapchat handles are required. Use NA if not available." },
-        { status: 400 }
-      );
     }
 
     const chosenCategories = Array.isArray(selectedCategories)
@@ -61,48 +44,11 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    if (normalizedInstagramHandle) {
-      const duplicateInstagram = await prisma.user.findFirst({
-        where: { instagramHandle: normalizedInstagramHandle, id: { not: session.id } },
-      });
-      if (duplicateInstagram) {
-        return NextResponse.json({ error: "Instagram handle is already taken" }, { status: 400 });
-      }
-    }
-
-    if (normalizedSnapchatHandle) {
-      const duplicateSnapchat = await prisma.user.findFirst({
-        where: { snapchatHandle: normalizedSnapchatHandle, id: { not: session.id } },
-      });
-      if (duplicateSnapchat) {
-        return NextResponse.json({ error: "Snapchat handle is already taken" }, { status: 400 });
-      }
-    }
-
-    const carriedSearchCount = await claimPendingProfileSearchCounts(
-      [
-        { kind: PendingProfileSearchKind.INSTAGRAM, value: normalizedInstagramHandle },
-        { kind: PendingProfileSearchKind.SNAPCHAT, value: normalizedSnapchatHandle },
-      ],
-      prisma
-    );
-
-    if (carriedSearchCount > 0) {
-      const currentSearchCount = await ensureProfileSearchCountSeeded(session.id, prisma);
-      await prisma.user.update({
-        where: { id: session.id },
-        data: {
-          profileSearchCount: currentSearchCount + carriedSearchCount,
-        },
-      });
-    }
 
     await prisma.user.update({
       where: { id: session.id },
       data: {
         name: name.trim(),
-        instagramHandle: normalizedInstagramHandle,
-        snapchatHandle: normalizedSnapchatHandle,
         primaryCategory: primaryCategory as LocationCategory,
       },
     });
@@ -117,6 +63,7 @@ export async function PATCH(req: NextRequest) {
           workplace: true,
           gym: true,
           neighbourhood: true,
+          pendingSocialOwnershipRequests: true,
         },
       }),
       prisma.confession.findMany({

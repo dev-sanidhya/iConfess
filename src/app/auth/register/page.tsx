@@ -24,8 +24,6 @@ function RegisterForm() {
   const [gender, setGender] = useState<Gender | "">("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [instagramHandle, setInstagramHandle] = useState("");
-  const [snapchatHandle, setSnapchatHandle] = useState("");
   const [loading, setLoading] = useState(false);
   const [primaryCategory, setPrimaryCategory] = useState<LocationCategory | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<LocationCategory[]>([]);
@@ -99,8 +97,6 @@ function RegisterForm() {
           dateOfBirth,
           password,
           gender,
-          instagramHandle,
-          snapchatHandle,
           primaryCategory,
           selectedCategories,
           profileDetailsByCategory,
@@ -244,14 +240,8 @@ function RegisterForm() {
                 <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
-                <input type="text" placeholder="Instagram handle or NA" value={instagramHandle} onChange={(e) => setInstagramHandle(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
-                <input type="text" placeholder="Snapchat handle or NA" value={snapchatHandle} onChange={(e) => setSnapchatHandle(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
                 <p className="text-xs" style={{ color: "#9b7c5d" }}>
-                  Your phone number will be used as your sign-in ID. Date of birth cannot be changed later, so enter it carefully. If you do not use a platform, enter `NA`.
+                  Your phone number will be used as your sign-in ID. Date of birth cannot be changed later, so enter it carefully. You can add and verify social ownership after signup from your profile.
                 </p>
                 <button type="submit"
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90"

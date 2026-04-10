@@ -16,6 +16,12 @@ export default async function Profile() {
         primaryCategory: user.primaryCategory,
         instagramHandle: user.instagramHandle,
         snapchatHandle: user.snapchatHandle,
+        pendingSocialOwnershipRequests: user.pendingSocialOwnershipRequests.map((request) => ({
+          id: request.id,
+          platform: request.platform,
+          submittedHandle: request.submittedHandle,
+          normalizedHandle: request.normalizedHandle,
+        })),
         college: user.college
           ? {
               collegeName: user.college.collegeName,

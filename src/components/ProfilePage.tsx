@@ -2,12 +2,21 @@
 
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, AtSign, Lock, Pencil, Phone, PlusCircle, Save, Shield, User, X } from "lucide-react";
+import { ArrowRight, AtSign, CheckCircle2, Clock3, Copy, Lock, Pencil, Phone, PlusCircle, Save, Shield, User, X } from "lucide-react";
 import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import { toast } from "sonner";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 import { getDisplayUserCode, getErrorMessage, getResponseErrorMessage, maskPhone } from "@/lib/utils";
 import { formatInr, pricing } from "@/lib/pricing";
+
+type SocialPlatform = "INSTAGRAM" | "SNAPCHAT";
+
+type PendingSocialOwnershipRequest = {
+  id: string;
+  platform: SocialPlatform;
+  submittedHandle: string;
+  normalizedHandle: string;
+};
 
 type UserProfile = {
   id: string;
@@ -18,6 +27,7 @@ type UserProfile = {
   primaryCategory: LocationCategory;
   instagramHandle: string | null;
   snapchatHandle: string | null;
+  pendingSocialOwnershipRequests: PendingSocialOwnershipRequest[];
   college: {
     collegeName: string;
     pinCode: string;
@@ -57,6 +67,18 @@ type UserProfile = {
     fullName: string;
   } | null;
 };
+
+function getPendingRequestByPlatform(
+  requests: PendingSocialOwnershipRequest[],
+  platform: SocialPlatform
+) {
+  return requests.find((request) => request.platform === platform) ?? null;
+}
+
+function formatHandle(handle: string | null | undefined) {
+  if (!handle) return "NA";
+  return `@${handle.replace(/^@+/, "")}`;
+}
 
 function getSelectedCategories(user: UserProfile): LocationCategory[] {
   const selected: LocationCategory[] = [];
@@ -206,14 +228,100 @@ function CompactPlaceCard({
   );
 }
 
+function SocialOwnershipCard({
+  label,
+  verifiedHandle,
+  pendingRequest,
+}: {
+  label: string;
+  verifiedHandle: string | null;
+  pendingRequest: PendingSocialOwnershipRequest | null;
+}) {
+  return (
+    <div className="glass rounded-2xl p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-semibold text-sm" style={{ color: "#3f2c1d" }}>{label}</h3>
+          <p className="text-base sm:text-lg mt-2 break-words" style={{ color: "#735a43" }}>
+            {formatHandle(verifiedHandle ?? pendingRequest?.submittedHandle ?? null)}
+          </p>
+        </div>
+        {verifiedHandle ? (
+          <span
+            className="text-[10px] px-2.5 py-1 rounded-full whitespace-nowrap flex items-center gap-1"
+            style={{ background: "rgba(34,197,94,0.14)", color: "#166534" }}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Verified
+          </span>
+        ) : pendingRequest ? (
+          <span
+            className="text-[10px] px-2.5 py-1 rounded-full whitespace-nowrap flex items-center gap-1"
+            style={{ background: "rgba(198,145,85,0.16)", color: "#9f6c31" }}
+          >
+            <Clock3 className="w-3.5 h-3.5" />
+            Verifying
+          </span>
+        ) : (
+          <span
+            className="text-[10px] px-2.5 py-1 rounded-full whitespace-nowrap"
+            style={{ background: "rgba(143,106,70,0.12)", color: "#8f6a46" }}
+          >
+            Not verified
+          </span>
+        )}
+      </div>
+
+      {verifiedHandle && pendingRequest && (
+        <p className="text-xs mt-4 leading-relaxed" style={{ color: "#9b7c5d" }}>
+          Replacement pending: {formatHandle(pendingRequest.submittedHandle)}. Your current verified handle stays active until this new ownership request is accepted.
+        </p>
+      )}
+
+      {!verifiedHandle && pendingRequest && (
+        <p className="text-xs mt-4 leading-relaxed" style={{ color: "#9b7c5d" }}>
+          Ownership verification is in progress for {formatHandle(pendingRequest.submittedHandle)}. Search counts and pending confessions for this handle will move to your profile once accepted.
+        </p>
+      )}
+
+      {!verifiedHandle && !pendingRequest && (
+        <p className="text-xs mt-4 leading-relaxed" style={{ color: "#9b7c5d" }}>
+          This platform is treated like NA until ownership is verified.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function ProfilePage({ user }: { user: UserProfile }) {
   const shortId = getDisplayUserCode(user.id, user.publicCode);
   const initialSelectedCategories = useMemo(() => getSelectedCategories(user), [user]);
+  const initialInstagramPendingRequest = useMemo(
+    () => getPendingRequestByPlatform(user.pendingSocialOwnershipRequests, "INSTAGRAM"),
+    [user.pendingSocialOwnershipRequests]
+  );
+  const initialSnapchatPendingRequest = useMemo(
+    () => getPendingRequestByPlatform(user.pendingSocialOwnershipRequests, "SNAPCHAT"),
+    [user.pendingSocialOwnershipRequests]
+  );
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user.name);
-  const [instagramHandle, setInstagramHandle] = useState(user.instagramHandle ?? "NA Handle");
-  const [snapchatHandle, setSnapchatHandle] = useState(user.snapchatHandle ?? "NA Handle");
+  const [instagramInput, setInstagramInput] = useState(
+    user.instagramHandle ?? initialInstagramPendingRequest?.submittedHandle ?? ""
+  );
+  const [snapchatInput, setSnapchatInput] = useState(
+    user.snapchatHandle ?? initialSnapchatPendingRequest?.submittedHandle ?? ""
+  );
+  const [instagramPendingRequest, setInstagramPendingRequest] = useState<PendingSocialOwnershipRequest | null>(
+    initialInstagramPendingRequest
+  );
+  const [snapchatPendingRequest, setSnapchatPendingRequest] = useState<PendingSocialOwnershipRequest | null>(
+    initialSnapchatPendingRequest
+  );
+  const [replacementConfirmationPlatform, setReplacementConfirmationPlatform] = useState<SocialPlatform | null>(null);
+  const [verificationPlatform, setVerificationPlatform] = useState<SocialPlatform | null>(null);
+  const [verifying, setVerifying] = useState<SocialPlatform | null>(null);
   const [primaryCategory, setPrimaryCategory] = useState<LocationCategory>(user.primaryCategory);
   const [selectedCategories, setSelectedCategories] = useState<LocationCategory[]>(initialSelectedCategories);
   const [profileDetailsByCategory, setProfileDetailsByCategory] = useState<
@@ -241,8 +349,22 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
       {
         title: "Social Handles",
         values: [
-          { label: "Instagram", value: instagramHandle || "NA" },
-          { label: "Snapchat", value: snapchatHandle || "NA" },
+          {
+            label: "Instagram",
+            value: user.instagramHandle
+              ? `${formatHandle(user.instagramHandle)} (Verified)`
+              : instagramPendingRequest
+                ? `${formatHandle(instagramPendingRequest.submittedHandle)} (Verifying)`
+                : "NA",
+          },
+          {
+            label: "Snapchat",
+            value: user.snapchatHandle
+              ? `${formatHandle(user.snapchatHandle)} (Verified)`
+              : snapchatPendingRequest
+                ? `${formatHandle(snapchatPendingRequest.submittedHandle)} (Verifying)`
+                : "NA",
+          },
         ],
       },
     ];
@@ -265,7 +387,18 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
     });
 
     return sections;
-  }, [instagramHandle, name, primaryCategory, profileDetailsByCategory, selectedCategories, snapchatHandle, user.gender, user.phone]);
+  }, [
+    instagramPendingRequest,
+    name,
+    primaryCategory,
+    profileDetailsByCategory,
+    selectedCategories,
+    snapchatPendingRequest,
+    user.gender,
+    user.instagramHandle,
+    user.phone,
+    user.snapchatHandle,
+  ]);
 
   const compactPlaceSections = useMemo(() => {
     return selectedCategories.map((category) => {
@@ -312,8 +445,6 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          instagramHandle,
-          snapchatHandle,
           primaryCategory,
           selectedCategories,
           profileDetailsByCategory,
@@ -335,6 +466,84 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleCopyUserCode() {
+    try {
+      await navigator.clipboard.writeText(shortId);
+      toast.success("User ID copied");
+    } catch {
+      toast.error("Failed to copy user ID");
+    }
+  }
+
+  async function submitVerificationRequest() {
+    if (!verificationPlatform) return;
+
+    const handle = verificationPlatform === "INSTAGRAM" ? instagramInput : snapchatInput;
+    if (!handle.trim()) {
+      toast.error("Enter a valid social handle first");
+      return;
+    }
+
+    setVerifying(verificationPlatform);
+    try {
+      const res = await fetch("/api/users/social-ownership", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: verificationPlatform,
+          handle,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to submit verification request");
+      }
+
+      const nextRequest = data.request as PendingSocialOwnershipRequest | null;
+      if (verificationPlatform === "INSTAGRAM") {
+        setInstagramPendingRequest(nextRequest);
+        if (nextRequest) {
+          setInstagramInput(nextRequest.submittedHandle);
+        }
+      } else {
+        setSnapchatPendingRequest(nextRequest);
+        if (nextRequest) {
+          setSnapchatInput(nextRequest.submittedHandle);
+        }
+      }
+
+      toast.success(
+        data.alreadyVerified
+          ? "This handle is already verified on your profile."
+          : "Verification request submitted. It usually takes a few hours."
+      );
+      setVerificationPlatform(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit verification request");
+    } finally {
+      setVerifying(null);
+    }
+  }
+
+  function handleOpenVerification(platform: SocialPlatform) {
+    const inputHandle = platform === "INSTAGRAM" ? instagramInput : snapchatInput;
+    const verifiedHandle = platform === "INSTAGRAM" ? user.instagramHandle : user.snapchatHandle;
+    const normalizedInput = inputHandle.trim().replace(/^@+/, "").toLowerCase();
+    const normalizedVerified = (verifiedHandle ?? "").trim().replace(/^@+/, "").toLowerCase();
+
+    if (!normalizedInput) {
+      toast.error("Enter a valid social handle first");
+      return;
+    }
+
+    if (verifiedHandle && normalizedInput !== normalizedVerified) {
+      setReplacementConfirmationPlatform(platform);
+      return;
+    }
+
+    setVerificationPlatform(platform);
   }
 
   async function handleSelfClaimPayment(transactionReference: string) {
@@ -424,9 +633,19 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
 
       {!isEditing ? (
         <div className="flex flex-col gap-4">
-          {summarySections.slice(0, 2).map((section) => (
+          {summarySections.slice(0, 1).map((section) => (
             <SummaryCard key={section.title} title={section.title} values={section.values} />
           ))}
+          <SocialOwnershipCard
+            label="Instagram"
+            verifiedHandle={user.instagramHandle}
+            pendingRequest={instagramPendingRequest}
+          />
+          <SocialOwnershipCard
+            label="Snapchat"
+            verifiedHandle={user.snapchatHandle}
+            pendingRequest={snapchatPendingRequest}
+          />
           {compactPlaceSections.map((section) => (
             <CompactPlaceCard
               key={section.title}
@@ -499,7 +718,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
           >
             <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#9f6c31" }} />
             <p className="text-xs leading-relaxed" style={{ color: "#735a43" }}>
-              Social handles must stay unique. Gender is fixed after signup, and phone changes must go through OTP verification.
+              Verified ownership locks a social handle to one user. Pending requests do not claim ownership yet. Gender is fixed after signup, and phone changes must go through OTP verification.
             </p>
           </div>
         </div>
@@ -540,34 +759,119 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
             </div>
             <div className="flex flex-col gap-3">
               <div>
-                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
-                  Instagram
-                </label>
-                <input
-                  type="text"
-                  value={instagramHandle}
-                  onChange={(e) => setInstagramHandle(e.target.value)}
-                  placeholder="Instagram handle or NA"
-                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
-                  required
-                />
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <label className="text-xs font-medium block" style={{ color: "#9b7c5d" }}>
+                    Instagram
+                  </label>
+                  <span
+                    className="text-[10px] px-2 py-1 rounded-full"
+                    style={{
+                      background: user.instagramHandle
+                        ? "rgba(34,197,94,0.14)"
+                        : instagramPendingRequest
+                          ? "rgba(198,145,85,0.16)"
+                          : "rgba(143,106,70,0.12)",
+                      color: user.instagramHandle
+                        ? "#166534"
+                        : instagramPendingRequest
+                          ? "#9f6c31"
+                          : "#8f6a46",
+                    }}
+                  >
+                    {user.instagramHandle ? "Verified" : instagramPendingRequest ? "Verifying" : "Not verified"}
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={instagramInput}
+                    onChange={(e) => setInstagramInput(e.target.value)}
+                    placeholder="Instagram handle"
+                    className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                    style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleOpenVerification("INSTAGRAM")}
+                    disabled={verifying === "INSTAGRAM"}
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap disabled:opacity-60"
+                    style={{ background: "rgba(143,106,70,0.12)", border: "1px solid rgba(179,148,111,0.24)", color: "#8f6a46" }}
+                  >
+                    {verifying === "INSTAGRAM"
+                      ? "Submitting..."
+                      : instagramPendingRequest
+                        ? "Replace Request"
+                        : "Verify"}
+                  </button>
+                </div>
+                <p className="text-xs mt-2 leading-relaxed" style={{ color: "#9b7c5d" }}>
+                  {user.instagramHandle
+                    ? `Current verified owner handle: ${formatHandle(user.instagramHandle)}.`
+                    : "This handle will stay treated like NA until ownership is accepted."}
+                  {instagramPendingRequest
+                    ? ` Pending request: ${formatHandle(instagramPendingRequest.submittedHandle)}.`
+                    : ""}
+                </p>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#9b7c5d" }}>
-                  Snapchat
-                </label>
-                <input
-                  type="text"
-                  value={snapchatHandle}
-                  onChange={(e) => setSnapchatHandle(e.target.value)}
-                  placeholder="Snapchat handle or NA"
-                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
-                  required
-                />
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <label className="text-xs font-medium block" style={{ color: "#9b7c5d" }}>
+                    Snapchat
+                  </label>
+                  <span
+                    className="text-[10px] px-2 py-1 rounded-full"
+                    style={{
+                      background: user.snapchatHandle
+                        ? "rgba(34,197,94,0.14)"
+                        : snapchatPendingRequest
+                          ? "rgba(198,145,85,0.16)"
+                          : "rgba(143,106,70,0.12)",
+                      color: user.snapchatHandle
+                        ? "#166534"
+                        : snapchatPendingRequest
+                          ? "#9f6c31"
+                          : "#8f6a46",
+                    }}
+                  >
+                    {user.snapchatHandle ? "Verified" : snapchatPendingRequest ? "Verifying" : "Not verified"}
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={snapchatInput}
+                    onChange={(e) => setSnapchatInput(e.target.value)}
+                    placeholder="Snapchat handle"
+                    className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                    style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleOpenVerification("SNAPCHAT")}
+                    disabled={verifying === "SNAPCHAT"}
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap disabled:opacity-60"
+                    style={{ background: "rgba(143,106,70,0.12)", border: "1px solid rgba(179,148,111,0.24)", color: "#8f6a46" }}
+                  >
+                    {verifying === "SNAPCHAT"
+                      ? "Submitting..."
+                      : snapchatPendingRequest
+                        ? "Replace Request"
+                        : "Verify"}
+                  </button>
+                </div>
+                <p className="text-xs mt-2 leading-relaxed" style={{ color: "#9b7c5d" }}>
+                  {user.snapchatHandle
+                    ? `Current verified owner handle: ${formatHandle(user.snapchatHandle)}.`
+                    : "This handle will stay treated like NA until ownership is accepted."}
+                  {snapchatPendingRequest
+                    ? ` Pending request: ${formatHandle(snapchatPendingRequest.submittedHandle)}.`
+                    : ""}
+                </p>
               </div>
             </div>
+            <p className="text-xs mt-3 leading-relaxed" style={{ color: "#9b7c5d" }}>
+              Verification requests are separate from saving your profile. If you submit another request for the same platform, it replaces the older pending one.
+            </p>
           </div>
 
           <div className="glass rounded-2xl p-5">
@@ -736,6 +1040,178 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         </form>
       )}
       <AnimatePresence>
+        {replacementConfirmationPlatform && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 overflow-y-auto px-4 pt-24 pb-4 sm:px-6 sm:pt-8 sm:pb-8"
+            style={{ background: "rgba(102, 74, 44, 0.34)" }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              className="mx-auto my-4 w-full max-w-xl rounded-3xl p-6 sm:my-0 sm:p-7"
+              style={{ background: "linear-gradient(180deg, #fffaf3 0%, #f3e6d7 100%)", border: "1px solid rgba(184,159,126,0.3)" }}
+            >
+              <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
+                Confirm Handle Replacement
+              </h2>
+              <div
+                className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
+                style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
+              >
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
+                  You already have a verified {replacementConfirmationPlatform === "INSTAGRAM" ? "Instagram" : "Snapchat"} handle on your profile.
+                </p>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
+                  If your new handle is verified, this new handle will become your active verified handle and the old handle will stop being owned by your profile.
+                </p>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
+                  Confessions and search count that were already delivered from your old verified handle will stay on your profile.
+                </p>
+                <p className="text-sm leading-relaxed" style={{ color: "#4a3521" }}>
+                  Future confessions and future searches for the old handle will start fresh and stay pending until someone verifies ownership of that old handle again.
+                </p>
+              </div>
+              <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setReplacementConfirmationPlatform(null)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium"
+                  style={{ background: "rgba(255,251,245,0.9)", border: "1px solid rgba(184,159,126,0.3)", color: "#8c7257" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const platform = replacementConfirmationPlatform;
+                    setReplacementConfirmationPlatform(null);
+                    setVerificationPlatform(platform);
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-white"
+                  style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+        {verificationPlatform && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 overflow-y-auto px-4 pt-24 pb-4 sm:px-6 sm:pt-8 sm:pb-8"
+            style={{ background: "rgba(102, 74, 44, 0.34)" }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              className="mx-auto my-4 w-full max-w-xl rounded-3xl p-6 sm:my-0 sm:p-7"
+              style={{ background: "linear-gradient(180deg, #fffaf3 0%, #f3e6d7 100%)", border: "1px solid rgba(184,159,126,0.3)" }}
+            >
+              <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
+                Verify {verificationPlatform === "INSTAGRAM" ? "Instagram" : "Snapchat"} Ownership
+              </h2>
+              <div
+                className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
+                style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
+              >
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>Step 1</p>
+                  <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
+                    Copy your iConfess user ID.
+                  </p>
+                  <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                    <div
+                      className="flex-1 rounded-xl px-4 py-2.5 text-sm font-mono"
+                      style={{ background: "rgba(255,251,245,0.92)", border: "1px solid rgba(184,159,126,0.3)", color: "#3f2c1d" }}
+                    >
+                      {shortId}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyUserCode()}
+                      className="px-4 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                      style={{ background: "rgba(143,106,70,0.12)", border: "1px solid rgba(179,148,111,0.24)", color: "#8f6a46" }}
+                    >
+                      <Copy className="w-4 h-4" />
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>Step 2</p>
+                  {verificationPlatform === "INSTAGRAM" ? (
+                    <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
+                      Go to our Instagram handle{" "}
+                      <a
+                        href="https://www.instagram.com/iconfess.in/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                        style={{ color: "#8f6a46" }}
+                      >
+                        iconfess.in
+                      </a>.
+                    </p>
+                  ) : (
+                    <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
+                      Go to our official Snapchat handle once it is shared and keep this same user ID ready to DM.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>Step 3</p>
+                  <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
+                    Follow us.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>Step 4</p>
+                  <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
+                    DM us your copied user ID.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>Step 5</p>
+                  <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
+                    Come back and click submit when you are done.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
+                    It usually takes a few hours to verify it.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setVerificationPlatform(null)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium"
+                  style={{ background: "rgba(255,251,245,0.9)", border: "1px solid rgba(184,159,126,0.3)", color: "#8c7257" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void submitVerificationRequest()}
+                  disabled={verifying === verificationPlatform}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
+                >
+                  {verifying === verificationPlatform ? "Submitting..." : "Submit"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
         {pendingSelfClaimId && (
           <motion.div
             initial={{ opacity: 0 }}

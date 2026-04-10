@@ -36,6 +36,7 @@ export async function getSession() {
         workplace: true,
         gym: true,
         neighbourhood: true,
+        pendingSocialOwnershipRequests: true,
       },
     });
 
