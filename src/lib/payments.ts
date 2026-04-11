@@ -84,17 +84,28 @@ export async function createManualPaymentRequest(params: {
     throw new Error("This UTR / reference number has already been used");
   }
 
-  return prisma.payment.create({
-    data: {
-      userId: params.userId,
-      type: params.type,
-      amount: params.amount,
-      status: PaymentStatus.PENDING,
-      gateway: "manual_upi",
-      gatewayTransactionId,
-      metadata: (params.metadata ?? {}) as Prisma.InputJsonValue,
-    },
-  });
+  try {
+    return await prisma.payment.create({
+      data: {
+        userId: params.userId,
+        type: params.type,
+        amount: params.amount,
+        status: PaymentStatus.PENDING,
+        gateway: "manual_upi",
+        gatewayTransactionId,
+        metadata: (params.metadata ?? {}) as Prisma.InputJsonValue,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new Error("This UTR / reference number has already been used");
+    }
+
+    throw error;
+  }
 }
 
 export async function findExistingPendingManualPayment(params: {

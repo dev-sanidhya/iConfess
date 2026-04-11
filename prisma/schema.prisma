@@ -139,6 +139,14 @@ model Confession {
   targetRevealConsent   Boolean  @default(false)
   revealedAt            DateTime?
   unlockedBy  UnlockedCard[]
+
+  @@index([senderId, createdAt])
+  @@index([targetId, createdAt])
+  @@index([senderId, targetId, isSelfConfession])
+  @@index([targetId, status, createdAt])
+  @@index([status, createdAt])
+  @@index([targetPhone])
+  @@index([expiresAt])
 }
 
 model UnlockedCard {
@@ -173,6 +181,10 @@ model OtpSession {
   expiresAt DateTime
   verified  Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([phone, createdAt])
+  @@index([phone, verified, createdAt])
+  @@index([phone, verified, expiresAt])
 }
 
 model StaffUser {
@@ -205,7 +217,9 @@ model Payment {
   updatedAt            DateTime      @updatedAt
 
   @@index([userId, type, createdAt])
+  @@index([userId, status, createdAt])
   @@index([status, createdAt])
+  @@unique([gateway, gatewayTransactionId])
 }
 
 model PaymentServiceConfig {
