@@ -1,7 +1,36 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import type { LocationCategory } from "@/lib/matching";
+import { locationFields, type LocationCategory } from "@/lib/matching";
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
+
+export function getMissingRequiredProfileFields(
+  category: LocationCategory,
+  profileDetails: Record<string, string> | undefined
+) {
+  const details = profileDetails ?? {};
+
+  return locationFields[category]
+    .filter((field) => field.required)
+    .filter((field) => !details[field.key]?.trim())
+    .map((field) => field.label);
+}
+
+export function validateSelectedProfiles(
+  selectedCategories: LocationCategory[],
+  profileDetailsByCategory: Partial<Record<LocationCategory, Record<string, string>>>
+) {
+  for (const category of selectedCategories) {
+    const missingFields = getMissingRequiredProfileFields(category, profileDetailsByCategory[category]);
+    if (missingFields.length > 0) {
+      return {
+        category,
+        missingFields,
+      };
+    }
+  }
+
+  return null;
+}
 
 export async function syncUserProfiles(
   tx: DbClient,
@@ -123,7 +152,7 @@ export async function syncUserProfiles(
         city: profile.city,
         pinCode: profile.pinCode,
         homeNumber: profile.homeNumber,
-        premisesName: profile.premisesName,
+        premisesName: profile.premisesName ?? "",
         fullName,
       },
       create: {
@@ -132,7 +161,7 @@ export async function syncUserProfiles(
         city: profile.city,
         pinCode: profile.pinCode,
         homeNumber: profile.homeNumber,
-        premisesName: profile.premisesName,
+        premisesName: profile.premisesName ?? "",
         fullName,
       },
     });

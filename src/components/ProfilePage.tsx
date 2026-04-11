@@ -309,7 +309,6 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
   );
 
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(user.name);
   const [instagramInput, setInstagramInput] = useState(
     user.instagramHandle ?? initialInstagramPendingRequest?.submittedHandle ?? ""
   );
@@ -344,7 +343,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
       {
         title: "Identity",
         values: [
-          { label: "Full Name", value: name },
+          { label: "Full Name", value: user.name },
           { label: "Gender", value: toLabel(user.gender) },
           { label: "Phone", value: maskPhone(user.phone) },
         ],
@@ -392,13 +391,13 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
     return sections;
   }, [
     instagramPendingRequest,
-    name,
     primaryCategory,
     profileDetailsByCategory,
     selectedCategories,
     snapchatPendingRequest,
     user.gender,
     user.instagramHandle,
+    user.name,
     user.phone,
     user.snapchatHandle,
   ]);
@@ -447,7 +446,6 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
           primaryCategory,
           selectedCategories,
           profileDetailsByCategory,
@@ -456,6 +454,9 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("iconfess-pending-profile-completion");
+      }
       toast.success("Profile updated");
       if (Array.isArray(data.convertedIds) && data.convertedIds.length > 0) {
         toast.success(`${data.convertedIds.length} pending confession${data.convertedIds.length === 1 ? "" : "s"} moved into your received inbox as Confession to Yourself.`);
@@ -615,10 +616,10 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
           className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white flex-shrink-0"
           style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
         >
-          {name[0]?.toUpperCase() ?? "I"}
+          {user.name[0]?.toUpperCase() ?? "I"}
         </div>
         <div>
-          <h2 className="text-xl font-bold" style={{ color: "#3f2c1d" }}>{name}</h2>
+          <h2 className="text-xl font-bold" style={{ color: "#3f2c1d" }}>{user.name}</h2>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span
               className="text-xs px-2 py-0.5 rounded-full font-mono"
@@ -739,15 +740,13 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
               <h3 className="font-semibold text-sm" style={{ color: "#3f2c1d" }}>Identity</h3>
             </div>
             <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
+              <div
                 className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
-                required
-              />
+                style={{ background: "rgba(255,248,240,0.84)", borderColor: "rgba(184,159,126,0.3)", color: "#735a43" }}
+              >
+                <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "#9b7c5d" }}>Full Name</p>
+                <p className="mt-1 text-sm" style={{ color: "#3f2c1d" }}>{user.name}</p>
+              </div>
               <input
                 type="text"
                 value={toLabel(user.gender)}
@@ -757,7 +756,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
               />
             </div>
             <p className="text-xs mt-2" style={{ color: "#9b7c5d" }}>
-              Your sign-in phone number and gender cannot be changed directly from profile editing.
+              Full name, gender, and your sign-in phone number are fixed after signup for this phone number.
             </p>
           </div>
 
@@ -1002,7 +1001,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                             }
                             className="w-full px-4 py-2.5 rounded-xl text-sm border"
                             style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
-                            required
+                            required={field.required === true}
                           >
                             <option value="">Select...</option>
                             {field.options.map((option) => (
@@ -1026,7 +1025,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                             }
                             className="w-full px-4 py-2.5 rounded-xl text-sm border"
                             style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
-                            required
+                            required={field.required === true}
                           />
                         )}
                       </div>

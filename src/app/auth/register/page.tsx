@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -11,6 +11,8 @@ import type { Gender } from "@prisma/client";
 import PhoneNumberField from "@/components/PhoneNumberField";
 
 type Step = "phone" | "otp" | "name" | "profile";
+const PENDING_PROFILE_COMPLETION_KEY = "iconfess-pending-profile-completion";
+
 function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -25,11 +27,36 @@ function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
   const [primaryCategory, setPrimaryCategory] = useState<LocationCategory | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<LocationCategory[]>([]);
   const [profileDetailsByCategory, setProfileDetailsByCategory] = useState<
     Partial<Record<LocationCategory, Record<string, string>>>
   >({});
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.localStorage.getItem(PENDING_PROFILE_COMPLETION_KEY)) return;
+
+    let cancelled = false;
+
+    async function resumePendingProfileCompletion() {
+      try {
+        const res = await fetch("/api/users/profile", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+
+        router.replace("/dashboard/profile");
+      } catch {
+        // Ignore and let the user continue if they are not signed in.
+      }
+    }
+
+    void resumePendingProfileCompletion();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -76,13 +103,8 @@ function RegisterForm() {
     }
   }
 
-  async function handleRegister(e: React.FormEvent) {
+  async function handleCreateAccount(e: React.FormEvent) {
     e.preventDefault();
-    if (selectedCategories.length === 0) { toast.error("Select at least one location category"); return; }
-    if (!primaryCategory || !selectedCategories.includes(primaryCategory)) {
-      toast.error("Choose your primary category");
-      return;
-    }
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     if (password !== confirmPassword) { toast.error("Passwords do not match"); return; }
     if (!gender) { toast.error("Select your gender"); return; }
@@ -97,6 +119,41 @@ function RegisterForm() {
           dateOfBirth,
           password,
           gender,
+          primaryCategory: null,
+          selectedCategories: [],
+          profileDetailsByCategory: {},
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setAccountCreated(true);
+      window.localStorage.setItem(PENDING_PROFILE_COMPLETION_KEY, "1");
+      toast.success("Account created. Add profile details now or do it later.");
+      setStep("profile");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSaveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (selectedCategories.length === 0) {
+      toast.error("Select at least one location category or choose Skip for now");
+      return;
+    }
+    if (!primaryCategory || !selectedCategories.includes(primaryCategory)) {
+      toast.error("Choose your primary category");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/users/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           primaryCategory,
           selectedCategories,
           profileDetailsByCategory,
@@ -104,13 +161,22 @@ function RegisterForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      window.localStorage.removeItem(PENDING_PROFILE_COMPLETION_KEY);
       toast.success("Welcome to iConfess!");
       router.push("/dashboard");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Registration failed");
+      toast.error(err instanceof Error ? err.message : "Failed to save profile details");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSkipProfile() {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(PENDING_PROFILE_COMPLETION_KEY);
+    }
+    router.push("/dashboard/profile");
   }
 
   const stepIndex = ["phone", "otp", "name", "profile"].indexOf(step);
@@ -196,41 +262,38 @@ function RegisterForm() {
                 <User className="w-4 h-4" style={{ color: "#8f6a46" }} />
                 <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>Set your account details</h2>
               </div>
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                if (!name.trim()) return;
-                if (!dateOfBirth) {
-                  toast.error("Enter your date of birth");
-                  return;
-                }
-                if (password.length < 8) {
-                  toast.error("Password must be at least 8 characters");
-                  return;
-                }
-                if (!gender) {
-                  toast.error("Select your gender");
-                  return;
-                }
-                if (password !== confirmPassword) {
-                  toast.error("Passwords do not match");
-                  return;
-                }
-                setStep("profile");
-              }} className="flex flex-col gap-4">
-                <input type="text" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
-                <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
-                <select value={gender} onChange={(e) => setGender(e.target.value as Gender)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                  style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required>
-                  <option value="">Select gender</option>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
+              <form onSubmit={handleCreateAccount} className="flex flex-col gap-4">
+                <div
+                  className="rounded-xl px-4 py-3"
+                  style={{ background: "rgba(255,248,240,0.88)", border: "1px solid rgba(198,145,85,0.22)" }}
+                >
+                  <p className="text-sm font-medium leading-relaxed" style={{ color: "#735a43" }}>
+                    Full name, DOB, and gender cannot be edited later. Enter them carefully.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium block" style={{ color: "#9b7c5d" }}>Full Name</label>
+                  <input type="text" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                    style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium block" style={{ color: "#9b7c5d" }}>Date Of Birth</label>
+                  <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                    style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium block" style={{ color: "#9b7c5d" }}>Gender</label>
+                  <select value={gender} onChange={(e) => setGender(e.target.value as Gender)}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                    style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required>
+                    <option value="">Select gender</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
                 <div className="relative">
                   <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#9b7c5d" }} />
                   <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)}
@@ -240,13 +303,11 @@ function RegisterForm() {
                 <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl text-sm border"
                   style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
-                <p className="text-xs" style={{ color: "#9b7c5d" }}>
-                  Your phone number will be used as your sign-in ID. Date of birth cannot be changed later, so enter it carefully. You can add and verify social ownership after signup from your profile.
-                </p>
-                <button type="submit"
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90"
+                <button type="submit" disabled={loading}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
                   style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
-                  Continue <ArrowRight className="w-4 h-4" />
+                  {loading ? "Creating account..." : "Create Account"}
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
             </motion.div>
@@ -260,7 +321,7 @@ function RegisterForm() {
                 <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>Where can people find you?</h2>
               </div>
               <p className="text-xs mb-5" style={{ color: "#80664c" }}>
-                You can add multiple profiles here, like college plus gym plus workplace. Choose one as primary and we will reuse your full name automatically across all of them.
+                Your account is already created. Add profile details now, or skip and complete them later from your profile page.
               </p>
 
               {/* Category selector */}
@@ -309,12 +370,10 @@ function RegisterForm() {
                 )})}
               </div>
 
-              {selectedCategories.length > 0 && (
-                <form onSubmit={handleRegister} className="flex flex-col gap-3">
+              <form onSubmit={handleSaveProfile} className="flex flex-col gap-3">
+                {selectedCategories.length > 0 && (
                   <div className="h-px mb-1" style={{ background: "rgba(179,148,111,0.24)" }} />
-                  <p className="text-xs mb-2" style={{ color: "#80664c" }}>
-                    Select one primary category and fill the place details only. Your name will be pulled from the identity step, so you do not need to type it again for each profile.
-                  </p>
+                )}
                   {selectedCategories.map((category) => (
                     <div key={category} className="rounded-xl p-4" style={{ background: "rgba(255,251,245,0.76)", border: "1px solid rgba(179,148,111,0.24)" }}>
                       <div className="flex items-center justify-between mb-3">
@@ -349,7 +408,7 @@ function RegisterForm() {
                                 }))}
                                 className="w-full px-4 py-2.5 rounded-xl text-sm border"
                                 style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
-                                required
+                                required={field.required === true}
                               >
                                 <option value="">Select...</option>
                                 {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -367,7 +426,7 @@ function RegisterForm() {
                                 }))}
                                 className="w-full px-4 py-2.5 rounded-xl text-sm border"
                                 style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
-                                required
+                                required={field.required === true}
                               />
                             )}
                           </div>
@@ -376,20 +435,19 @@ function RegisterForm() {
                     </div>
                   ))}
                   <div className="flex gap-2 mt-2">
-                    <button type="button" onClick={() => setStep("name")}
+                    <button type="button" onClick={handleSkipProfile}
                       className="flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl text-sm border w-12 flex-shrink-0"
                       style={{ borderColor: "rgba(179,148,111,0.24)", color: "#80664c", background: "rgba(255,251,245,0.84)" }}>
                       <ArrowLeft className="w-4 h-4" />
                     </button>
-                    <button type="submit" disabled={loading}
+                    <button type="submit" disabled={loading || !accountCreated}
                       className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
                       style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
-                      {loading ? "Creating account..." : "Create Account"}
+                      {loading ? "Saving..." : "Save Profile"}
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </form>
-              )}
             </motion.div>
           )}
         </AnimatePresence>

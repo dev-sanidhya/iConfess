@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { generateOtp } from "@/lib/auth";
 import { formatPhone } from "@/lib/utils";
 
-// Rate limiting constants
-const MAX_OTP_PER_PHONE_15MIN = 3;  // max 3 OTPs per phone in 15 minutes
-const MAX_OTP_PER_PHONE_1HR = 5;    // max 5 OTPs per phone in 1 hour
+const OTP_COOLDOWN_SECONDS = 60;
+const MAX_OTP_PER_PHONE_24HR = 5;
+const MAX_OTP_PER_IP_24HR = 20;
 const OTP_EXPIRY_MINUTES = 10;
 
 type TwoFactorResponse = {
@@ -59,6 +59,22 @@ async function sendOtpVia2Factor(mode: "sms" | "voice", phone: string, otp: stri
   return result;
 }
 
+function getRequestIp(req: NextRequest) {
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const firstIp = forwardedFor.split(",")[0]?.trim();
+    if (firstIp) return firstIp;
+  }
+
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+
+  const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
+  if (cloudflareIp) return cloudflareIp;
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { phone } = await req.json();
@@ -68,49 +84,57 @@ export async function POST(req: NextRequest) {
     }
 
     const formattedPhone = formatPhone(phone);
-
-    // ── Rate limiting ──────────────────────────────────────────────
+    const requestIp = getRequestIp(req);
     const now = new Date();
-    const window15min = new Date(now.getTime() - 15 * 60 * 1000);
-    const window1hr   = new Date(now.getTime() - 60 * 60 * 1000);
+    const window24hr = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const cooldownWindow = new Date(now.getTime() - OTP_COOLDOWN_SECONDS * 1000);
 
-    const [recentIn15min, recentIn1hr] = await Promise.all([
+    const [recentPhoneIn24hr, recentPhoneInCooldown, recentIpIn24hr] = await Promise.all([
       prisma.otpSession.count({
-        where: { phone: formattedPhone, createdAt: { gte: window15min } },
+        where: { phone: formattedPhone, createdAt: { gte: window24hr } },
       }),
       prisma.otpSession.count({
-        where: { phone: formattedPhone, createdAt: { gte: window1hr } },
+        where: { phone: formattedPhone, createdAt: { gte: cooldownWindow } },
       }),
+      requestIp
+        ? prisma.otpSession.count({
+            where: { requestIp, createdAt: { gte: window24hr } },
+          })
+        : Promise.resolve(0),
     ]);
 
-    if (recentIn15min >= MAX_OTP_PER_PHONE_15MIN) {
+    if (recentPhoneInCooldown > 0) {
       return NextResponse.json(
-        { error: "Too many OTP requests. Please wait 15 minutes before trying again." },
+        { error: "Please wait 60 seconds before requesting another OTP." },
         { status: 429 }
       );
     }
 
-    if (recentIn1hr >= MAX_OTP_PER_PHONE_1HR) {
+    if (recentPhoneIn24hr >= MAX_OTP_PER_PHONE_24HR) {
       return NextResponse.json(
-        { error: "Too many OTP requests. Please try again after an hour." },
+        { error: "OTP limit reached for this phone number. Please try again after 24 hours." },
         { status: 429 }
       );
     }
-    // ───────────────────────────────────────────────────────────────
+
+    if (requestIp && recentIpIn24hr >= MAX_OTP_PER_IP_24HR) {
+      return NextResponse.json(
+        { error: "OTP request limit reached for this network. Please try again after 24 hours." },
+        { status: 429 }
+      );
+    }
 
     const otp = generateOtp();
     const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const deliveryMode = getOtpDeliveryMode();
 
-    // Invalidate any existing unverified sessions for this phone
     await prisma.otpSession.updateMany({
       where: { phone: formattedPhone, verified: false },
-      data: { expiresAt: now }, // expire them immediately
+      data: { expiresAt: now },
     });
 
-    // Create new OTP session
     await prisma.otpSession.create({
-      data: { phone: formattedPhone, otp, expiresAt },
+      data: { phone: formattedPhone, requestIp, otp, expiresAt },
     });
 
     try {
@@ -139,6 +163,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, deliveryMode });
   } catch (err) {
     console.error("[OTP Send Error]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }

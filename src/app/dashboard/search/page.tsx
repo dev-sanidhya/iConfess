@@ -96,7 +96,7 @@ const searchDetailFields: Record<LocationCategory, SearchDetailField[]> = {
     { key: "lastName", label: "Last Name" },
   ],
   NEIGHBOURHOOD: [
-    { key: "state", label: "State", required: true },
+    { key: "state", label: "State", options: locationFields.NEIGHBOURHOOD.find((field) => field.key === "state")?.options ?? [], required: true },
     { key: "city", label: "City", required: true },
     { key: "pinCode", label: "Pin Code", required: true },
     { key: "homeNumber", label: "House Number" },

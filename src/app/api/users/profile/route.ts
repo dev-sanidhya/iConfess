@@ -8,23 +8,21 @@ import {
   confessionMatchesSelfClaim,
   convertConfessionToSelf,
 } from "@/lib/confessions";
+import { validateSelectedProfiles } from "@/lib/profile-details";
+
+export async function GET() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  return NextResponse.json({ success: true, userId: session.id });
+}
 
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const {
-      name,
-      primaryCategory,
-      selectedCategories,
-      profileDetailsByCategory,
-    } =
-      await req.json();
-
-    if (!name?.trim()) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
-    }
+    const { primaryCategory, selectedCategories, profileDetailsByCategory } = await req.json();
 
     const chosenCategories = Array.isArray(selectedCategories)
       ? selectedCategories.filter(Boolean) as LocationCategory[]
@@ -44,15 +42,24 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    const invalidProfile = validateSelectedProfiles(chosenCategories, profileDetailsByCategory ?? {});
+    if (invalidProfile) {
+      return NextResponse.json(
+        {
+          error: `Complete the required ${invalidProfile.category.toLowerCase()} details: ${invalidProfile.missingFields.join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+
 
     await prisma.user.update({
       where: { id: session.id },
       data: {
-        name: name.trim(),
         primaryCategory: primaryCategory as LocationCategory,
       },
     });
-    await syncUserProfiles(prisma, session.id, name.trim(), chosenCategories, profileDetailsByCategory ?? {});
+    await syncUserProfiles(prisma, session.id, session.name, chosenCategories, profileDetailsByCategory ?? {});
 
     const [updatedUser, pendingSelfCandidates] = await Promise.all([
       prisma.user.findUnique({

@@ -176,6 +176,7 @@ model UnlockedProfileInsight {
 model OtpSession {
   id        String   @id @default(cuid())
   phone     String
+  requestIp String?
   otp       String
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
@@ -184,6 +185,7 @@ model OtpSession {
   createdAt DateTime @default(now())
 
   @@index([phone, createdAt])
+  @@index([requestIp, createdAt])
   @@index([phone, verified, createdAt])
   @@index([phone, verified, expiresAt])
 }

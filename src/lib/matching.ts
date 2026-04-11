@@ -38,6 +38,45 @@ export const indianCourseOptions = [
   "PhD",
 ] as const;
 
+export const indianStateAndUnionTerritoryOptions = [
+  "Andaman and Nicobar Islands",
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chandigarh",
+  "Chhattisgarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jammu and Kashmir",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Ladakh",
+  "Lakshadweep",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Puducherry",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+] as const;
+
 export type LocationCategory =
   | "COLLEGE"
   | "SCHOOL"
@@ -47,39 +86,39 @@ export type LocationCategory =
 
 export const locationFields: Record<
   LocationCategory,
-  { key: string; label: string; type?: string; options?: string[] }[]
+  { key: string; label: string; type?: string; options?: string[]; required?: boolean }[]
 > = {
   COLLEGE: [
-    { key: "collegeName", label: "College Name (e.g. VIPS)" },
-    { key: "pinCode", label: "College Pin Code" },
-    { key: "course", label: "Course", options: [...indianCourseOptions] },
-    { key: "branch", label: "Branch (e.g. CSE)" },
-    { key: "yearOfPassing", label: "Year of Passing  (Graduation Year)", type: "number" },
-    { key: "section", label: "Section" },
+    { key: "collegeName", label: "College Name (e.g. VIPS)", required: true },
+    { key: "pinCode", label: "College Pin Code", required: true },
+    { key: "course", label: "Course", options: [...indianCourseOptions], required: true },
+    { key: "branch", label: "Branch (e.g. CSE)", required: true },
+    { key: "yearOfPassing", label: "Year of Passing  (Graduation Year)", type: "number", required: true },
+    { key: "section", label: "Section", required: true },
   ],
   SCHOOL: [
-    { key: "schoolName", label: "School Name (e.g. KIS)" },
-    { key: "pinCode", label: "School Pin Code" },
-    { key: "board", label: "Board", options: ["CBSE", "ICSE", "State Board", "IB", "IGCSE"] },
-    { key: "yearOfCompletion", label: "School graduation year (completed or expected)", type: "number" },
-    { key: "section", label: "Section" },
+    { key: "schoolName", label: "School Name (e.g. KIS)", required: true },
+    { key: "pinCode", label: "School Pin Code", required: true },
+    { key: "board", label: "Board", options: ["CBSE", "ICSE", "State Board", "IB", "IGCSE"], required: true },
+    { key: "yearOfCompletion", label: "School graduation year (completed or expected)", type: "number", required: true },
+    { key: "section", label: "Section", required: true },
   ],
   WORKPLACE: [
-    { key: "companyName", label: "Company Name" },
-    { key: "department", label: "Department" },
-    { key: "city", label: "City" },
+    { key: "companyName", label: "Company Name", required: true },
+    { key: "department", label: "Department", required: true },
+    { key: "city", label: "City", required: true },
   ],
   GYM: [
-    { key: "gymName", label: "Gym Name" },
-    { key: "city", label: "City" },
-    { key: "pinCode", label: "Gym Pin Code" },
-    { key: "timing", label: "Timing", options: ["MORNING", "EVENING", "BOTH"] },
+    { key: "gymName", label: "Gym Name", required: true },
+    { key: "city", label: "City", required: true },
+    { key: "pinCode", label: "Gym Pin Code", required: true },
+    { key: "timing", label: "Timing", options: ["MORNING", "EVENING", "BOTH"], required: true },
   ],
   NEIGHBOURHOOD: [
-    { key: "state", label: "State" },
-    { key: "city", label: "City" },
-    { key: "pinCode", label: "Pin Code" },
-    { key: "homeNumber", label: "House Number" },
+    { key: "state", label: "State", options: [...indianStateAndUnionTerritoryOptions], required: true },
+    { key: "city", label: "City", required: true },
+    { key: "pinCode", label: "Pin Code", required: true },
+    { key: "homeNumber", label: "House Number", required: true },
     { key: "premisesName", label: "Society / Premises Name" },
   ],
 };
@@ -141,7 +180,7 @@ export const searchDetailFields: Record<LocationCategory, SearchDetailField[]> =
     { key: "lastName", label: "Last Name" },
   ],
   NEIGHBOURHOOD: [
-    { key: "state", label: "State", required: true },
+    { key: "state", label: "State", options: [...indianStateAndUnionTerritoryOptions], required: true },
     { key: "city", label: "City", required: true },
     { key: "pinCode", label: "Pin Code", required: true },
     { key: "homeNumber", label: "House Number" },

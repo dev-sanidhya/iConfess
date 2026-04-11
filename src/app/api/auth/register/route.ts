@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Gender, PendingProfileSearchKind, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { type LocationCategory } from "@/lib/matching";
-import { syncUserProfiles } from "@/lib/profile-details";
+import { syncUserProfiles, validateSelectedProfiles } from "@/lib/profile-details";
 import {
   claimPendingProfileSearchCounts,
   createInitialProfileSearchCount,
@@ -65,16 +65,22 @@ export async function POST(req: NextRequest) {
       ? selectedCategories.filter(Boolean) as LocationCategory[]
       : [];
 
-    if (chosenCategories.length === 0) {
-      return NextResponse.json({ error: "Select at least one profile category" }, { status: 400 });
-    }
-
-    if (
+    if (chosenCategories.length > 0 && (
       !primaryCategory ||
       !chosenCategories.includes(primaryCategory as LocationCategory)
-    ) {
+    )) {
       return NextResponse.json(
         { error: "Choose a valid primary category from the selected profile categories" },
+        { status: 400 }
+      );
+    }
+
+    const invalidProfile = validateSelectedProfiles(chosenCategories, profileDetailsByCategory ?? {});
+    if (invalidProfile) {
+      return NextResponse.json(
+        {
+          error: `Complete the required ${invalidProfile.category.toLowerCase()} details: ${invalidProfile.missingFields.join(", ")}`,
+        },
         { status: 400 }
       );
     }
@@ -104,10 +110,14 @@ export async function POST(req: NextRequest) {
           passwordHash,
           gender: gender as Gender,
           profileSearchCount: createInitialProfileSearchCount(carriedSearchCount),
-          primaryCategory: primaryCategory as LocationCategory,
+          primaryCategory: (chosenCategories.length > 0
+            ? primaryCategory
+            : "COLLEGE") as LocationCategory,
         },
       });
-      await syncUserProfiles(tx, newUser.id, newUser.name, chosenCategories, profileDetailsByCategory ?? {});
+      if (chosenCategories.length > 0) {
+        await syncUserProfiles(tx, newUser.id, newUser.name, chosenCategories, profileDetailsByCategory ?? {});
+      }
 
       return newUser;
     });
