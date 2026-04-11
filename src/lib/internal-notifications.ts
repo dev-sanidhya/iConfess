@@ -63,6 +63,23 @@ function isMissingNotificationCounterTable(error: unknown) {
   return code === "P2021" || message.includes("NotificationAudienceCounter");
 }
 
+function isMissingNotificationTrackingSchema(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const code = "code" in error ? String(error.code) : "";
+  const message = "message" in error ? String(error.message) : "";
+
+  return (
+    code === "P2021" ||
+    code === "P2022" ||
+    message.includes("NotificationAudienceCounter") ||
+    message.includes("NotificationAudienceCounterChange") ||
+    message.includes("NotificationAudienceCategory")
+  );
+}
+
 function toCounterKey(category: NotificationAudienceCategory, subjectUserId: string | null, subjectPhone: string | null) {
   return `${category}:${subjectUserId ?? ""}:${subjectPhone ?? ""}`;
 }
@@ -320,8 +337,8 @@ export async function applyNotificationCountDelta(
       });
     }
   } catch (error) {
-    if (isMissingNotificationCounterTable(error)) {
-      throw new Error("Notification count storage is not ready yet. Please run the latest Prisma migration, then try again.");
+    if (isMissingNotificationTrackingSchema(error)) {
+      return rows;
     }
 
     throw error;

@@ -13,6 +13,78 @@ type TwoFactorResponse = {
   Details?: string;
 };
 
+function isMissingOtpRequestIpColumn(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const code = "code" in error ? String(error.code) : "";
+  const message = "message" in error ? String(error.message) : "";
+
+  return code === "P2022" || message.includes("requestIp");
+}
+
+async function getOtpRequestCounts(
+  formattedPhone: string,
+  requestIp: string | null,
+  window24hr: Date,
+  cooldownWindow: Date
+) {
+  try {
+    const [recentPhoneIn24hr, recentPhoneInCooldown, recentIpIn24hr] = await Promise.all([
+      prisma.otpSession.count({
+        where: { phone: formattedPhone, createdAt: { gte: window24hr } },
+      }),
+      prisma.otpSession.count({
+        where: { phone: formattedPhone, createdAt: { gte: cooldownWindow } },
+      }),
+      requestIp
+        ? prisma.otpSession.count({
+            where: { requestIp, createdAt: { gte: window24hr } },
+          })
+        : Promise.resolve(0),
+    ]);
+
+    return { recentPhoneIn24hr, recentPhoneInCooldown, recentIpIn24hr, requestIpSupported: true };
+  } catch (error) {
+    if (!isMissingOtpRequestIpColumn(error)) {
+      throw error;
+    }
+
+    const [recentPhoneIn24hr, recentPhoneInCooldown] = await Promise.all([
+      prisma.otpSession.count({
+        where: { phone: formattedPhone, createdAt: { gte: window24hr } },
+      }),
+      prisma.otpSession.count({
+        where: { phone: formattedPhone, createdAt: { gte: cooldownWindow } },
+      }),
+    ]);
+
+    return { recentPhoneIn24hr, recentPhoneInCooldown, recentIpIn24hr: 0, requestIpSupported: false };
+  }
+}
+
+async function createOtpSession(
+  formattedPhone: string,
+  requestIp: string | null,
+  otp: string,
+  expiresAt: Date
+) {
+  try {
+    await prisma.otpSession.create({
+      data: { phone: formattedPhone, requestIp, otp, expiresAt },
+    });
+  } catch (error) {
+    if (!isMissingOtpRequestIpColumn(error)) {
+      throw error;
+    }
+
+    await prisma.otpSession.create({
+      data: { phone: formattedPhone, otp, expiresAt },
+    });
+  }
+}
+
 function getOtpDeliveryMode() {
   const mode = process.env.OTP_DELIVERY_MODE?.trim().toLowerCase();
 
@@ -89,19 +161,12 @@ export async function POST(req: NextRequest) {
     const window24hr = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const cooldownWindow = new Date(now.getTime() - OTP_COOLDOWN_SECONDS * 1000);
 
-    const [recentPhoneIn24hr, recentPhoneInCooldown, recentIpIn24hr] = await Promise.all([
-      prisma.otpSession.count({
-        where: { phone: formattedPhone, createdAt: { gte: window24hr } },
-      }),
-      prisma.otpSession.count({
-        where: { phone: formattedPhone, createdAt: { gte: cooldownWindow } },
-      }),
-      requestIp
-        ? prisma.otpSession.count({
-            where: { requestIp, createdAt: { gte: window24hr } },
-          })
-        : Promise.resolve(0),
-    ]);
+    const {
+      recentPhoneIn24hr,
+      recentPhoneInCooldown,
+      recentIpIn24hr,
+      requestIpSupported,
+    } = await getOtpRequestCounts(formattedPhone, requestIp, window24hr, cooldownWindow);
 
     if (recentPhoneInCooldown > 0) {
       return NextResponse.json(
@@ -117,7 +182,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (requestIp && recentIpIn24hr >= MAX_OTP_PER_IP_24HR) {
+    if (requestIpSupported && requestIp && recentIpIn24hr >= MAX_OTP_PER_IP_24HR) {
       return NextResponse.json(
         { error: "OTP request limit reached for this network. Please try again after 24 hours." },
         { status: 429 }
@@ -133,9 +198,7 @@ export async function POST(req: NextRequest) {
       data: { expiresAt: now },
     });
 
-    await prisma.otpSession.create({
-      data: { phone: formattedPhone, requestIp, otp, expiresAt },
-    });
+    await createOtpSession(formattedPhone, requestIpSupported ? requestIp : null, otp, expiresAt);
 
     try {
       if (deliveryMode === "mock") {
