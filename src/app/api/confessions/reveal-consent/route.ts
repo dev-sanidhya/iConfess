@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  applyIdentityRevealPayment,
+  dbSupportsIdentityRevealPaymentType,
+  isMissingIdentityRevealPaymentType,
+  userHasApprovedRevealPayment,
+} from "@/lib/reveal-identity";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,85 +14,70 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { confessionId } = await req.json();
+    if (!confessionId || typeof confessionId !== "string") {
+      return NextResponse.json({ error: "Confession id is required" }, { status: 400 });
+    }
 
-    const confession = await prisma.confession.findUnique({ where: { id: confessionId } });
-    if (!confession) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    if (!confession.mutualDetected) return NextResponse.json({ error: "No mutual detected" }, { status: 400 });
-
-    const isSender = confession.senderId === user.id;
-    const isTarget = confession.targetId === user.id;
-    if (!isSender && !isTarget) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-
-    const reverse = await prisma.confession.findFirst({
-      where: {
-        senderId: confession.targetId ?? undefined,
-        targetId: confession.senderId,
+    const confession = await prisma.confession.findUnique({
+      where: { id: confessionId },
+      select: {
+        id: true,
+        targetId: true,
+        mutualDetected: true,
+        senderRevealConsent: true,
+        targetRevealConsent: true,
+        revealedAt: true,
       },
     });
 
-    const updates: Promise<unknown>[] = [];
-    if (isSender) {
-      updates.push(prisma.confession.update({
-        where: { id: confessionId },
-        data: { senderRevealConsent: true },
-      }));
-      if (reverse) {
-        updates.push(prisma.confession.update({
-          where: { id: reverse.id },
-          data: { targetRevealConsent: true },
-        }));
-      }
-    } else {
-      updates.push(prisma.confession.update({
-        where: { id: confessionId },
-        data: { targetRevealConsent: true },
-      }));
-      if (reverse) {
-        updates.push(prisma.confession.update({
-          where: { id: reverse.id },
-          data: { senderRevealConsent: true },
-        }));
-      }
+    if (!confession) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!confession.mutualDetected) return NextResponse.json({ error: "No mutual detected" }, { status: 400 });
+    if (confession.targetId !== user.id) {
+      return NextResponse.json({ error: "Use the received mutual confession card for identity reveal" }, { status: 403 });
     }
 
-    await Promise.all(updates);
+    if (!(await dbSupportsIdentityRevealPaymentType())) {
+      return NextResponse.json(
+        { error: "Identity reveal payments are not available yet. Run the latest Prisma migration first." },
+        { status: 503 }
+      );
+    }
+
+    const approvedPayment = await userHasApprovedRevealPayment(user.id, confessionId);
+    if (!approvedPayment) {
+      return NextResponse.json({ error: "Identity reveal payment must be approved before consent is recorded" }, { status: 400 });
+    }
+
+    await applyIdentityRevealPayment(confessionId, user.id, {
+      confessionId,
+      bundledPageUnlock: false,
+      bundledCardUnlock: false,
+    });
 
     const refreshed = await prisma.confession.findUnique({
       where: { id: confessionId },
-    });
-
-    if (refreshed?.senderRevealConsent && refreshed.targetRevealConsent) {
-      const revealTime = new Date();
-      const ids = [confessionId, reverse?.id].filter(Boolean) as string[];
-      await prisma.confession.updateMany({
-        where: { id: { in: ids } },
-        data: { revealedAt: revealTime },
-      });
-
-      // Fetch both users' contact info to share
-      const sender = await prisma.user.findUnique({ where: { id: confession.senderId }, select: { name: true, phone: true } });
-      const target = await prisma.user.findUnique({ where: { id: confession.targetId! }, select: { name: true, phone: true } });
-
-      // In production: send each user the other's contact details via notification
-      console.log(`[DEV] Reveal: ${sender?.name} (${sender?.phone}) ↔ ${target?.name} (${target?.phone})`);
-
-      return NextResponse.json({
-        success: true,
-        revealed: true,
+      select: {
         senderRevealConsent: true,
         targetRevealConsent: true,
-        revealedAt: revealTime.toISOString(),
-      });
-    }
+        revealedAt: true,
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      revealed: false,
+      revealed: Boolean(refreshed?.revealedAt),
       senderRevealConsent: refreshed?.senderRevealConsent ?? confession.senderRevealConsent,
       targetRevealConsent: refreshed?.targetRevealConsent ?? confession.targetRevealConsent,
       revealedAt: refreshed?.revealedAt?.toISOString() ?? null,
     });
   } catch (err) {
+    if (isMissingIdentityRevealPaymentType(err)) {
+      return NextResponse.json(
+        { error: "Identity reveal payments are not available yet. Run the latest Prisma migration first." },
+        { status: 503 }
+      );
+    }
+
     console.error(err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

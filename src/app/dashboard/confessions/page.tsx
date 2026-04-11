@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { formatSharedProfileDetails, getStoredSharedProfileSnapshot } from "@/lib/shared-profile-context";
 import { PaymentStatus } from "@prisma/client";
 import { dedupeSentConfessions } from "@/lib/confessions";
+import { dbSupportsIdentityRevealPaymentType } from "@/lib/reveal-identity";
 
 function buildAnonymousId(value: string) {
   return `AID-${value.slice(-6).toUpperCase()}`;
@@ -213,6 +214,20 @@ export default async function ConfessionsPage() {
       },
     }),
   ]);
+  let revealPayments: Array<{ metadata: unknown }> = [];
+  if (await dbSupportsIdentityRevealPaymentType()) {
+    revealPayments = await prisma.payment.findMany({
+      where: {
+        userId: user.id,
+        type: "IDENTITY_REVEAL",
+        status: PaymentStatus.SUCCESS,
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        metadata: true,
+      },
+    });
+  }
 
   const latestSendPaymentByConfessionId = new Map<
     string,
@@ -228,6 +243,14 @@ export default async function ConfessionsPage() {
       id: payment.id,
       status: payment.status,
     });
+  }
+
+  const approvedRevealByConfessionId = new Set<string>();
+  for (const payment of revealPayments) {
+    const confessionId = getPaymentConfessionId(payment.metadata);
+    if (confessionId) {
+      approvedRevealByConfessionId.add(confessionId);
+    }
   }
 
   const received = receivedConfessions.map((confession) => {
@@ -246,7 +269,9 @@ export default async function ConfessionsPage() {
       createdAt: confession.createdAt.toISOString(),
       mutualDetected: confession.mutualDetected,
       senderRevealConsent: confession.senderRevealConsent,
-      targetRevealConsent: confession.targetRevealConsent,
+      targetRevealConsent: confession.revealedAt
+        ? true
+        : confession.targetRevealConsent && approvedRevealByConfessionId.has(confession.id),
       revealedAt: confession.revealedAt?.toISOString() ?? null,
       isUnlocked: confession.unlockedBy.length > 0,
       counterpartAnonymousId: confession.isSelfConfession

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
 import { PaymentStatus } from "@prisma/client";
 import { usePaymentCatalog } from "@/lib/use-payment-catalog";
+import { getIdentityRevealPaymentConfig } from "@/lib/reveal-identity";
 
 type Confession = {
   id: string;
@@ -60,39 +61,39 @@ function getSentCardStatus(confession: Confession) {
 function getIdentityRevealPricing(pageUnlocked: boolean, cardUnlocked: boolean, currentPricing: PricingShape) {
   const needsPageUnlock = !pageUnlocked;
   const needsCardUnlock = !cardUnlocked;
-  const total =
-    currentPricing.identityReveal +
-    (needsCardUnlock ? currentPricing.unlockReceivedConfessionCard : 0) +
-    (needsPageUnlock ? currentPricing.unlockReceivedConfessionPage : 0);
 
   if (!needsPageUnlock && !needsCardUnlock) {
+    const total = currentPricing.identityRevealOnly;
     return {
       total,
-      summary: `This mutual identity reveal will cost ${formatInr(currentPricing.identityReveal)} for you.`,
+      summary: `This mutual identity reveal will cost ${formatInr(total)} for you.`,
       detail: "Your My Confessions page and this confession card are already unlocked, so only the identity reveal charge applies in your case.",
     };
   }
 
   if (!needsPageUnlock && needsCardUnlock) {
+    const total = currentPricing.identityRevealWithCard;
     return {
       total,
       summary: `This mutual identity reveal will cost ${formatInr(total)} for you.`,
-      detail: `That includes ${formatInr(currentPricing.identityReveal)} for identity reveal and ${formatInr(currentPricing.unlockReceivedConfessionCard)} to unlock this confession card.`,
+      detail: `That includes the identity reveal charge and the unlock for this confession card.`,
     };
   }
 
   if (needsPageUnlock && !needsCardUnlock) {
+    const total = currentPricing.identityRevealWithPage;
     return {
       total,
       summary: `This mutual identity reveal will cost ${formatInr(total)} for you.`,
-      detail: `That includes ${formatInr(currentPricing.identityReveal)} for identity reveal and ${formatInr(currentPricing.unlockReceivedConfessionPage)} to unlock your My Confessions page.`,
+      detail: "That includes the identity reveal charge and the unlock for your My Confessions page.",
     };
   }
 
+  const total = currentPricing.identityRevealWithCardAndPage;
   return {
     total,
     summary: `This mutual identity reveal will cost ${formatInr(total)} for you.`,
-    detail: `That includes ${formatInr(currentPricing.identityReveal)} for identity reveal, ${formatInr(currentPricing.unlockReceivedConfessionCard)} to unlock this confession card, and ${formatInr(currentPricing.unlockReceivedConfessionPage)} to unlock your My Confessions page.`,
+    detail: "That includes the identity reveal charge, the unlock for this confession card, and the unlock for your My Confessions page.",
   };
 }
 
@@ -365,6 +366,7 @@ export default function ConfessionsInbox({
     | { kind: "page"; amount: number }
     | { kind: "card"; confessionId: string; amount: number }
     | { kind: "send"; confessionId: string; amount: number }
+    | { kind: "reveal"; confessionId: string; amount: number; qrCodeDataUrl: string | null }
     | null
   >(null);
   const [pendingRevealConfession, setPendingRevealConfession] = useState<Confession | null>(null);
@@ -488,20 +490,30 @@ export default function ConfessionsInbox({
     }
   }
 
-  async function handleRevealConsent(confessionId: string) {
-    setRevealingConfessionId(confessionId);
+  async function submitRevealPayment(confessionId: string, transactionReference: string) {
     try {
-      const res = await fetch("/api/confessions/reveal-consent", {
+      setRevealingConfessionId(confessionId);
+      const res = await fetch("/api/payments/reveal-identity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confessionId }),
+        body: JSON.stringify({ confessionId, transactionReference }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success(data.revealed ? "Identities revealed!" : "Consent recorded. Waiting for the other person.");
-      window.location.reload();
+      if (!res.ok) throw new Error(getResponseErrorMessage(data, "Payment request failed"));
+      if (data.alreadyConsented) {
+        toast.success("Your identity reveal is already approved for this match.");
+        setPaymentDialog(null);
+        return;
+      }
+      if (data.alreadyPending) {
+        toast.success("Your earlier identity reveal payment is already pending review.");
+        setPaymentDialog(null);
+        return;
+      }
+      toast.success("Identity reveal payment submitted for review.");
+      setPaymentDialog(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
+      toast.error(getErrorMessage(err, "Payment request failed"));
     } finally {
       setRevealingConfessionId(null);
     }
@@ -515,9 +527,20 @@ export default function ConfessionsInbox({
   async function confirmRevealConsent() {
     if (!pendingRevealConfession) return;
 
-    const confessionId = pendingRevealConfession.id;
+    const confession = pendingRevealConfession;
+    const paymentConfig = getIdentityRevealPaymentConfig(
+      currentPageUnlocked,
+      confession.isUnlocked,
+      paymentCatalog
+    );
+
     setPendingRevealConfession(null);
-    await handleRevealConsent(confessionId);
+    setPaymentDialog({
+      kind: "reveal",
+      confessionId: confession.id,
+      amount: paymentConfig.amount,
+      qrCodeDataUrl: paymentConfig.qrCodeDataUrl,
+    });
   }
 
   function requestSendPayment(confession: Confession) {
@@ -736,6 +759,20 @@ export default function ConfessionsInbox({
         }}
       />
 
+      <ManualPaymentDialog
+        open={paymentDialog?.kind === "reveal"}
+        title="Reveal Identity"
+        amount={paymentDialog?.kind === "reveal" ? paymentDialog.amount : currentPricing.identityRevealOnly}
+        qrCodeDataUrl={paymentDialog?.kind === "reveal" ? paymentDialog.qrCodeDataUrl : paymentCatalog.qrCodes.identityRevealOnly}
+        pending={revealingConfessionId !== null}
+        submitLabel="Submit Reveal Payment"
+        onClose={() => setPaymentDialog(null)}
+        onSubmit={async (transactionReference) => {
+          if (paymentDialog?.kind !== "reveal") return;
+          await submitRevealPayment(paymentDialog.confessionId, transactionReference);
+        }}
+      />
+
       <AnimatePresence>
         {pendingRevealConfession && (
           <motion.div
@@ -787,11 +824,11 @@ export default function ConfessionsInbox({
                 <button
                   type="button"
                   onClick={confirmRevealConsent}
-                  disabled={revealingConfessionId !== null}
+                  disabled={false}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
                   style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
                 >
-                  {revealingConfessionId === pendingRevealConfession.id ? "Processing..." : `Yes, Reveal Identity (${formatInr(revealPricing?.total ?? currentPricing.identityReveal)})`}
+                  {`Yes, Reveal Identity (${formatInr(revealPricing?.total ?? currentPricing.identityRevealOnly)})`}
                 </button>
               </div>
             </motion.div>

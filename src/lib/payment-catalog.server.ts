@@ -80,8 +80,6 @@ export async function upsertPaymentServiceConfig(params: {
     throw new Error("Invalid payment service");
   }
 
-  const defaultCatalog = getDefaultPaymentCatalog();
-
   try {
     return await prisma.paymentServiceConfig.upsert({
       where: { service: params.service },

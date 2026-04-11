@@ -1,6 +1,7 @@
 import { PaymentStatus, PaymentType, Prisma, type Payment } from "@prisma/client";
 import { convertConfessionToSelf } from "@/lib/confessions";
 import { prisma } from "@/lib/prisma";
+import { applyIdentityRevealPayment } from "@/lib/reveal-identity";
 
 type PaymentMetadata = Prisma.InputJsonValue | undefined;
 
@@ -8,6 +9,7 @@ type ManualPaymentMetadata = {
   confessionId?: string;
   targetUserId?: string;
   bundledPageUnlock?: boolean;
+  bundledCardUnlock?: boolean;
   deliverOnSuccess?: boolean;
   flow?: string;
   source?: string;
@@ -347,5 +349,17 @@ export async function applySuccessfulPayment(paymentId: string) {
 
   if (payment.type === PaymentType.SEND_CONFESSION) {
     await applySendConfession(payment);
+    return;
+  }
+
+  if (payment.type === PaymentType.IDENTITY_REVEAL) {
+    const metadata = asRecord(payment.metadata);
+    const confessionId = getStringField(metadata, "confessionId");
+
+    if (!confessionId) {
+      throw new Error("Missing confession id for identity reveal payment");
+    }
+
+    await applyIdentityRevealPayment(confessionId, payment.userId, payment.metadata);
   }
 }

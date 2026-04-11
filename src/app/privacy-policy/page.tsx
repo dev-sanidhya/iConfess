@@ -63,8 +63,8 @@ export default function PrivacyPolicyPage() {
         </h2>
         <p>
           For privacy-related requests or complaints, users may write to{" "}
-          <a className="text-[#c084fc] underline-offset-4 hover:underline" href="mailto:rocid003@gmail.com">
-            rocid003@gmail.com
+          <a className="text-[#c084fc] underline-offset-4 hover:underline" href="mailto:ciarocid01@gmail.com">
+            ciarocid01@gmail.com
           </a>
           .
         </p>

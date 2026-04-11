@@ -39,9 +39,27 @@ export const paymentServiceDefinitions = [
   },
   {
     service: "IDENTITY_REVEAL",
-    pricingKey: "identityReveal",
-    label: "Identity reveal",
-    description: "Charged when a mutual confession proceeds to identity reveal.",
+    pricingKey: "identityRevealOnly",
+    label: "Identity reveal only",
+    description: "Used when mutual identity reveal is paid after both the card and My Confessions page are already unlocked.",
+  },
+  {
+    service: "IDENTITY_REVEAL_WITH_CARD",
+    pricingKey: "identityRevealWithCard",
+    label: "Identity reveal + card unlock",
+    description: "Used when mutual identity reveal also needs this confession card to be unlocked first.",
+  },
+  {
+    service: "IDENTITY_REVEAL_WITH_PAGE",
+    pricingKey: "identityRevealWithPage",
+    label: "Identity reveal + page unlock",
+    description: "Used when mutual identity reveal also needs the My Confessions page to be unlocked first.",
+  },
+  {
+    service: "IDENTITY_REVEAL_WITH_CARD_AND_PAGE",
+    pricingKey: "identityRevealWithCardAndPage",
+    label: "Identity reveal + card + page unlock",
+    description: "Used when mutual identity reveal needs both the confession card and My Confessions page unlocked first.",
   },
 ] as const satisfies ReadonlyArray<{
   service: PaymentServiceKey;
@@ -59,7 +77,10 @@ export type PricingShape = {
   unlockReceivedConfessionCardWithPage: number;
   viewInsights: number;
   unlockReceivedConfessionPage: number;
-  identityReveal: number;
+  identityRevealOnly: number;
+  identityRevealWithCard: number;
+  identityRevealWithPage: number;
+  identityRevealWithCardAndPage: number;
   unlockReceivedConfessionPageMonths: number;
 };
 
@@ -85,7 +106,10 @@ export const pricing: PricingShape = {
   unlockReceivedConfessionCardWithPage: 1299,
   viewInsights: 499,
   unlockReceivedConfessionPage: 299,
-  identityReveal: 1499,
+  identityRevealOnly: 1499,
+  identityRevealWithCard: 2498,
+  identityRevealWithPage: 1798,
+  identityRevealWithCardAndPage: 2797,
   unlockReceivedConfessionPageMonths: 6,
 };
 
@@ -96,7 +120,10 @@ export const defaultQrCodes: PaymentQrCodes = {
   unlockReceivedConfessionCardWithPage: null,
   viewInsights: null,
   unlockReceivedConfessionPage: null,
-  identityReveal: null,
+  identityRevealOnly: null,
+  identityRevealWithCard: null,
+  identityRevealWithPage: null,
+  identityRevealWithCardAndPage: null,
 };
 
 export function getDefaultPaymentCatalog(): PaymentCatalog {

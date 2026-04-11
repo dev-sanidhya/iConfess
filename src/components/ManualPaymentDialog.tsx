@@ -9,6 +9,7 @@ import { formatInr } from "@/lib/pricing";
 type ManualPaymentDialogProps = {
   open: boolean;
   title: string;
+  description?: string;
   amount: number;
   qrCodeDataUrl?: string | null;
   pending?: boolean;

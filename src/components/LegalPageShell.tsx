@@ -49,7 +49,7 @@ export function LegalPageShell({ title, description, children }: LegalPageShellP
           className="flex flex-col gap-4 border-t pt-6 text-sm sm:flex-row sm:items-center sm:justify-between"
           style={{ borderColor: "rgba(179, 148, 111, 0.22)", color: "#8a6a4a" }}
         >
-          <span>Need help? Email rocid003@gmail.com</span>
+          <span>Need help? Email ciarocid01@gmail.com</span>
           <div className="flex flex-wrap gap-4">
             {legalLinks.map((link) => (
               <Link key={link.href} href={link.href} className="transition-colors hover:text-[#6f5234]">
