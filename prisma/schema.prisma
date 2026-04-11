@@ -42,6 +42,7 @@ model User {
   visitSessions          VisitSession[]
   activities             UserActivity[]
   pendingSocialOwnershipRequests PendingSocialOwnershipRequest[]
+  notificationAudienceCounters NotificationAudienceCounter[]
 }
 
 model PendingProfileSearchCount {
@@ -274,6 +275,34 @@ model PendingSocialOwnershipRequest {
   @@index([platform, normalizedHandle])
 }
 
+model NotificationAudienceCounter {
+  id            String                       @id @default(cuid())
+  category      NotificationAudienceCategory
+  subjectUserId String?
+  subjectUser   User?                        @relation(fields: [subjectUserId], references: [id], onDelete: Cascade)
+  subjectPhone  String?
+  count         Int                          @default(0)
+  lastChangedAt DateTime?
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+  changes       NotificationAudienceCounterChange[]
+
+  @@unique([category, subjectUserId])
+  @@unique([category, subjectPhone])
+  @@index([category])
+}
+
+model NotificationAudienceCounterChange {
+  id            String                      @id @default(cuid())
+  counterId     String
+  counter       NotificationAudienceCounter @relation(fields: [counterId], references: [id], onDelete: Cascade)
+  previousCount Int
+  nextCount     Int
+  changedAt     DateTime                    @default(now())
+
+  @@index([counterId, changedAt])
+}
+
 enum GymTiming {
   MORNING
   EVENING
@@ -372,4 +401,10 @@ enum ActivityType {
 enum SocialPlatform {
   INSTAGRAM
   SNAPCHAT
+}
+
+enum NotificationAudienceCategory {
+  UNREGISTERED_PHONE_SEARCH
+  LOCKED_CONFESSION_RECIPIENT
+  PENDING_MUTUAL_REVEAL
 }
