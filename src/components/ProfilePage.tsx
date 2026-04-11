@@ -931,18 +931,18 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                         return current;
                       });
                     }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"
+                    className="flex items-start sm:items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"
                     style={{
                       background: isSelected ? "rgba(143,106,70,0.12)" : "rgba(255,251,245,0.84)",
                       border: `1px solid ${isSelected ? "rgba(179,148,111,0.32)" : "rgba(184,159,126,0.22)"}`,
                       color: isSelected ? "#8f6a46" : "#8c7257",
                     }}
                   >
-                    <span>{cat.emoji}</span>
-                    <span className="flex-1">{cat.label}</span>
+                    <span className="pt-0.5 sm:pt-0">{cat.emoji}</span>
+                    <span className="min-w-0 flex-1 break-words leading-snug">{cat.label}</span>
                     {isSelected && (
                       <span
-                        className="text-[10px] px-2 py-0.5 rounded-full"
+                        className="shrink-0 self-start text-[10px] px-2 py-0.5 rounded-full"
                         style={{
                           background: primaryCategory === cat.id ? "rgba(198,145,85,0.16)" : "rgba(143,106,70,0.12)",
                           color: primaryCategory === cat.id ? "#9f6c31" : "#8f6a46",

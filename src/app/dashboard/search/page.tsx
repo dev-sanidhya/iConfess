@@ -171,7 +171,23 @@ export default function SearchPage() {
 
   useEffect(() => {
     if (mode !== "profile" || !selectedCategory) return;
-    profileFieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const node = profileFieldsRef.current;
+    if (!node) return;
+
+    requestAnimationFrame(() => {
+      const mobileHeader = window.innerWidth < 768
+        ? document.querySelector("div.md\\:hidden.fixed.top-0.inset-x-0.z-40")
+        : null;
+      const headerHeight = mobileHeader instanceof HTMLElement ? mobileHeader.offsetHeight : 0;
+      const topPadding = window.innerWidth < 768 ? 12 : 16;
+      const targetTop = node.getBoundingClientRect().top + window.scrollY - headerHeight - topPadding;
+
+      window.scrollTo({
+        top: Math.max(targetTop, 0),
+        behavior: "smooth",
+      });
+    });
   }, [mode, selectedCategory]);
 
   useEffect(() => {

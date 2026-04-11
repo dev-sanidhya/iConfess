@@ -697,7 +697,6 @@ export default function ConfessionsInbox({
       <ManualPaymentDialog
         open={paymentDialog?.kind === "page"}
         title="Unlock My Confessions"
-        description={`Pay ${formatInr(currentPricing.unlockReceivedConfessionPage)} to unlock your inbox page for ${currentPricing.unlockReceivedConfessionPageMonths} months.`}
         amount={currentPricing.unlockReceivedConfessionPage}
         qrCodeDataUrl={paymentCatalog.qrCodes.unlockReceivedConfessionPage}
         pending={unlockingPage}
@@ -709,11 +708,6 @@ export default function ConfessionsInbox({
       <ManualPaymentDialog
         open={paymentDialog?.kind === "card"}
         title="Unlock Confession Card"
-        description={
-          paymentDialog?.kind === "card" && paymentDialog.amount === currentPricing.unlockReceivedConfessionCard
-            ? `Pay ${formatInr(currentPricing.unlockReceivedConfessionCard)} to unlock this received confession card.`
-            : `Pay ${formatInr(currentPricing.unlockReceivedConfessionCardWithPage)} to unlock this card and activate your inbox page for ${currentPricing.unlockReceivedConfessionPageMonths} months.`
-        }
         amount={paymentDialog?.kind === "card" ? paymentDialog.amount : currentPricing.unlockReceivedConfessionCard}
         qrCodeDataUrl={
           paymentDialog?.kind === "card" && paymentDialog.amount === currentPricing.unlockReceivedConfessionCard
@@ -732,7 +726,6 @@ export default function ConfessionsInbox({
       <ManualPaymentDialog
         open={paymentDialog?.kind === "send"}
         title="Retry Confession Payment"
-        description={`Pay ${formatInr(currentPricing.sendConfession)} and submit your UTR to send this confession for review again.`}
         amount={currentPricing.sendConfession}
         qrCodeDataUrl={paymentCatalog.qrCodes.sendConfession}
         submitLabel="Submit Payment"

@@ -9,7 +9,6 @@ import { formatInr } from "@/lib/pricing";
 type ManualPaymentDialogProps = {
   open: boolean;
   title: string;
-  description: string;
   amount: number;
   qrCodeDataUrl?: string | null;
   pending?: boolean;
@@ -21,7 +20,6 @@ type ManualPaymentDialogProps = {
 export default function ManualPaymentDialog({
   open,
   title,
-  description,
   amount,
   qrCodeDataUrl = null,
   pending = false,
@@ -66,9 +64,6 @@ export default function ManualPaymentDialog({
             <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
               {title}
             </h2>
-            <p className="text-sm mt-3 leading-relaxed" style={{ color: "#735a43" }}>
-              {description}
-            </p>
 
             <div
               className="mt-4 rounded-2xl p-4 flex flex-col gap-3"
