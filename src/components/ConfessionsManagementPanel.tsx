@@ -1,4 +1,5 @@
 import { ConfessionStatus } from "@prisma/client";
+import FormAutoSubmitSelect from "@/components/FormAutoSubmitSelect";
 
 type ConfessionRow = {
   id: string;
@@ -38,7 +39,7 @@ export default function ConfessionsManagementPanel({
       </section>
 
       <section className="glass rounded-3xl p-5 sm:p-6">
-        <form className="grid gap-3 md:grid-cols-[1fr_220px_auto]">
+        <form className="grid gap-3 md:grid-cols-[1fr_220px]">
           <input
             type="text"
             name="phone"
@@ -47,7 +48,7 @@ export default function ConfessionsManagementPanel({
             className="px-4 py-2.5 rounded-xl text-sm border"
             style={{ background: "rgba(255,251,245,0.92)", borderColor: "rgba(184,159,126,0.35)", color: "#3f2c1d" }}
           />
-          <select
+          <FormAutoSubmitSelect
             name="status"
             defaultValue={statusQuery}
             className="px-4 py-2.5 rounded-xl text-sm border"
@@ -59,14 +60,7 @@ export default function ConfessionsManagementPanel({
                 {status}
               </option>
             ))}
-          </select>
-          <button
-            type="submit"
-            className="px-4 py-2.5 rounded-xl text-sm font-medium text-white"
-            style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}
-          >
-            Apply
-          </button>
+          </FormAutoSubmitSelect>
         </form>
       </section>
 

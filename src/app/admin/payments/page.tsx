@@ -1,16 +1,43 @@
-import AdminPaymentSettings from "@/components/AdminPaymentSettings";
+import { PaymentStatus } from "@prisma/client";
 import PaymentsManagementPanel from "@/components/PaymentsManagementPanel";
-import { getPaymentCatalog } from "@/lib/payment-catalog.server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/staff-guards";
 
-export default async function AdminPaymentsPage() {
-  await requireAdmin();
+type AdminPaymentsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  const paymentCatalog = await getPaymentCatalog();
+function parseStatusParam(value: string | string[] | undefined) {
+  if (typeof value !== "string") {
+    return PaymentStatus.PENDING;
+  }
+
+  return Object.values(PaymentStatus).includes(value as PaymentStatus)
+    ? (value as PaymentStatus)
+    : PaymentStatus.PENDING;
+}
+
+function parseSearchFieldParam(value: string | string[] | undefined) {
+  return value === "transaction" ? "transaction" : "phone";
+}
+
+export default async function AdminPaymentsPage({ searchParams }: AdminPaymentsPageProps) {
+  await requireAdmin();
+  const params = await searchParams;
+  const selectedStatus = parseStatusParam(params.status);
+  const searchField = parseSearchFieldParam(params.searchField);
+  const searchQuery = typeof params.query === "string" ? params.query.trim() : "";
 
   const payments = await prisma.payment.findMany({
-    orderBy: { createdAt: "desc" },
+    where: {
+      status: selectedStatus,
+      ...(searchQuery
+        ? searchField === "transaction"
+          ? { gatewayTransactionId: { contains: searchQuery } }
+          : { user: { phone: { contains: searchQuery } } }
+        : {}),
+    },
+    orderBy: { createdAt: "asc" },
     include: {
       user: {
         select: {
@@ -23,9 +50,13 @@ export default async function AdminPaymentsPage() {
   });
 
   return (
-    <div className="space-y-6 py-6">
-      <AdminPaymentSettings initialCatalog={paymentCatalog} />
-      <PaymentsManagementPanel title="Payments Management" payments={payments} />
-    </div>
+    <PaymentsManagementPanel
+      title="Payments Management"
+      payments={payments}
+      statusFilter={selectedStatus}
+      filterBasePath="/admin/payments"
+      searchField={searchField}
+      searchQuery={searchQuery}
+    />
   );
 }

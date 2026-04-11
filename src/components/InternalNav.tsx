@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { AtSign, BarChart3, CreditCard, LogOut, Menu, Shield, Users, MessageSquare, X } from "lucide-react";
+import { AtSign, BarChart3, CreditCard, LogOut, Menu, MessageSquare, Settings2, Shield, Users, X } from "lucide-react";
 import { STAFF_PERMISSIONS, type StaffPermission, type StaffRole } from "@/lib/staff-types";
 
 type InternalNavProps = {
@@ -25,7 +25,8 @@ export default function InternalNav({ staff }: InternalNavProps) {
         { href: "/admin/team", label: "Staff Access", icon: Shield },
         { href: "/admin/users", label: "Users", icon: Users },
         { href: "/admin/social-handles", label: "Social Ownership", icon: AtSign },
-        { href: "/admin/payments", label: "Payments", icon: CreditCard },
+        { href: "/admin/payment-settings", label: "Payment Settings", icon: Settings2 },
+        { href: "/admin/payments", label: "Payments Management", icon: CreditCard },
         { href: "/admin/confessions", label: "Confessions", icon: MessageSquare },
       ]
     : [
