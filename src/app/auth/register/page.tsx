@@ -17,6 +17,7 @@ function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
   const prefillPhone = params.get("phone") || "";
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const [step, setStep] = useState<Step>(prefillPhone ? "name" : "phone");
   const [phone, setPhone] = useState(prefillPhone);
@@ -35,6 +36,35 @@ function RegisterForm() {
   >({});
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function checkSession() {
+      try {
+        const res = await fetch("/api/users/profile", { cache: "no-store" });
+        if (cancelled) return;
+
+        if (res.ok) {
+          router.replace("/dashboard");
+          return;
+        }
+      } catch {
+        // Ignore and show registration when the session is not valid.
+      } finally {
+        if (!cancelled) {
+          setCheckingSession(false);
+        }
+      }
+    }
+
+    void checkSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (checkingSession) return;
     if (typeof window === "undefined") return;
     if (!window.localStorage.getItem(PENDING_PROFILE_COMPLETION_KEY)) return;
 
@@ -56,7 +86,17 @@ function RegisterForm() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [checkingSession, router]);
+
+  if (checkingSession) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:py-16">
+        <div className="text-sm" style={{ color: "#80664c" }}>
+          Checking your session...
+        </div>
+      </main>
+    );
+  }
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();

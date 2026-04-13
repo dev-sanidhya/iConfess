@@ -43,6 +43,7 @@ model User {
   activities             UserActivity[]
   pendingSocialOwnershipRequests PendingSocialOwnershipRequest[]
   notificationAudienceCounters NotificationAudienceCounter[]
+  claimedShadowProfiles ShadowProfile[]
 }
 
 model PendingProfileSearchCount {
@@ -54,6 +55,24 @@ model PendingProfileSearchCount {
   updatedAt DateTime                 @updatedAt
 
   @@unique([kind, value])
+}
+
+model ShadowProfile {
+  id                String                   @id @default(cuid())
+  kind              PendingProfileSearchKind
+  value             String
+  location          LocationCategory?
+  displayName       String
+  profileDetails    Json
+  searchCount       Int                      @default(0)
+  claimedByUserId   String?
+  claimedByUser     User?                    @relation(fields: [claimedByUserId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  confessions       Confession[]
+
+  @@index([kind, value])
+  @@index([claimedByUserId])
 }
 
 model CollegeProfile {
@@ -124,6 +143,8 @@ model Confession {
   targetId    String?
   target      User?            @relation("ReceivedConfessions", fields: [targetId], references: [id])
   targetPhone String?
+  shadowProfileId String?
+  shadowProfile ShadowProfile?   @relation(fields: [shadowProfileId], references: [id], onDelete: SetNull)
   isSelfConfession Boolean     @default(false)
   billingCategory ConfessionBillingCategory @default(CONFESSION_TO_OTHERS)
   billingState ConfessionBillingState @default(PAID)
@@ -147,6 +168,7 @@ model Confession {
   @@index([targetId, status, createdAt])
   @@index([status, createdAt])
   @@index([targetPhone])
+  @@index([shadowProfileId])
   @@index([expiresAt])
 }
 
@@ -348,6 +370,11 @@ enum PendingProfileSearchKind {
   PHONE
   INSTAGRAM
   SNAPCHAT
+  COLLEGE
+  SCHOOL
+  WORKPLACE
+  GYM
+  NEIGHBOURHOOD
 }
 
 enum StaffRole {

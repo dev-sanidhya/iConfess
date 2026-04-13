@@ -5,6 +5,8 @@ import { formatSharedProfileDetails, getStoredSharedProfileSnapshot } from "@/li
 import { PaymentStatus } from "@prisma/client";
 import { dedupeSentConfessions } from "@/lib/confessions";
 import { dbSupportsIdentityRevealPaymentType } from "@/lib/reveal-identity";
+import { findMatches, getSearchResultByIds, getConciseCategorySummary } from "@/lib/matching";
+import { isFullDetailShadowProfile } from "@/lib/shadow-profiles";
 
 function buildAnonymousId(value: string) {
   return `AID-${value.slice(-6).toUpperCase()}`;
@@ -187,6 +189,13 @@ export default async function ConfessionsPage() {
       where: { senderId: user.id, isSelfConfession: false },
       orderBy: { createdAt: "desc" },
       include: {
+        shadowProfile: {
+          select: {
+            id: true,
+            kind: true,
+            profileDetails: true,
+          },
+        },
         target: {
           select: {
             id: true,
@@ -227,6 +236,28 @@ export default async function ConfessionsPage() {
         metadata: true,
       },
     });
+  }
+
+  const resolutionCandidatesByConfessionId = new Map<string, Awaited<ReturnType<typeof getSearchResultByIds>>>();
+  for (const confession of sentConfessions) {
+    const shadowProfile = confession.shadowProfile;
+    if (!shadowProfile || confession.targetId) {
+      continue;
+    }
+
+    if (!["COLLEGE", "SCHOOL", "WORKPLACE", "GYM", "NEIGHBOURHOOD"].includes(shadowProfile.kind)) {
+      continue;
+    }
+
+    if (isFullDetailShadowProfile(shadowProfile.kind, shadowProfile.profileDetails as Record<string, unknown>)) {
+      continue;
+    }
+
+    const matchDetails = confession.matchDetails as Record<string, string>;
+    const matches = await findMatches(confession.location, matchDetails);
+    const uniqueIds = [...new Set(matches.map((match: { id: string }) => match.id))];
+    const candidates = await getSearchResultByIds(uniqueIds, user.id, { includeCurrentUser: true });
+    resolutionCandidatesByConfessionId.set(confession.id, candidates);
   }
 
   const latestSendPaymentByConfessionId = new Map<
@@ -311,6 +342,18 @@ export default async function ConfessionsPage() {
       counterpartGender: confession.target?.gender ?? null,
       paymentVerificationStatus: latestSendPayment?.status ?? null,
       canRetryPayment: latestSendPayment?.status === PaymentStatus.FAILED,
+      resolutionCandidates: (resolutionCandidatesByConfessionId.get(confession.id) ?? []).map((candidate) => {
+        const matchingSection =
+          candidate.profileSections.find((section) => section.key === confession.location) ??
+          candidate.profileSections[0] ??
+          null;
+
+        return {
+          id: candidate.id,
+          name: candidate.name,
+          summary: matchingSection ? getConciseCategorySummary(matchingSection) : "",
+        };
+      }),
       counterpartContext:
         buildLocationContext(confession.location, confession.target) ??
         buildEnteredRecipientContext(confession.location, matchDetails, confession.targetPhone),

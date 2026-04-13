@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>("login");
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("phone");
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const [loginPhone, setLoginPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +25,34 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkSession() {
+      try {
+        const res = await fetch("/api/users/profile", { cache: "no-store" });
+        if (cancelled) return;
+
+        if (res.ok) {
+          router.replace("/dashboard");
+          return;
+        }
+      } catch {
+        // Ignore and show the auth form when the session is not valid.
+      } finally {
+        if (!cancelled) {
+          setCheckingSession(false);
+        }
+      }
+    }
+
+    void checkSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   function resetRecoveryState() {
     setRecoveryStep("phone");
@@ -152,6 +181,16 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:py-16">
+        <div className="text-sm" style={{ color: "#80664c" }}>
+          Checking your session...
+        </div>
+      </main>
+    );
   }
 
   return (

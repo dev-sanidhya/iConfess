@@ -756,7 +756,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
               />
             </div>
             <p className="text-xs mt-2" style={{ color: "#9b7c5d" }}>
-              Full name, gender, and your sign-in phone number are fixed after signup for this phone number.
+              Full name, gender, and your sign-in phone number are fixed after signup.
             </p>
           </div>
 

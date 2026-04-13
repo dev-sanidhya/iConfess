@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession, normalizeSocialHandle } from "@/lib/auth";
 import {
   buildProfileMatchContext,
+  findDirectShadowProfile,
   getSearchResultByIds,
+  getSearchResultsByShadowIds,
   findMatches,
+  findMatchingShadowProfiles,
   type LocationCategory,
 } from "@/lib/matching";
 import {
@@ -14,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPhone } from "@/lib/utils";
 import { PendingProfileSearchKind } from "@prisma/client";
 import { countSentConfessionsToOthers } from "@/lib/confessions";
+import { buildPendingProfileSearchValue, getPendingKindForLocation, incrementShadowProfileSearchCount } from "@/lib/shadow-profiles";
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,9 +37,12 @@ export async function GET(req: NextRequest) {
       const target = await prisma.user.findUnique({
         where: { phone: formatPhone(phone) },
       });
+      const shadow = target ? null : await findDirectShadowProfile(PendingProfileSearchKind.PHONE, { phone: formatPhone(phone) });
 
       if (target && target.id !== user.id) {
         await incrementProfileSearchCounts([target.id], prisma);
+      } else if (shadow) {
+        await incrementShadowProfileSearchCount([shadow.id], prisma);
       } else if (!target) {
         await incrementPendingProfileSearchCount(
           PendingProfileSearchKind.PHONE,
@@ -44,11 +51,17 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      const results = (await getSearchResultByIds(target ? [target.id] : [], user.id, { includeCurrentUser: true })).map((result) => ({
+      const results = target
+        ? (await getSearchResultByIds([target.id], user.id, { includeCurrentUser: true }))
+        : shadow
+          ? await getSearchResultsByShadowIds([shadow.id])
+          : [];
+
+      const mappedResults = results.map((result) => ({
         ...result,
         matchContext: ["Matched by phone number"],
       }));
-      return NextResponse.json({ results, viewerSentCount });
+      return NextResponse.json({ results: mappedResults, viewerSentCount });
     }
 
     if (mode === "social") {
@@ -66,9 +79,17 @@ export async function GET(req: NextRequest) {
             : { snapchatHandle: handle }),
         },
       });
+      const shadow = target
+        ? null
+        : await findDirectShadowProfile(
+            platform === "instagram" ? PendingProfileSearchKind.INSTAGRAM : PendingProfileSearchKind.SNAPCHAT,
+            { platform, handle }
+          );
 
       if (target && target.id !== user.id) {
         await incrementProfileSearchCounts([target.id], prisma);
+      } else if (shadow) {
+        await incrementShadowProfileSearchCount([shadow.id], prisma);
       } else if (!target) {
         await incrementPendingProfileSearchCount(
           platform === "instagram"
@@ -79,7 +100,13 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      const results = (await getSearchResultByIds(target ? [target.id] : [], user.id, { includeCurrentUser: true })).map((result) => ({
+      const results = target
+        ? (await getSearchResultByIds([target.id], user.id, { includeCurrentUser: true }))
+        : shadow
+          ? await getSearchResultsByShadowIds([shadow.id])
+          : [];
+
+      const mappedResults = results.map((result) => ({
         ...result,
         matchContext: [
           platform === "instagram"
@@ -87,7 +114,7 @@ export async function GET(req: NextRequest) {
             : `Snapchat: @${result.snapchatHandle ?? handle}`,
         ],
       }));
-      return NextResponse.json({ results, viewerSentCount });
+      return NextResponse.json({ results: mappedResults, viewerSentCount });
     }
 
     if (mode === "profile") {
@@ -114,12 +141,25 @@ export async function GET(req: NextRequest) {
       delete details.lastName;
 
       const matches = await findMatches(location, details);
+      const shadowMatches = await findMatchingShadowProfiles(location as LocationCategory, details);
       const uniqueIds = [...new Set(matches.map((match: { id: string }) => match.id))];
       const targetUserIds = uniqueIds.filter((id) => id !== user.id);
 
       await incrementProfileSearchCounts(targetUserIds, prisma);
+      await incrementShadowProfileSearchCount(shadowMatches.map((shadow) => shadow.id), prisma);
 
-      const results = (await getSearchResultByIds(uniqueIds, user.id, { includeCurrentUser: true })).map((result) => ({
+      if (uniqueIds.length === 0 && shadowMatches.length === 0) {
+        await incrementPendingProfileSearchCount(
+          getPendingKindForLocation(location as LocationCategory),
+          buildPendingProfileSearchValue(getPendingKindForLocation(location as LocationCategory), details),
+          prisma
+        );
+      }
+
+      const results = [
+        ...(await getSearchResultByIds(uniqueIds, user.id, { includeCurrentUser: true })),
+        ...(await getSearchResultsByShadowIds(shadowMatches.map((shadow) => shadow.id))),
+      ].map((result) => ({
         ...result,
         matchContext: buildProfileMatchContext(location as LocationCategory, details, result),
       }));

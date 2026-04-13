@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, Variants } from "framer-motion";
 import dynamic from "next/dynamic";
 import { Playfair_Display } from "next/font/google";
@@ -48,6 +49,35 @@ const footerLinks = [
 ];
 
 export default function LandingPage() {
+  const [authDestination, setAuthDestination] = useState({
+    signIn: "/auth/login",
+    register: "/auth/register",
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSessionDestination() {
+      try {
+        const res = await fetch("/api/users/profile", { cache: "no-store" });
+        if (cancelled || !res.ok) return;
+
+        setAuthDestination({
+          signIn: "/dashboard",
+          register: "/dashboard",
+        });
+      } catch {
+        // Keep auth entry points when no valid session exists.
+      }
+    }
+
+    void loadSessionDestination();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <main className="relative flex min-h-screen w-full flex-col items-center overflow-x-hidden px-4">
       <div className="absolute inset-0 bg-[#f8f1e7]" />
@@ -85,14 +115,14 @@ export default function LandingPage() {
           className="flex items-center gap-2 sm:gap-3"
         >
           <Link
-            href="/auth/login"
+            href={authDestination.signIn}
             className="px-3 sm:px-4 py-2 text-sm transition-colors whitespace-nowrap"
             style={{ color: "#80664c" }}
           >
             Sign In
           </Link>
           <Link
-            href="/auth/register"
+            href={authDestination.register}
             className="px-3 sm:px-4 py-2 text-sm rounded-lg border transition-all whitespace-nowrap"
             style={{
               border: "1px solid rgba(142, 112, 77, 0.34)",
@@ -160,7 +190,7 @@ export default function LandingPage() {
           className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto"
         >
           <Link
-            href="/auth/register"
+            href={authDestination.register}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 sm:hover:scale-105 w-full sm:w-auto"
             style={{
               background: "linear-gradient(135deg, #8f6a46 0%, #b69068 55%, #d7b892 100%)",
@@ -171,7 +201,7 @@ export default function LandingPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href="/auth/login"
+            href={authDestination.signIn}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all hover:border-[#c084fc]/30 w-full sm:w-auto"
             style={{
               color: "#735a43",

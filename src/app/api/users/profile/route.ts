@@ -9,6 +9,12 @@ import {
   convertConfessionToSelf,
 } from "@/lib/confessions";
 import { validateSelectedProfiles } from "@/lib/profile-details";
+import {
+  claimCompatiblePendingDetailSearchCounts,
+  getPendingKindForLocation,
+  isFullDetailShadowProfile,
+  matchesClaimedProfile,
+} from "@/lib/shadow-profiles";
 
 export async function GET() {
   const session = await getSession();
@@ -52,7 +58,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-
     await prisma.user.update({
       where: { id: session.id },
       data: {
@@ -60,6 +65,68 @@ export async function PATCH(req: NextRequest) {
       },
     });
     await syncUserProfiles(prisma, session.id, session.name, chosenCategories, profileDetailsByCategory ?? {});
+
+    let carriedDetailSearchCount = 0;
+    for (const category of chosenCategories) {
+      const claimedDetails = profileDetailsByCategory?.[category] ?? {};
+      carriedDetailSearchCount += await claimCompatiblePendingDetailSearchCounts({
+        category,
+        details: claimedDetails,
+        fullName: session.name,
+        db: prisma,
+      });
+
+      const matchingShadows = await prisma.shadowProfile.findMany({
+        where: {
+          kind: getPendingKindForLocation(category),
+          claimedByUserId: null,
+        },
+        select: {
+          id: true,
+          kind: true,
+          profileDetails: true,
+          searchCount: true,
+        },
+      });
+
+      const exactShadows = matchingShadows.filter((shadow) =>
+        isFullDetailShadowProfile(shadow.kind, shadow.profileDetails as Record<string, unknown>) &&
+        matchesClaimedProfile(shadow, claimedDetails, session.name)
+      );
+
+      if (exactShadows.length === 0) {
+        continue;
+      }
+
+      carriedDetailSearchCount += exactShadows.reduce((sum, shadow) => sum + shadow.searchCount, 0);
+
+      await prisma.shadowProfile.updateMany({
+        where: { id: { in: exactShadows.map((shadow) => shadow.id) } },
+        data: { claimedByUserId: session.id },
+      });
+
+      await prisma.confession.updateMany({
+        where: {
+          shadowProfileId: { in: exactShadows.map((shadow) => shadow.id) },
+          targetId: null,
+          status: "PENDING",
+          expiresAt: { gt: new Date() },
+        },
+        data: {
+          targetId: session.id,
+          status: "DELIVERED",
+        },
+      });
+    }
+
+    if (carriedDetailSearchCount > 0) {
+      await prisma.user.update({
+        where: { id: session.id },
+        data: {
+          profileSearchCount: (session.profileSearchCount ?? 0) + carriedDetailSearchCount,
+        },
+      });
+    }
 
     const [updatedUser, pendingSelfCandidates] = await Promise.all([
       prisma.user.findUnique({

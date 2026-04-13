@@ -1,4 +1,6 @@
+import { PendingProfileSearchKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getPendingKindForLocation, shadowProfileMatchesSearch } from "@/lib/shadow-profiles";
 
 export const indianCourseOptions = [
   "B.Tech",
@@ -135,6 +137,28 @@ export type SearchResultProfileSection = {
   key: LocationCategory;
   label: string;
   details: { label: string; value: string }[];
+};
+
+export type SearchResult = {
+  id: string;
+  name: string;
+  instagramHandle: string | null;
+  snapchatHandle: string | null;
+  primaryCategory: string;
+  gender: "MALE" | "FEMALE" | "OTHER";
+  isCurrentUser: boolean;
+  confessionPageUnlocked: boolean;
+  confessionCount: number;
+  hasUnlockedInsights: boolean;
+  unlockedInsightCount: number;
+  lockedInsightCount: number;
+  profileSections: SearchResultProfileSection[];
+  college: string | null;
+  school: string | null;
+  workplace: string | null;
+  gym: string | null;
+  neighbourhood: string | null;
+  isShadow: boolean;
 };
 
 export type SearchDetailField = {
@@ -491,6 +515,132 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string,
       neighbourhood: u.neighbourhood
         ? `${u.neighbourhood.homeNumber} · ${u.neighbourhood.premisesName} · ${u.neighbourhood.city} · ${u.neighbourhood.state} · ${u.neighbourhood.pinCode}`
         : null,
+      isShadow: false,
+      };
+    });
+}
+
+function buildShadowProfileSection(category: LocationCategory, profileDetails: Record<string, unknown>): SearchResultProfileSection {
+  return {
+    key: category,
+    label: locationCategories.find((item) => item.id === category)?.label ?? category,
+    details: locationFields[category]
+      .map((field) => ({
+        label: field.label.replace(/\s*\(.+\)$/, "").trim(),
+        value:
+          typeof profileDetails[field.key] === "string" || typeof profileDetails[field.key] === "number"
+            ? String(profileDetails[field.key])
+            : "",
+      }))
+      .filter((detail) => detail.value),
+  };
+}
+
+export async function findMatchingShadowProfiles(location: LocationCategory, details: Record<string, string>) {
+  const shadows = await prisma.shadowProfile.findMany({
+    where: {
+      kind: getPendingKindForLocation(location),
+      claimedByUserId: null,
+    },
+    include: {
+      _count: {
+        select: {
+          confessions: {
+            where: { targetId: null },
+          },
+        },
+      },
+    },
+  });
+
+  return shadows.filter((shadow) =>
+    shadowProfileMatchesSearch({
+      shadowProfile: shadow,
+      mode: "profile",
+      location,
+      details,
+    })
+  );
+}
+
+export async function findDirectShadowProfile(
+  kind: PendingProfileSearchKind,
+  input: { phone?: string; platform?: "instagram" | "snapchat"; handle?: string }
+) {
+  const shadows = await prisma.shadowProfile.findMany({
+    where: {
+      kind,
+      claimedByUserId: null,
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return shadows.find((shadow) =>
+    shadowProfileMatchesSearch({
+      shadowProfile: shadow,
+      mode: kind === PendingProfileSearchKind.PHONE ? "phone" : "social",
+      phone: input.phone,
+      platform: input.platform,
+      handle: input.handle,
+    })
+  ) ?? null;
+}
+
+export async function getSearchResultsByShadowIds(ids: string[]): Promise<SearchResult[]> {
+  if (ids.length === 0) return [];
+
+  const shadows = await prisma.shadowProfile.findMany({
+    where: {
+      id: { in: ids },
+      claimedByUserId: null,
+    },
+    include: {
+      _count: {
+        select: {
+          confessions: {
+            where: { targetId: null },
+          },
+        },
+      },
+    },
+  });
+
+  const byId = new Map(shadows.map((shadow) => [shadow.id, shadow]));
+
+  return ids
+    .map((id) => byId.get(id))
+    .filter((shadow): shadow is NonNullable<typeof shadow> => Boolean(shadow))
+    .map((shadow) => {
+      const category = shadow.location as LocationCategory | null;
+      const profileDetails = shadow.profileDetails as Record<string, unknown>;
+      const section = category ? buildShadowProfileSection(category, profileDetails) : null;
+
+      return {
+        id: shadow.id,
+        name: shadow.displayName,
+        instagramHandle:
+          typeof profileDetails.handle === "string" && shadow.kind === PendingProfileSearchKind.INSTAGRAM
+            ? profileDetails.handle
+            : null,
+        snapchatHandle:
+          typeof profileDetails.handle === "string" && shadow.kind === PendingProfileSearchKind.SNAPCHAT
+            ? profileDetails.handle
+            : null,
+        primaryCategory: category ?? "COLLEGE",
+        gender: "OTHER" as const,
+        isCurrentUser: false,
+        confessionPageUnlocked: false,
+        confessionCount: shadow._count.confessions,
+        hasUnlockedInsights: false,
+        unlockedInsightCount: 0,
+        lockedInsightCount: 0,
+        profileSections: section ? [section] : [],
+        college: category === "COLLEGE" && section ? getConciseCategorySummary(section) : null,
+        school: category === "SCHOOL" && section ? getConciseCategorySummary(section) : null,
+        workplace: category === "WORKPLACE" && section ? getConciseCategorySummary(section) : null,
+        gym: category === "GYM" && section ? getConciseCategorySummary(section) : null,
+        neighbourhood: category === "NEIGHBOURHOOD" && section ? getConciseCategorySummary(section) : null,
+        isShadow: true,
       };
     });
 }
@@ -498,7 +648,7 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string,
 export function buildProfileMatchContext(
   location: LocationCategory,
   details: Record<string, string>,
-  result: Awaited<ReturnType<typeof getSearchResultByIds>>[number]
+  result: SearchResult
 ) {
   const entries: string[] = [];
 

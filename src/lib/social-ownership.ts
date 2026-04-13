@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { normalizeSocialHandle } from "@/lib/auth";
 import { claimPendingProfileSearchCounts } from "@/lib/profile-search-count";
+import { claimDirectShadowProfile } from "@/lib/shadow-profiles";
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -168,6 +169,12 @@ export async function acceptPendingSocialOwnershipRequest(requestId: string, db:
     ],
     db
   );
+  const claimedShadow = await claimDirectShadowProfile({
+    kind: getPendingProfileSearchKind(request.platform),
+    value: request.normalizedHandle,
+    userId: request.userId,
+    db,
+  });
 
   const userUpdate = request.platform === SocialPlatform.INSTAGRAM
     ? { instagramHandle: request.normalizedHandle }
@@ -179,9 +186,13 @@ export async function acceptPendingSocialOwnershipRequest(requestId: string, db:
       ...userUpdate,
       ...(carriedSearchCount > 0
         ? {
-            profileSearchCount: (request.user.profileSearchCount ?? 0) + carriedSearchCount,
+            profileSearchCount: (request.user.profileSearchCount ?? 0) + carriedSearchCount + (claimedShadow?.searchCount ?? 0),
           }
-        : {}),
+        : claimedShadow?.searchCount
+          ? {
+              profileSearchCount: (request.user.profileSearchCount ?? 0) + claimedShadow.searchCount,
+            }
+          : {}),
     },
   });
 

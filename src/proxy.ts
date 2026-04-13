@@ -24,8 +24,10 @@ export function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 
-  if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+  // Keep auth pages reachable even when a stale JWT cookie still exists.
+  // The server-rendered dashboard performs the authoritative session lookup.
+  if (isAuthRoute) {
+    return NextResponse.next();
   }
 
   if (isStaffProtected && !isStaffAuthenticated) {

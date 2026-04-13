@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Gender, Prisma } from "@prisma/client";
 import { getSession, normalizeSocialHandle } from "@/lib/auth";
-import { findMatches } from "@/lib/matching";
+import { findMatches, findMatchingShadowProfiles, type LocationCategory } from "@/lib/matching";
 import { getPaymentAmount } from "@/lib/payment-catalog.server";
 import { createManualPaymentRequest } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { buildSharedProfileOptionsFromUser, getSharedProfileOptionByCategory } from "@/lib/shared-profile-context";
+import { claimCompatiblePendingDetailSearchCounts, findOrCreateDirectShadowProfile, getPendingKindForLocation } from "@/lib/shadow-profiles";
 import { addDays } from "@/lib/utils";
 import {
   countSentConfessionsToOthers,
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { flow, location, matchDetails, message, targetPhone, firstName, lastName, platform, handle, targetUserId, sharedProfileCategory, selfGenderOverride, transactionReference } = body;
+    const { flow, location, matchDetails, message, targetPhone, firstName, lastName, platform, handle, targetUserId, targetShadowProfileId, sharedProfileCategory, selfGenderOverride, transactionReference } = body;
 
     if (!message?.trim()) {
       return NextResponse.json({ error: "Message required" }, { status: 400 });
@@ -157,10 +158,21 @@ export async function POST(req: NextRequest) {
       }
 
       // Unregistered — queue via phone
+      const shadowProfile = await findOrCreateDirectShadowProfile({
+        kind: "PHONE",
+        value: targetPhone,
+        matchDetails: {
+          ...confessionMatchDetails,
+          phone: targetPhone,
+        },
+        db: prisma,
+      });
+
       const existingPhoneDuplicate = await findRecentDuplicateConfession({
         senderId: user.id,
         targetId: null,
         targetPhone,
+        shadowProfileId: shadowProfile.id,
         location: "COLLEGE",
         message,
         matchDetails: confessionMatchDetails,
@@ -189,13 +201,14 @@ export async function POST(req: NextRequest) {
       const confession = await prisma.confession.create({
         data: {
           senderId: user.id,
-            targetPhone,
-            message,
-            location: "COLLEGE",
-            matchDetails: confessionMatchDetails as Prisma.InputJsonValue,
-            status: "PENDING",
-            expiresAt,
-            billingCategory: "CONFESSION_TO_OTHERS",
+          targetPhone,
+          shadowProfileId: shadowProfile.id,
+          message,
+          location: "COLLEGE",
+          matchDetails: confessionMatchDetails as Prisma.InputJsonValue,
+          status: "PENDING",
+          expiresAt,
+          billingCategory: "CONFESSION_TO_OTHERS",
           billingState: isFree ? "FREE" : "PAID",
         },
       });
@@ -244,10 +257,17 @@ export async function POST(req: NextRequest) {
           platform,
           handle: normalizedHandle,
         };
+        const shadowProfile = await findOrCreateDirectShadowProfile({
+          kind: platform === "instagram" ? "INSTAGRAM" : "SNAPCHAT",
+          value: normalizedHandle,
+          matchDetails: socialMatchDetails,
+          db: prisma,
+        });
         const existingSocialDuplicate = await findRecentDuplicateConfession({
           senderId: user.id,
           targetId: null,
           targetPhone: null,
+          shadowProfileId: shadowProfile.id,
           location: "COLLEGE",
           message,
           matchDetails: socialMatchDetails,
@@ -276,6 +296,7 @@ export async function POST(req: NextRequest) {
         const confession = await prisma.confession.create({
           data: {
             senderId: user.id,
+            shadowProfileId: shadowProfile.id,
             message,
             location: "COLLEGE",
             matchDetails: socialMatchDetails as Prisma.InputJsonValue,
@@ -401,6 +422,7 @@ export async function POST(req: NextRequest) {
     }
 
     const matches = await findMatches(location, normalizedMatchDetails);
+    const shadowMatches = await findMatchingShadowProfiles(location as LocationCategory, normalizedMatchDetails);
     const uniqueMatches = [...new Map(matches.map((match) => [match.id, match])).values()];
 
     if (typeof targetUserId === "string" && targetUserId.trim()) {
@@ -489,10 +511,80 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (typeof targetShadowProfileId === "string" && targetShadowProfileId.trim()) {
+      const targetShadow = shadowMatches.find((shadow) => shadow.id === targetShadowProfileId.trim());
+
+      if (!targetShadow) {
+        return NextResponse.json({ error: "Selected shadow profile no longer matches these details" }, { status: 400 });
+      }
+
+      const existingShadowDuplicate = await findRecentDuplicateConfession({
+        senderId: user.id,
+        targetId: null,
+        targetPhone: null,
+        shadowProfileId: targetShadow.id,
+        location,
+        message,
+        matchDetails: confessionMatchDetails,
+        isSelfConfession: false,
+      });
+      if (existingShadowDuplicate) {
+        const paymentResponse = await queueSendPaymentIfNeeded({
+          userId: user.id,
+          isFree,
+          confessionId: existingShadowDuplicate.id,
+          flow: "profile",
+          transactionReference,
+          deliverOnSuccess: false,
+        });
+        if (paymentResponse) return paymentResponse;
+
+        return NextResponse.json({
+          success: true,
+          matchFound: false,
+          confessionId: existingShadowDuplicate.id,
+          isFree,
+          deliveryMode: "pending_registration",
+        });
+      }
+
+      const confession = await prisma.confession.create({
+        data: {
+          senderId: user.id,
+          shadowProfileId: targetShadow.id,
+          message,
+          location,
+          matchDetails: confessionMatchDetails as Prisma.InputJsonValue,
+          status: "PENDING",
+          expiresAt,
+          billingCategory: "CONFESSION_TO_OTHERS",
+          billingState: isFree ? "FREE" : "PAID",
+        },
+      });
+      const paymentResponse = await queueSendPaymentIfNeeded({
+        userId: user.id,
+        isFree,
+        confessionId: confession.id,
+        flow: "profile",
+        transactionReference,
+        deliverOnSuccess: false,
+      });
+      if (paymentResponse) return paymentResponse;
+
+      return NextResponse.json({
+        success: true,
+        matchFound: false,
+        confessionId: confession.id,
+        isFree,
+        deliveryMode: "pending_registration",
+      });
+    }
+
     const existingProfileDuplicate = await findRecentDuplicateConfession({
       senderId: user.id,
       targetId: null,
       targetPhone: null,
+      shadowProfileId: null,
       location,
       message,
       matchDetails: confessionMatchDetails,
@@ -518,9 +610,28 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const carriedSearchCount = await claimCompatiblePendingDetailSearchCounts({
+      category: location as LocationCategory,
+      details: normalizedMatchDetails,
+      fullName: normalizedMatchDetails.fullName,
+      db: prisma,
+    });
+
+    const newShadowProfile = await prisma.shadowProfile.create({
+      data: {
+        kind: getPendingKindForLocation(location as LocationCategory),
+        value: crypto.randomUUID(),
+        location: location as LocationCategory,
+        displayName: normalizedMatchDetails.fullName,
+        profileDetails: confessionMatchDetails as Prisma.InputJsonValue,
+        searchCount: carriedSearchCount,
+      },
+    });
+
     const confession = await prisma.confession.create({
       data: {
         senderId: user.id,
+        shadowProfileId: newShadowProfile.id,
         message,
         location,
         matchDetails: confessionMatchDetails as Prisma.InputJsonValue,
@@ -589,6 +700,7 @@ async function findRecentDuplicateConfession(params: {
   senderId: string;
   targetId: string | null;
   targetPhone: string | null;
+  shadowProfileId: string | null;
   location: "COLLEGE" | "SCHOOL" | "WORKPLACE" | "GYM" | "NEIGHBOURHOOD";
   message: string;
   matchDetails: Record<string, unknown>;
@@ -599,6 +711,7 @@ async function findRecentDuplicateConfession(params: {
       senderId: params.senderId,
       targetId: params.targetId,
       targetPhone: params.targetPhone,
+      shadowProfileId: params.shadowProfileId,
       location: params.location,
       message: params.message,
       isSelfConfession: params.isSelfConfession,

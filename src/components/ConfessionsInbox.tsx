@@ -32,6 +32,11 @@ type Confession = {
   counterpartContext: string | null;
   paymentVerificationStatus?: PaymentStatus | null;
   canRetryPayment?: boolean;
+  resolutionCandidates?: Array<{
+    id: string;
+    name: string;
+    summary: string;
+  }>;
 };
 
 type TabKey = "received" | "sent";
@@ -120,6 +125,7 @@ function ConfessionCard({
   onReply,
   onRevealConsent,
   onRetryPayment,
+  onResolveShadow,
 }: {
   confession: Confession;
   pageUnlocked: boolean;
@@ -128,6 +134,7 @@ function ConfessionCard({
   onReply: (id: string, reply: string) => Promise<void>;
   onRevealConsent: (id: string) => void;
   onRetryPayment: (confession: Confession) => void;
+  onResolveShadow: (confessionId: string, targetUserId: string) => Promise<void>;
 }) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -339,6 +346,42 @@ function ConfessionCard({
             >
               Pay For This Card
             </button>
+          </div>
+        )}
+
+        {isSent && (confession.resolutionCandidates?.length ?? 0) > 0 && (
+          <div
+            className="mt-4 rounded-xl px-4 py-4"
+            style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
+          >
+            <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "#8f6a46" }}>
+              Matching Profiles Found
+            </p>
+            <p className="text-sm mt-2" style={{ color: "#735a43" }}>
+              These users now match the details you originally entered. Choose the exact person you meant.
+            </p>
+            <div className="mt-3 flex flex-col gap-3">
+              {confession.resolutionCandidates?.map((candidate) => (
+                <div
+                  key={`${confession.id}-${candidate.id}`}
+                  className="rounded-xl p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                  style={{ background: "rgba(255,248,240,0.84)", border: "1px solid rgba(184,159,126,0.22)" }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium" style={{ color: "#3f2c1d" }}>{candidate.name}</p>
+                    <p className="text-xs mt-1" style={{ color: "#8c7257" }}>{candidate.summary}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void onResolveShadow(confession.id, candidate.id)}
+                    className="px-4 py-2 rounded-xl text-xs font-medium text-white"
+                    style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
+                  >
+                    Deliver To This User
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -579,6 +622,36 @@ export default function ConfessionsInbox({
     }
   }
 
+  async function handleResolveShadow(confessionId: string, targetUserId: string) {
+    try {
+      const res = await fetch("/api/confessions/resolve-shadow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confessionId, targetUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(getResponseErrorMessage(data, "Failed to deliver confession"));
+      }
+
+      toast.success("Confession delivered to the selected user.");
+      setSentItems((current) =>
+        current.map((item) =>
+          item.id === confessionId
+            ? {
+                ...item,
+                status: "DELIVERED",
+                counterpartName: data.target?.name ?? item.counterpartName,
+                resolutionCandidates: [],
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to deliver confession"));
+    }
+  }
+
   return (
     <div className="py-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
@@ -654,6 +727,7 @@ export default function ConfessionsInbox({
                 onReply={handleReply}
                 onRevealConsent={requestRevealConsent}
                 onRetryPayment={requestSendPayment}
+                onResolveShadow={handleResolveShadow}
               />
             ))}
           </AnimatePresence>

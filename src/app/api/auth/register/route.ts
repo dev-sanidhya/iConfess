@@ -100,6 +100,17 @@ export async function POST(req: NextRequest) {
         ],
         tx
       );
+      const phoneShadow = await tx.shadowProfile.findFirst({
+        where: {
+          kind: PendingProfileSearchKind.PHONE,
+          value: formattedPhone,
+          claimedByUserId: null,
+        },
+        select: {
+          id: true,
+          searchCount: true,
+        },
+      });
 
       const newUser = await tx.user.create({
         data: {
@@ -109,12 +120,31 @@ export async function POST(req: NextRequest) {
           dateOfBirth: parsedDateOfBirth,
           passwordHash,
           gender: gender as Gender,
-          profileSearchCount: createInitialProfileSearchCount(carriedSearchCount),
+          profileSearchCount: createInitialProfileSearchCount(carriedSearchCount + (phoneShadow?.searchCount ?? 0)),
           primaryCategory: (chosenCategories.length > 0
             ? primaryCategory
             : "COLLEGE") as LocationCategory,
         },
       });
+      if (phoneShadow) {
+        await tx.shadowProfile.update({
+          where: { id: phoneShadow.id },
+          data: { claimedByUserId: newUser.id },
+        });
+
+        await tx.confession.updateMany({
+          where: {
+            shadowProfileId: phoneShadow.id,
+            targetId: null,
+            status: "PENDING",
+            expiresAt: { gt: new Date() },
+          },
+          data: {
+            targetId: newUser.id,
+            status: "DELIVERED",
+          },
+        });
+      }
       if (chosenCategories.length > 0) {
         await syncUserProfiles(tx, newUser.id, newUser.name, chosenCategories, profileDetailsByCategory ?? {});
       }

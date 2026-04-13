@@ -40,6 +40,7 @@ type SearchResult = {
   workplace: string | null;
   gym: string | null;
   neighbourhood: string | null;
+  isShadow: boolean;
 };
 
 type CurrentUserSummary = {
@@ -86,11 +87,17 @@ function getEnteredProfileSummary(category: LocationCategory | null, details: Re
 
 function buildMatchedPreview(result: SearchResult, flow: FlowType, selectedCategory: LocationCategory | null): RecipientPreview {
   const selectedSection = getSelectedSection(result, selectedCategory);
-  const statusText = flow === "phone"
-    ? "Matched this phone number to a registered iConfess user."
-    : flow === "social"
-      ? "Matched this social handle to a registered iConfess user."
-      : "This confession will be delivered to the selected registered profile.";
+  const statusText = result.isShadow
+    ? flow === "phone"
+      ? "Matched this phone number to an unregistered iConfess profile."
+      : flow === "social"
+        ? "Matched this social handle to an unregistered iConfess profile."
+        : "This confession will stay linked to the selected unregistered profile."
+    : flow === "phone"
+      ? "Matched this phone number to a registered iConfess user."
+      : flow === "social"
+        ? "Matched this social handle to a registered iConfess user."
+        : "This confession will be delivered to the selected registered profile.";
   const summary = flow === "phone"
     ? (result.matchContext[0] ?? "Matched by phone number")
     : flow === "social"
@@ -101,9 +108,11 @@ function buildMatchedPreview(result: SearchResult, flow: FlowType, selectedCateg
     mode: "matched",
     title: result.name,
     summary,
-    statusLabel: "Registered User",
+    statusLabel: result.isShadow ? "Unregistered" : "Registered User",
     statusText,
-    note: "Your confession will go directly to this user.",
+    note: result.isShadow
+      ? "Your confession will stay on this unregistered profile until it is claimed."
+      : "Your confession will go directly to this user.",
   };
 }
 
@@ -420,7 +429,8 @@ export default function SendConfession({
             flow: "profile",
             location: selectedCategory,
             matchDetails: { ...matchDetails, firstName: firstName.trim(), ...(lastName.trim() ? { lastName: lastName.trim() } : {}), fullName: enteredFullName },
-            targetUserId: selectedProfileId,
+            targetUserId: selectedProfile && !selectedProfile.isShadow ? selectedProfile.id : null,
+            targetShadowProfileId: selectedProfile?.isShadow ? selectedProfile.id : null,
             sharedProfileCategory: selectedSharedProfileCategory,
             firstName: firstName.trim(),
             lastName: lastName.trim(),
@@ -780,7 +790,17 @@ export default function SendConfession({
                                     {result.name[0]?.toUpperCase()}
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="font-medium truncate" style={{ color: "#3f2c1d" }}>{result.name}</p>
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <p className="font-medium truncate" style={{ color: "#3f2c1d" }}>{result.name}</p>
+                                      {result.isShadow && (
+                                        <span
+                                          className="text-[10px] px-2 py-0.5 rounded-full shrink-0"
+                                          style={{ background: "rgba(143,106,70,0.14)", color: "#8f6a46" }}
+                                        >
+                                          Unregistered
+                                        </span>
+                                      )}
+                                    </div>
                                     {result.id === currentUser.id && (
                                       <p className="text-[11px] mt-1" style={{ color: "#8f6a46" }}>Your profile</p>
                                     )}

@@ -39,6 +39,7 @@ type SearchResult = {
   workplace: string | null;
   gym: string | null;
   neighbourhood: string | null;
+  isShadow: boolean;
 };
 
 type ProfileInsight = {
@@ -571,7 +572,7 @@ export default function SearchPage() {
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                      {result.confessionCount > 0 && (
+                      {result.confessionCount > 0 && !result.isShadow && (
                         <button
                           type="button"
                           onClick={() => void handleInsightAccess(result)}
