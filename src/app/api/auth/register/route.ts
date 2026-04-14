@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         ],
         tx
       );
-      const phoneShadow = await tx.shadowProfile.findFirst({
+      const phoneShadows = await tx.shadowProfile.findMany({
         where: {
           kind: PendingProfileSearchKind.PHONE,
           value: formattedPhone,
@@ -111,6 +111,12 @@ export async function POST(req: NextRequest) {
           searchCount: true,
         },
       });
+      const phoneShadow = phoneShadows.length > 0
+        ? {
+            shadowIds: phoneShadows.map((shadow) => shadow.id),
+            searchCount: phoneShadows.reduce((sum, shadow) => sum + shadow.searchCount, 0),
+          }
+        : null;
 
       const newUser = await tx.user.create({
         data: {
@@ -127,14 +133,14 @@ export async function POST(req: NextRequest) {
         },
       });
       if (phoneShadow) {
-        await tx.shadowProfile.update({
-          where: { id: phoneShadow.id },
+        await tx.shadowProfile.updateMany({
+          where: { id: { in: phoneShadow.shadowIds } },
           data: { claimedByUserId: newUser.id },
         });
 
         await tx.confession.updateMany({
           where: {
-            shadowProfileId: phoneShadow.id,
+            shadowProfileId: { in: phoneShadow.shadowIds },
             targetId: null,
             status: "PENDING",
             expiresAt: { gt: new Date() },

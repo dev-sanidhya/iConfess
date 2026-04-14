@@ -1,6 +1,11 @@
 import { PendingProfileSearchKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getPendingKindForLocation, shadowProfileMatchesSearch } from "@/lib/shadow-profiles";
+import {
+  getLatestPaymentStatusByConfessionIds,
+  getLatestShadowInsightUnlockTimesByShadowIds,
+  isConfessionRecipientActive,
+} from "@/lib/confessions";
+import { aggregateShadowProfiles, getPendingKindForLocation, shadowProfileMatchesSearch } from "@/lib/shadow-profiles";
 
 export const indianCourseOptions = [
   "B.Tech",
@@ -536,24 +541,58 @@ function buildShadowProfileSection(category: LocationCategory, profileDetails: R
   };
 }
 
-export async function findMatchingShadowProfiles(location: LocationCategory, details: Record<string, string>) {
+async function getActiveShadowProfileAggregates(ids?: string[]) {
   const shadows = await prisma.shadowProfile.findMany({
     where: {
-      kind: getPendingKindForLocation(location),
       claimedByUserId: null,
+      ...(ids ? { id: { in: ids } } : {}),
     },
     include: {
-      _count: {
+      confessions: {
+        where: {
+          targetId: null,
+          status: "PENDING",
+          expiresAt: { gt: new Date() },
+        },
         select: {
-          confessions: {
-            where: { targetId: null },
-          },
+          id: true,
+          createdAt: true,
+          billingState: true,
+          targetId: true,
+          isSelfConfession: true,
         },
       },
     },
   });
 
+  const paymentStatuses = await getLatestPaymentStatusByConfessionIds(
+    shadows.flatMap((shadow) => shadow.confessions.map((confession) => confession.id)),
+    "SEND_CONFESSION",
+    prisma
+  );
+
+  const shadowsWithActiveConfessions = shadows
+    .map((shadow) => ({
+      ...shadow,
+      activeConfessionCount: shadow.confessions.filter((confession) =>
+        isConfessionRecipientActive(confession, paymentStatuses.get(confession.id))
+      ).length,
+    }))
+    .filter((shadow) => shadow.activeConfessionCount > 0);
+
+  return aggregateShadowProfiles(shadowsWithActiveConfessions).map((shadow) => ({
+    ...shadow,
+    activeConfessionCount: shadowsWithActiveConfessions
+      .filter((entry) => shadow.shadowIds.includes(entry.id))
+      .reduce((sum, entry) => sum + entry.activeConfessionCount, 0),
+  }));
+}
+
+export async function findMatchingShadowProfiles(location: LocationCategory, details: Record<string, string>) {
+  const shadows = await getActiveShadowProfileAggregates();
+
   return shadows.filter((shadow) =>
+    shadow.kind === getPendingKindForLocation(location) &&
     shadowProfileMatchesSearch({
       shadowProfile: shadow,
       mode: "profile",
@@ -567,13 +606,9 @@ export async function findDirectShadowProfile(
   kind: PendingProfileSearchKind,
   input: { phone?: string; platform?: "instagram" | "snapchat"; handle?: string }
 ) {
-  const shadows = await prisma.shadowProfile.findMany({
-    where: {
-      kind,
-      claimedByUserId: null,
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  const shadows = (await getActiveShadowProfileAggregates())
+    .filter((shadow) => shadow.kind === kind)
+    .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
 
   return shadows.find((shadow) =>
     shadowProfileMatchesSearch({
@@ -586,24 +621,11 @@ export async function findDirectShadowProfile(
   ) ?? null;
 }
 
-export async function getSearchResultsByShadowIds(ids: string[]): Promise<SearchResult[]> {
+export async function getSearchResultsByShadowIds(ids: string[], currentUserId: string): Promise<SearchResult[]> {
   if (ids.length === 0) return [];
 
-  const shadows = await prisma.shadowProfile.findMany({
-    where: {
-      id: { in: ids },
-      claimedByUserId: null,
-    },
-    include: {
-      _count: {
-        select: {
-          confessions: {
-            where: { targetId: null },
-          },
-        },
-      },
-    },
-  });
+  const shadows = await getActiveShadowProfileAggregates(ids);
+  const latestUnlockTimes = await getLatestShadowInsightUnlockTimesByShadowIds(ids, currentUserId, prisma);
 
   const byId = new Map(shadows.map((shadow) => [shadow.id, shadow]));
 
@@ -614,6 +636,11 @@ export async function getSearchResultsByShadowIds(ids: string[]): Promise<Search
       const category = shadow.location as LocationCategory | null;
       const profileDetails = shadow.profileDetails as Record<string, unknown>;
       const section = category ? buildShadowProfileSection(category, profileDetails) : null;
+      const latestUnlockTime = latestUnlockTimes.get(shadow.id) ?? null;
+      const unlockedInsightCount = latestUnlockTime
+        ? shadow.confessions.filter((confession) => confession.createdAt <= latestUnlockTime).length
+        : 0;
+      const lockedInsightCount = shadow.activeConfessionCount - unlockedInsightCount;
 
       return {
         id: shadow.id,
@@ -630,10 +657,10 @@ export async function getSearchResultsByShadowIds(ids: string[]): Promise<Search
         gender: "OTHER" as const,
         isCurrentUser: false,
         confessionPageUnlocked: false,
-        confessionCount: shadow._count.confessions,
-        hasUnlockedInsights: false,
-        unlockedInsightCount: 0,
-        lockedInsightCount: 0,
+        confessionCount: shadow.activeConfessionCount,
+        hasUnlockedInsights: unlockedInsightCount > 0,
+        unlockedInsightCount,
+        lockedInsightCount,
         profileSections: section ? [section] : [],
         college: category === "COLLEGE" && section ? getConciseCategorySummary(section) : null,
         school: category === "SCHOOL" && section ? getConciseCategorySummary(section) : null,

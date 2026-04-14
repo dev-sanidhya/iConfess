@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
       const results = target
         ? (await getSearchResultByIds([target.id], user.id, { includeCurrentUser: true }))
         : shadow
-          ? await getSearchResultsByShadowIds([shadow.id])
+          ? await getSearchResultsByShadowIds([shadow.id], user.id)
           : [];
 
       const mappedResults = results.map((result) => ({
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
       const results = target
         ? (await getSearchResultByIds([target.id], user.id, { includeCurrentUser: true }))
         : shadow
-          ? await getSearchResultsByShadowIds([shadow.id])
+          ? await getSearchResultsByShadowIds([shadow.id], user.id)
           : [];
 
       const mappedResults = results.map((result) => ({
@@ -158,11 +158,13 @@ export async function GET(req: NextRequest) {
 
       const results = [
         ...(await getSearchResultByIds(uniqueIds, user.id, { includeCurrentUser: true })),
-        ...(await getSearchResultsByShadowIds(shadowMatches.map((shadow) => shadow.id))),
-      ].map((result) => ({
-        ...result,
-        matchContext: buildProfileMatchContext(location as LocationCategory, details, result),
-      }));
+        ...(await getSearchResultsByShadowIds(shadowMatches.map((shadow) => shadow.id), user.id)),
+      ]
+        .map((result) => ({
+          ...result,
+          matchContext: buildProfileMatchContext(location as LocationCategory, details, result),
+        }))
+        .filter((result, index, collection) => collection.findIndex((entry) => entry.id === result.id) === index);
       return NextResponse.json({ results, viewerSentCount });
     }
 

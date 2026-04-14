@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { getAppSettings } from "@/lib/app-settings";
 import { ensureProfileSearchCountSeeded } from "@/lib/profile-search-count";
 import { prisma } from "@/lib/prisma";
 import DashboardOverview from "@/components/DashboardOverview";
@@ -6,6 +7,7 @@ import DashboardOverview from "@/components/DashboardOverview";
 export default async function DashboardPage() {
   const user = await getSession();
   if (!user) return null;
+  const appSettings = await getAppSettings();
 
   const [
     profileSearchCount,
@@ -37,6 +39,7 @@ export default async function DashboardPage() {
       }}
       stats={{ profileSearchCount, receivedConfessionCount, lockedReceivedConfessionCount, profileInsightUnlockCount }}
       confessionPageUnlocked={user.confessionPageUnlocked}
+      feedbackEmail={appSettings.feedbackEmail}
     />
   );
 }

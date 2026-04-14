@@ -10,6 +10,7 @@ export default function DashboardOverview({
   user,
   stats,
   confessionPageUnlocked,
+  feedbackEmail,
 }: {
   user: { name: string; id: string; phone: string; primaryCategory: string; searchablePlaces: number };
   stats: {
@@ -19,6 +20,7 @@ export default function DashboardOverview({
     profileInsightUnlockCount: number;
   };
   confessionPageUnlocked: boolean;
+  feedbackEmail: string;
 }) {
   const statCards: Stat[] = [
     { label: "Profile Searches", value: stats.profileSearchCount, icon: Search, color: "#a78bfa", note: "How many times your profile was searched on iConfess" },
@@ -34,7 +36,7 @@ export default function DashboardOverview({
     { label: "Profile Insight Unlocks", value: stats.profileInsightUnlockCount, icon: KeyRound, color: "#60a5fa", note: "How many times people paid to unlocked your profile insights" },
     { label: "Searchable Places", value: user.searchablePlaces, icon: Compass, color: "#34d399", note: "Active profile categories linked to you" },
   ];
-  const feedbackEmailHref = "mailto:ciarocid01@gmail.com?subject=iConfess%20Feedback%20%26%20Suggestions";
+  const feedbackEmailHref = `mailto:${feedbackEmail}?subject=iConfess%20Feedback%20%26%20Suggestions`;
 
   return (
     <div className="py-2">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getAppSettings } from "@/lib/app-settings";
 import { LegalPageShell } from "@/components/LegalPageShell";
 
 export const metadata: Metadata = {
@@ -6,11 +7,14 @@ export const metadata: Metadata = {
   description: "Official contact information for iConfess.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const appSettings = await getAppSettings();
+
   return (
     <LegalPageShell
       title="Contact Details"
       description="Use the details below for customer support, grievance communication, payment support, or general business queries related to iConfess."
+      helpEmail={appSettings.contactEmail}
     >
       <section className="space-y-3">
         <h2 className="text-xl font-semibold" style={{ color: "#3f2c1d" }}>
@@ -18,8 +22,8 @@ export default function ContactPage() {
         </h2>
         <p>
           Email:{" "}
-          <a className="text-[#8f6a46] underline-offset-4 hover:underline" href="mailto:ciarocid01@gmail.com">
-            ciarocid01@gmail.com
+          <a className="text-[#8f6a46] underline-offset-4 hover:underline" href={`mailto:${appSettings.contactEmail}`}>
+            {appSettings.contactEmail}
           </a>
         </p>
         <p>Website: https://iconfess.in</p>

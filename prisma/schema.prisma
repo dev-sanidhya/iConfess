@@ -256,6 +256,14 @@ model PaymentServiceConfig {
   updatedAt     DateTime          @updatedAt
 }
 
+model AppConfig {
+  id        String       @id @default(cuid())
+  key       AppConfigKey @unique
+  value     String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
 model VisitSession {
   id             String         @id @default(cuid())
   userId         String?
@@ -413,6 +421,13 @@ enum PaymentServiceKey {
   IDENTITY_REVEAL_WITH_CARD
   IDENTITY_REVEAL_WITH_PAGE
   IDENTITY_REVEAL_WITH_CARD_AND_PAGE
+}
+
+enum AppConfigKey {
+  ICONFESS_INSTAGRAM_ID
+  ICONFESS_SNAPCHAT_ID
+  CONTACT_US_EMAIL
+  FEEDBACK_EMAIL
 }
 
 enum PaymentStatus {

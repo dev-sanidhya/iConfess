@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { PendingProfileSearchKind, Prisma, PrismaClient } from "@prisma/client";
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
@@ -6,7 +7,7 @@ const MIN_INITIAL_PROFILE_SEARCH_COUNT = 5;
 const MAX_INITIAL_PROFILE_SEARCH_COUNT = 7;
 
 function getRandomInitialProfileSearchCount() {
-  return Math.floor(Math.random() * (MAX_INITIAL_PROFILE_SEARCH_COUNT - MIN_INITIAL_PROFILE_SEARCH_COUNT + 1)) + MIN_INITIAL_PROFILE_SEARCH_COUNT;
+  return randomInt(MIN_INITIAL_PROFILE_SEARCH_COUNT, MAX_INITIAL_PROFILE_SEARCH_COUNT + 1);
 }
 
 export async function ensureProfileSearchCountSeeded(userId: string, db: DbClient) {

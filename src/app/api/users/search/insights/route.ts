@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { getLatestPaymentStatusByConfessionIds, getLatestShadowInsightUnlockTimesByShadowIds, isConfessionRecipientActive } from "@/lib/confessions";
 import { prisma } from "@/lib/prisma";
 import { getStoredSharedProfileSnapshot } from "@/lib/shared-profile-context";
 
@@ -10,26 +11,78 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const targetUserId = searchParams.get("targetUserId");
+    const targetShadowProfileId = searchParams.get("targetShadowProfileId");
 
-    if (!targetUserId) {
-      return NextResponse.json({ error: "Target user is required" }, { status: 400 });
+    if (!targetUserId && !targetShadowProfileId) {
+      return NextResponse.json({ error: "Target is required" }, { status: 400 });
     }
 
-    const unlocked = await prisma.unlockedProfileInsight.findFirst({
-      where: {
-        viewerId: user.id,
-        targetUserId,
-      },
-      orderBy: { unlockedAt: "desc" },
-    });
+    if (targetUserId && targetShadowProfileId) {
+      return NextResponse.json({ error: "Choose only one target type" }, { status: 400 });
+    }
 
-    if (!unlocked) {
+    if (targetUserId) {
+      const unlocked = await prisma.unlockedProfileInsight.findFirst({
+        where: {
+          viewerId: user.id,
+          targetUserId,
+        },
+        orderBy: { unlockedAt: "desc" },
+      });
+
+      if (!unlocked) {
+        return NextResponse.json({ error: "Unlock profile insights first" }, { status: 403 });
+      }
+
+      const confessions = await prisma.confession.findMany({
+        where: {
+          targetId: targetUserId,
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          sender: {
+            select: { primaryCategory: true },
+          },
+        },
+      });
+
+      const insights = confessions.map((confession) => {
+          const sharedProfileSnapshot = getStoredSharedProfileSnapshot(confession.matchDetails as Record<string, unknown>);
+
+          return {
+            id: confession.id,
+            isUnlocked: confession.createdAt <= unlocked.unlockedAt,
+            sender: {
+              category: sharedProfileSnapshot?.label ?? confession.sender.primaryCategory,
+              details: sharedProfileSnapshot?.details ?? [],
+            },
+          };
+        });
+
+      return NextResponse.json({
+        insights,
+        unlockedInsightCount: insights.filter((insight) => insight.isUnlocked).length,
+        lockedInsightCount: insights.filter((insight) => !insight.isUnlocked).length,
+      });
+    }
+
+    const unlockedTimes = await getLatestShadowInsightUnlockTimesByShadowIds(
+      [targetShadowProfileId as string],
+      user.id,
+      prisma
+    );
+    const unlockedAt = unlockedTimes.get(targetShadowProfileId as string) ?? null;
+
+    if (!unlockedAt) {
       return NextResponse.json({ error: "Unlock profile insights first" }, { status: 403 });
     }
 
     const confessions = await prisma.confession.findMany({
       where: {
-        targetId: targetUserId,
+        shadowProfileId: targetShadowProfileId as string,
+        targetId: null,
+        status: "PENDING",
+        expiresAt: { gt: new Date() },
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -38,13 +91,21 @@ export async function GET(req: NextRequest) {
         },
       },
     });
+    const sendPaymentStatuses = await getLatestPaymentStatusByConfessionIds(
+      confessions.map((confession) => confession.id),
+      "SEND_CONFESSION",
+      prisma
+    );
+    const activeConfessions = confessions.filter((confession) =>
+      isConfessionRecipientActive(confession, sendPaymentStatuses.get(confession.id))
+    );
 
-    const insights = confessions.map((confession) => {
+    const insights = activeConfessions.map((confession) => {
         const sharedProfileSnapshot = getStoredSharedProfileSnapshot(confession.matchDetails as Record<string, unknown>);
 
         return {
           id: confession.id,
-          isUnlocked: confession.createdAt <= unlocked.unlockedAt,
+          isUnlocked: confession.createdAt <= unlockedAt,
           sender: {
             category: sharedProfileSnapshot?.label ?? confession.sender.primaryCategory,
             details: sharedProfileSnapshot?.details ?? [],

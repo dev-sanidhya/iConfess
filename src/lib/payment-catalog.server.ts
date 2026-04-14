@@ -16,13 +16,17 @@ function isMissingPaymentConfigTable(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021";
 }
 
+function isUnavailableDatasource(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P6001";
+}
+
 export async function getPaymentCatalog(): Promise<PaymentCatalog> {
   const catalog = getDefaultPaymentCatalog();
   let configs: Awaited<ReturnType<typeof prisma.paymentServiceConfig.findMany>>;
   try {
     configs = await prisma.paymentServiceConfig.findMany();
   } catch (error) {
-    if (isMissingPaymentConfigTable(error)) {
+    if (isMissingPaymentConfigTable(error) || isUnavailableDatasource(error)) {
       return catalog;
     }
 
@@ -62,7 +66,7 @@ export async function getPaymentAmount(pricingKey: PaymentPricingKey) {
 
     return config?.amount ?? getDefaultPaymentCatalog().pricing[pricingKey];
   } catch (error) {
-    if (isMissingPaymentConfigTable(error)) {
+    if (isMissingPaymentConfigTable(error) || isUnavailableDatasource(error)) {
       return getDefaultPaymentCatalog().pricing[pricingKey];
     }
 
@@ -100,7 +104,7 @@ export async function upsertPaymentServiceConfig(params: {
       },
     });
   } catch (error) {
-    if (isMissingPaymentConfigTable(error)) {
+    if (isMissingPaymentConfigTable(error) || isUnavailableDatasource(error)) {
       throw new Error("Payment settings table is missing. Run the latest Prisma migration first.");
     }
 

@@ -240,9 +240,14 @@ export default function SearchPage() {
   }
 
   async function loadInsights(targetUserId: string) {
+    const target = results.find((result) => result.id === targetUserId) ?? null;
+    const query = target?.isShadow
+      ? `targetShadowProfileId=${targetUserId}`
+      : `targetUserId=${targetUserId}`;
+
     setLoadingInsightsFor(targetUserId);
     try {
-      const res = await fetch(`/api/users/search/insights?targetUserId=${targetUserId}`);
+      const res = await fetch(`/api/users/search/insights?${query}`);
       const data = await res.json();
       if (!res.ok) throw new Error(getResponseErrorMessage(data, "Failed to load insights"));
       setInsightsByUser((current) => ({ ...current, [targetUserId]: data.insights ?? [] }));
@@ -291,7 +296,12 @@ export default function SearchPage() {
       const unlockRes = await fetch("/api/payments/unlock-profile-insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId: pendingInsightUnlock.id, transactionReference }),
+        body: JSON.stringify({
+          ...(pendingInsightUnlock.isShadow
+            ? { targetShadowProfileId: pendingInsightUnlock.id }
+            : { targetUserId: pendingInsightUnlock.id }),
+          transactionReference,
+        }),
       });
       const unlockData = await unlockRes.json();
       if (!unlockRes.ok) throw new Error(getResponseErrorMessage(unlockData, "Failed to submit payment"));
@@ -526,7 +536,11 @@ export default function SearchPage() {
                       ? result.profileSections.find((section) => section.key === selectedCategory) ?? null
                       : null;
                   const insights = insightsByUser[result.id];
-                  const confessPriceLabel = viewerSentCount === 0 ? "Free" : formatInr(currentPricing.sendConfession);
+                  const confessPriceLabel = result.isCurrentUser
+                    ? formatInr(currentPricing.selfConfession)
+                    : viewerSentCount === 0
+                      ? "Free"
+                      : formatInr(currentPricing.sendConfession);
                   const insightButtonLabel =
                     result.hasUnlockedInsights
                       ? result.lockedInsightCount > 0
@@ -572,7 +586,7 @@ export default function SearchPage() {
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                      {result.confessionCount > 0 && !result.isShadow && (
+                      {result.confessionCount > 0 && (
                         <button
                           type="button"
                           onClick={() => void handleInsightAccess(result)}

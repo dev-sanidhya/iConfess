@@ -5,6 +5,7 @@ type LegalPageShellProps = {
   title: string;
   description: string;
   children: ReactNode;
+  helpEmail?: string;
 };
 
 const legalLinks = [
@@ -15,7 +16,7 @@ const legalLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
-export function LegalPageShell({ title, description, children }: LegalPageShellProps) {
+export function LegalPageShell({ title, description, children, helpEmail = "ciarocid01@gmail.com" }: LegalPageShellProps) {
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 sm:gap-8">
@@ -49,7 +50,7 @@ export function LegalPageShell({ title, description, children }: LegalPageShellP
           className="flex flex-col gap-4 border-t pt-6 text-sm sm:flex-row sm:items-center sm:justify-between"
           style={{ borderColor: "rgba(179, 148, 111, 0.22)", color: "#8a6a4a" }}
         >
-          <span>Need help? Email ciarocid01@gmail.com</span>
+          <span>Need help? Email {helpEmail}</span>
           <div className="flex flex-wrap gap-4">
             {legalLinks.map((link) => (
               <Link key={link.href} href={link.href} className="transition-colors hover:text-[#6f5234]">

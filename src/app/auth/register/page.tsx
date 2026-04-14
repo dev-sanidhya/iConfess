@@ -168,7 +168,7 @@ function RegisterForm() {
       if (!res.ok) throw new Error(data.error);
       setAccountCreated(true);
       window.localStorage.setItem(PENDING_PROFILE_COMPLETION_KEY, "1");
-      toast.success("Account created. Add profile details now or do it later.");
+      toast.success("Account created. Add profile details now.");
       setStep("profile");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
@@ -361,7 +361,7 @@ function RegisterForm() {
                 <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>Where can people find you?</h2>
               </div>
               <p className="text-xs mb-5" style={{ color: "#80664c" }}>
-                Your account is already created. Add profile details now, or skip and complete them later from your profile page.
+                Account is created. Add profile details now.
               </p>
 
               {/* Category selector */}

@@ -7,6 +7,8 @@ import {
   buildSelfClaimSnapshot,
   confessionMatchesSelfClaim,
   convertConfessionToSelf,
+  getLatestPaymentStatusByConfessionIds,
+  isConfessionRecipientActive,
 } from "@/lib/confessions";
 import { validateSelectedProfiles } from "@/lib/profile-details";
 import {
@@ -67,6 +69,7 @@ export async function PATCH(req: NextRequest) {
     await syncUserProfiles(prisma, session.id, session.name, chosenCategories, profileDetailsByCategory ?? {});
 
     let carriedDetailSearchCount = 0;
+    const claimedExactShadowIds: string[] = [];
     for (const category of chosenCategories) {
       const claimedDetails = profileDetailsByCategory?.[category] ?? {};
       carriedDetailSearchCount += await claimCompatiblePendingDetailSearchCounts({
@@ -99,23 +102,11 @@ export async function PATCH(req: NextRequest) {
       }
 
       carriedDetailSearchCount += exactShadows.reduce((sum, shadow) => sum + shadow.searchCount, 0);
+      claimedExactShadowIds.push(...exactShadows.map((shadow) => shadow.id));
 
       await prisma.shadowProfile.updateMany({
         where: { id: { in: exactShadows.map((shadow) => shadow.id) } },
         data: { claimedByUserId: session.id },
-      });
-
-      await prisma.confession.updateMany({
-        where: {
-          shadowProfileId: { in: exactShadows.map((shadow) => shadow.id) },
-          targetId: null,
-          status: "PENDING",
-          expiresAt: { gt: new Date() },
-        },
-        data: {
-          targetId: session.id,
-          status: "DELIVERED",
-        },
       });
     }
 
@@ -128,7 +119,7 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
-    const [updatedUser, pendingSelfCandidates] = await Promise.all([
+    const [updatedUser, pendingSelfCandidates, exactShadowConfessions] = await Promise.all([
       prisma.user.findUnique({
         where: { id: session.id },
         include: {
@@ -152,8 +143,30 @@ export async function PATCH(req: NextRequest) {
           targetPhone: true,
           matchDetails: true,
           billingState: true,
+          targetId: true,
+          isSelfConfession: true,
         },
       }),
+      claimedExactShadowIds.length > 0
+        ? prisma.confession.findMany({
+            where: {
+              shadowProfileId: { in: claimedExactShadowIds },
+              targetId: null,
+              status: "PENDING",
+              expiresAt: { gt: new Date() },
+            },
+            select: {
+              id: true,
+              senderId: true,
+              location: true,
+              targetPhone: true,
+              matchDetails: true,
+              billingState: true,
+              targetId: true,
+              isSelfConfession: true,
+            },
+          })
+        : Promise.resolve([]),
     ]);
 
     const convertedIds: string[] = [];
@@ -161,13 +174,57 @@ export async function PATCH(req: NextRequest) {
 
     if (updatedUser) {
       const selfClaimSnapshot = buildSelfClaimSnapshot(updatedUser);
+      const sendPaymentStatuses = await getLatestPaymentStatusByConfessionIds(
+        [...pendingSelfCandidates.map((confession) => confession.id), ...exactShadowConfessions.map((confession) => confession.id)],
+        "SEND_CONFESSION",
+        prisma
+      );
+
+      for (const confession of exactShadowConfessions) {
+        if (!isConfessionRecipientActive(confession, sendPaymentStatuses.get(confession.id))) {
+          continue;
+        }
+
+        if (confession.senderId === session.id && confessionMatchesSelfClaim(confession, selfClaimSnapshot)) {
+          const hasSuccessfulSendPayment = sendPaymentStatuses.get(confession.id) === "SUCCESS";
+          if (confession.billingState === "FREE" && !hasSuccessfulSendPayment) {
+            paymentRequiredIds.push(confession.id);
+            continue;
+          }
+
+          try {
+            await convertConfessionToSelf(confession.id, session.id, prisma);
+            convertedIds.push(confession.id);
+          } catch (claimError) {
+            console.error("[Exact Shadow Self Claim Conversion Error]", {
+              confessionId: confession.id,
+              userId: session.id,
+              error: claimError,
+            });
+          }
+          continue;
+        }
+
+        await prisma.confession.update({
+          where: { id: confession.id },
+          data: {
+            targetId: session.id,
+            status: "DELIVERED",
+          },
+        });
+      }
 
       for (const confession of pendingSelfCandidates) {
+        if (!isConfessionRecipientActive(confession, sendPaymentStatuses.get(confession.id))) {
+          continue;
+        }
+
         if (!confessionMatchesSelfClaim(confession, selfClaimSnapshot)) {
           continue;
         }
 
-        if (confession.billingState === "FREE") {
+        const hasSuccessfulSendPayment = sendPaymentStatuses.get(confession.id) === "SUCCESS";
+        if (confession.billingState === "FREE" && !hasSuccessfulSendPayment) {
           paymentRequiredIds.push(confession.id);
           continue;
         }

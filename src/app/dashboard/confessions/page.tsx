@@ -3,7 +3,7 @@ import ConfessionsInbox from "@/components/ConfessionsInbox";
 import { prisma } from "@/lib/prisma";
 import { formatSharedProfileDetails, getStoredSharedProfileSnapshot } from "@/lib/shared-profile-context";
 import { PaymentStatus } from "@prisma/client";
-import { dedupeSentConfessions } from "@/lib/confessions";
+import { buildSelfClaimSnapshot, confessionMatchesSelfClaim, dedupeSentConfessions } from "@/lib/confessions";
 import { dbSupportsIdentityRevealPaymentType } from "@/lib/reveal-identity";
 import { findMatches, getSearchResultByIds, getConciseCategorySummary } from "@/lib/matching";
 import { isFullDetailShadowProfile } from "@/lib/shadow-profiles";
@@ -165,7 +165,17 @@ export default async function ConfessionsPage() {
   const user = await getSession();
   if (!user) return null;
 
-  const [receivedConfessions, sentConfessions, sendPayments] = await Promise.all([
+  const [viewer, receivedConfessions, sentConfessions, sendPayments, selfConfessionPayments] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        college: true,
+        school: true,
+        workplace: true,
+        gym: true,
+        neighbourhood: true,
+      },
+    }),
     prisma.confession.findMany({
       where: { targetId: user.id },
       orderBy: { createdAt: "desc" },
@@ -214,6 +224,18 @@ export default async function ConfessionsPage() {
       where: {
         userId: user.id,
         type: "SEND_CONFESSION",
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        status: true,
+        metadata: true,
+      },
+    }),
+    prisma.payment.findMany({
+      where: {
+        userId: user.id,
+        type: "SELF_CONFESSION",
       },
       orderBy: { createdAt: "desc" },
       select: {
@@ -276,6 +298,22 @@ export default async function ConfessionsPage() {
     });
   }
 
+  const latestSelfPaymentByConfessionId = new Map<
+    string,
+    { id: string; status: PaymentStatus }
+  >();
+  for (const payment of selfConfessionPayments) {
+    const confessionId = getPaymentConfessionId(payment.metadata);
+    if (!confessionId || latestSelfPaymentByConfessionId.has(confessionId)) {
+      continue;
+    }
+
+    latestSelfPaymentByConfessionId.set(confessionId, {
+      id: payment.id,
+      status: payment.status,
+    });
+  }
+
   const approvedRevealByConfessionId = new Set<string>();
   for (const payment of revealPayments) {
     const confessionId = getPaymentConfessionId(payment.metadata);
@@ -321,6 +359,15 @@ export default async function ConfessionsPage() {
     const matchDetails = confession.matchDetails as Record<string, unknown>;
     const fallbackRecipientName = buildEnteredRecipientName(matchDetails);
     const latestSendPayment = latestSendPaymentByConfessionId.get(confession.id);
+    const latestSelfPayment = latestSelfPaymentByConfessionId.get(confession.id);
+    const selfClaimSnapshot = viewer ? buildSelfClaimSnapshot(viewer) : null;
+    const requiresSelfConfessionPayment = Boolean(
+      selfClaimSnapshot &&
+      confession.status === "PENDING" &&
+      confession.billingState === "FREE" &&
+      !confession.targetId &&
+      confessionMatchesSelfClaim(confession, selfClaimSnapshot)
+    );
 
     return {
       id: confession.id,
@@ -340,8 +387,11 @@ export default async function ConfessionsPage() {
       counterpartAnonymousId: confession.targetId ? buildAnonymousId(confession.targetId) : buildAnonymousId(confession.id),
       counterpartName: confession.target?.name ?? fallbackRecipientName,
       counterpartGender: confession.target?.gender ?? null,
+      billingState: confession.billingState,
       paymentVerificationStatus: latestSendPayment?.status ?? null,
       canRetryPayment: latestSendPayment?.status === PaymentStatus.FAILED,
+      selfConfessionPaymentStatus: latestSelfPayment?.status ?? null,
+      requiresSelfConfessionPayment,
       resolutionCandidates: (resolutionCandidatesByConfessionId.get(confession.id) ?? []).map((candidate) => {
         const matchingSection =
           candidate.profileSections.find((section) => section.key === confession.location) ??

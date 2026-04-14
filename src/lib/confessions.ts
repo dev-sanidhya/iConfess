@@ -1,8 +1,8 @@
-import { type Confession, type Gender, type PrismaClient, type User } from "@prisma/client";
+import { PaymentStatus, PaymentType, Prisma, type Confession, type Gender, type PrismaClient, type User } from "@prisma/client";
 import { locationFields, type LocationCategory } from "@/lib/matching";
 import { formatPhone } from "@/lib/utils";
 
-type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
+type Tx = PrismaClient | Prisma.TransactionClient;
 
 type UserWithProfiles = Pick<User, "id" | "name" | "phone" | "instagramHandle" | "snapchatHandle" | "gender"> & {
   college?: Record<string, unknown> | null;
@@ -30,6 +30,13 @@ type SentConfessionLike = {
   status: string;
   reply: string | null;
   revealedAt: Date | null;
+};
+
+type ConfessionActivationLike = {
+  id: string;
+  billingState: "FREE" | "PAID";
+  targetId: string | null;
+  isSelfConfession: boolean;
 };
 
 export function normalizeComparableValue(value: unknown) {
@@ -74,6 +81,118 @@ export async function countSentConfessionsToOthers(userId: string, db: Tx) {
   });
 
   return dedupeSentConfessions(confessions).length;
+}
+
+function getPaymentConfessionId(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const confessionId = (metadata as Record<string, unknown>).confessionId;
+  return typeof confessionId === "string" ? confessionId : null;
+}
+
+function getMetadataRecord(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  return metadata as Record<string, unknown>;
+}
+
+function getMetadataStringField(metadata: unknown, key: string) {
+  const record = getMetadataRecord(metadata);
+  const value = record?.[key];
+  return typeof value === "string" ? value : null;
+}
+
+export async function getLatestPaymentStatusByConfessionIds(
+  confessionIds: string[],
+  type: PaymentType,
+  db: Tx
+) {
+  const uniqueIds = [...new Set(confessionIds.filter(Boolean))];
+  const uniqueIdSet = new Set(uniqueIds);
+  const statuses = new Map<string, PaymentStatus>();
+
+  if (uniqueIds.length === 0) {
+    return statuses;
+  }
+
+  const payments = await db.payment.findMany({
+    where: {
+      type,
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      status: true,
+      metadata: true,
+    },
+  });
+
+  for (const payment of payments) {
+    const confessionId = getPaymentConfessionId(payment.metadata);
+    if (!confessionId || !uniqueIdSet.has(confessionId) || statuses.has(confessionId)) {
+      continue;
+    }
+
+    statuses.set(confessionId, payment.status);
+  }
+
+  return statuses;
+}
+
+export async function getLatestShadowInsightUnlockTimesByShadowIds(
+  shadowProfileIds: string[],
+  viewerId: string,
+  db: Tx
+) {
+  const uniqueIds = [...new Set(shadowProfileIds.filter(Boolean))];
+  const uniqueIdSet = new Set(uniqueIds);
+  const unlockTimes = new Map<string, Date>();
+
+  if (uniqueIds.length === 0) {
+    return unlockTimes;
+  }
+
+  const payments = await db.payment.findMany({
+    where: {
+      userId: viewerId,
+      type: PaymentType.UNLOCK_PROFILE_INSIGHTS,
+      status: PaymentStatus.SUCCESS,
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      createdAt: true,
+      metadata: true,
+    },
+  });
+
+  for (const payment of payments) {
+    const shadowProfileId = getMetadataStringField(payment.metadata, "targetShadowProfileId");
+    if (!shadowProfileId || !uniqueIdSet.has(shadowProfileId) || unlockTimes.has(shadowProfileId)) {
+      continue;
+    }
+
+    unlockTimes.set(shadowProfileId, payment.createdAt);
+  }
+
+  return unlockTimes;
+}
+
+export function isConfessionRecipientActive(
+  confession: ConfessionActivationLike,
+  latestSendPaymentStatus?: PaymentStatus | null
+) {
+  if (confession.isSelfConfession || confession.targetId) {
+    return true;
+  }
+
+  if (confession.billingState === "FREE") {
+    return true;
+  }
+
+  return latestSendPaymentStatus === PaymentStatus.SUCCESS;
 }
 
 function normalizeJsonValue(value: unknown): unknown {

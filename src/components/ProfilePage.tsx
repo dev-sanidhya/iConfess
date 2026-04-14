@@ -69,6 +69,11 @@ type UserProfile = {
   } | null;
 };
 
+type ProfileAppSettings = {
+  instagramId: string;
+  snapchatId: string;
+};
+
 function getPendingRequestByPlatform(
   requests: PendingSocialOwnershipRequest[],
   platform: SocialPlatform
@@ -281,7 +286,7 @@ function SocialOwnershipCard({
 
       {!verifiedHandle && pendingRequest && (
         <p className="text-xs mt-4 leading-relaxed" style={{ color: "#9b7c5d" }}>
-          Ownership verification is in progress for {formatHandle(pendingRequest.submittedHandle)}. Search counts and pending confessions for this handle will move to your profile once accepted.
+          Ownership verification is in progress for {formatHandle(pendingRequest.submittedHandle)}. Search counts and pending confessions for this handle will move to your profile once approved.
         </p>
       )}
 
@@ -294,10 +299,20 @@ function SocialOwnershipCard({
   );
 }
 
-export default function ProfilePage({ user }: { user: UserProfile }) {
+export default function ProfilePage({
+  user,
+  appSettings,
+}: {
+  user: UserProfile;
+  appSettings: ProfileAppSettings;
+}) {
   const paymentCatalog = usePaymentCatalog();
   const currentPricing = paymentCatalog.pricing;
   const shortId = getDisplayUserCode(user.id, user.publicCode);
+  const instagramHandle = appSettings.instagramId.trim().replace(/^@+/, "") || "iconfess.in";
+  const snapchatHandle = appSettings.snapchatId.trim().replace(/^@+/, "");
+  const instagramUrl = `https://www.instagram.com/${instagramHandle}/`;
+  const snapchatUrl = snapchatHandle ? `https://www.snapchat.com/add/${snapchatHandle}` : null;
   const initialSelectedCategories = useMemo(() => getSelectedCategories(user), [user]);
   const initialInstagramPendingRequest = useMemo(
     () => getPendingRequestByPlatform(user.pendingSocialOwnershipRequests, "INSTAGRAM"),
@@ -728,7 +743,7 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
           >
             <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#9f6c31" }} />
             <p className="text-xs leading-relaxed" style={{ color: "#735a43" }}>
-              Verified ownership locks a social handle to one user. Pending requests do not claim ownership yet. Gender is fixed after signup, and phone changes must go through OTP verification.
+              Verified ownership locks a social handle to one user. Pending requests do not claim ownership yet.
             </p>
           </div>
         </div>
@@ -1159,18 +1174,33 @@ export default function ProfilePage({ user }: { user: UserProfile }) {
                     <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
                       Go to our Instagram handle{" "}
                       <a
-                        href="https://www.instagram.com/iconfess.in/"
+                        href={instagramUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="underline"
                         style={{ color: "#8f6a46" }}
                       >
-                        iconfess.in
+                        {instagramHandle}
                       </a>.
                     </p>
                   ) : (
                     <p className="text-sm mt-1 leading-relaxed" style={{ color: "#4a3521" }}>
-                      Go to our official Snapchat handle once it is shared and keep this same user ID ready to DM.
+                      {snapchatUrl ? (
+                        <>
+                          Go to our Snapchat handle{" "}
+                          <a
+                            href={snapchatUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline"
+                            style={{ color: "#8f6a46" }}
+                          >
+                            {snapchatHandle}
+                          </a>.
+                        </>
+                      ) : (
+                        "Go to our official Snapchat handle once it is shared."
+                      )}{" "}
                     </p>
                   )}
                 </div>

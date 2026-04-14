@@ -1,12 +1,17 @@
 import { getSession } from "@/lib/auth";
+import { getAppSettings } from "@/lib/app-settings";
 import ProfilePage from "@/components/ProfilePage";
 
 export default async function Profile() {
-  const user = await getSession();
+  const [user, appSettings] = await Promise.all([getSession(), getAppSettings()]);
   if (!user) return null;
 
   return (
     <ProfilePage
+      appSettings={{
+        instagramId: appSettings.instagramId,
+        snapchatId: appSettings.snapchatId,
+      }}
       user={{
         id: user.id,
         publicCode: user.publicCode,

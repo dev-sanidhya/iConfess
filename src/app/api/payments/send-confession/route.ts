@@ -74,7 +74,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "This confession payment is already approved" }, { status: 400 });
     }
 
-    const sendConfessionAmount = await getPaymentAmount("sendConfession");
+    const sendConfessionAmount = await getPaymentAmount(
+      confession.targetId === user.id ? "selfConfession" : "sendConfession"
+    );
     const payment = await createManualPaymentRequest({
       userId: user.id,
       type: "SEND_CONFESSION",

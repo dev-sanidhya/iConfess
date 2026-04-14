@@ -18,6 +18,12 @@ type ShadowProfileWithClaim = ShadowProfile & {
   claimedByUser: Pick<User, "id"> | null;
 };
 
+export type ShadowProfileAggregate<TShadow extends Pick<ShadowProfile, "id" | "kind" | "value" | "location" | "displayName" | "profileDetails" | "searchCount"> = Pick<ShadowProfile, "id" | "kind" | "value" | "location" | "displayName" | "profileDetails" | "searchCount">> =
+  TShadow & {
+    shadowIds: string[];
+    searchCount: number;
+  };
+
 const DETAIL_KINDS: PendingProfileSearchKind[] = [
   PendingProfileSearchKind.COLLEGE,
   PendingProfileSearchKind.SCHOOL,
@@ -55,8 +61,16 @@ export function normalizeShadowProfileInput(kind: PendingProfileSearchKind, inpu
     };
   }
 
+  const category = kind as unknown as LocationCategory;
+  const allowedKeys = new Set([
+    "firstName",
+    "lastName",
+    "fullName",
+    ...locationFields[category].map((field) => field.key),
+  ]);
   const details = Object.fromEntries(
     Object.entries(input)
+      .filter(([key]) => allowedKeys.has(key))
       .filter(([, value]) => typeof value === "string" || typeof value === "number")
       .map(([key, value]) => [key, normalizeComparableValue(String(value))])
       .filter(([, value]) => value)
@@ -69,6 +83,47 @@ export function normalizeShadowProfileInput(kind: PendingProfileSearchKind, inpu
 export function buildPendingProfileSearchValue(kind: PendingProfileSearchKind, input: Record<string, unknown>) {
   const normalized = normalizeShadowProfileInput(kind, input);
   return JSON.stringify(normalized);
+}
+
+export function buildShadowProfileDedupKey(
+  kind: PendingProfileSearchKind,
+  value: string,
+  profileDetails: Record<string, unknown>
+) {
+  if (kind === PendingProfileSearchKind.PHONE || kind === PendingProfileSearchKind.INSTAGRAM || kind === PendingProfileSearchKind.SNAPCHAT) {
+    return `${kind}:${normalizeComparableValue(value)}`;
+  }
+
+  return `${kind}:${JSON.stringify(normalizeShadowProfileInput(kind, profileDetails))}`;
+}
+
+export function aggregateShadowProfiles<TShadow extends Pick<ShadowProfile, "id" | "kind" | "value" | "location" | "displayName" | "profileDetails" | "searchCount">>(
+  shadows: TShadow[]
+) {
+  const aggregates = new Map<string, ShadowProfileAggregate<TShadow>>();
+
+  for (const shadow of shadows) {
+    const key = buildShadowProfileDedupKey(
+      shadow.kind,
+      shadow.value,
+      shadow.profileDetails as Record<string, unknown>
+    );
+    const existing = aggregates.get(key);
+
+    if (existing) {
+      existing.shadowIds.push(shadow.id);
+      existing.searchCount += shadow.searchCount;
+      continue;
+    }
+
+    aggregates.set(key, {
+      ...shadow,
+      shadowIds: [shadow.id],
+      searchCount: shadow.searchCount,
+    });
+  }
+
+  return [...aggregates.values()];
 }
 
 export function buildShadowProfileDisplayName(matchDetails: Record<string, unknown>) {
@@ -97,10 +152,7 @@ export function matchesClaimedProfile(
   const storedDetails = shadowProfile.profileDetails as Record<string, unknown>;
   const normalizedStored = normalizeShadowProfileInput(shadowProfile.kind, storedDetails) as DetailRecord;
 
-  return Object.entries(normalizedStored).every(([key, value]) => {
-    if (!value) return true;
-    return normalizedClaim[key] === value;
-  });
+  return doesStoredDetailMatchClaim(shadowProfile.kind, normalizedStored, normalizedClaim);
 }
 
 export function isFullDetailShadowProfile(
@@ -125,7 +177,7 @@ export async function findOrCreateDirectShadowProfile(params: {
   matchDetails: Record<string, unknown>;
   db: DbClient;
 }) {
-  const existing = await params.db.shadowProfile.findFirst({
+  const existing = await params.db.shadowProfile.findMany({
     where: {
       kind: params.kind,
       value: params.value,
@@ -133,8 +185,9 @@ export async function findOrCreateDirectShadowProfile(params: {
     },
   });
 
-  if (existing) {
-    return existing;
+  const aggregatedExisting = aggregateShadowProfiles(existing);
+  if (aggregatedExisting.length > 0) {
+    return aggregatedExisting[0];
   }
 
   const carriedSearchCount = await claimPendingProfileSearchCounts(
@@ -182,8 +235,9 @@ export async function claimCompatiblePendingDetailSearchCounts(params: {
 
   const matchingRecords = records.filter((record) => {
     try {
-      const parsed = JSON.parse(record.value) as DetailRecord;
-      return Object.entries(parsed).every(([key, value]) => claimedDetails[key] === value);
+      const parsed = JSON.parse(record.value) as Record<string, unknown>;
+      const normalizedStored = normalizeShadowProfileInput(kind, parsed) as DetailRecord;
+      return doesStoredDetailMatchClaim(kind, normalizedStored, claimedDetails);
     } catch {
       return false;
     }
@@ -198,13 +252,35 @@ export async function claimCompatiblePendingDetailSearchCounts(params: {
   return matchingRecords.reduce((sum, record) => sum + record.count, 0);
 }
 
+function doesStoredDetailMatchClaim(
+  kind: PendingProfileSearchKind,
+  normalizedStored: DetailRecord,
+  normalizedClaim: DetailRecord
+) {
+  if (!isDetailPendingKind(kind)) {
+    return false;
+  }
+
+  if (normalizedStored.fullName && normalizedClaim.fullName !== normalizedStored.fullName) {
+    return false;
+  }
+
+  const category = kind as unknown as LocationCategory;
+  return locationFields[category].every((field) => {
+    const storedValue = normalizedStored[field.key] ?? "";
+    if (!storedValue) return true;
+
+    return normalizedClaim[field.key] === storedValue;
+  });
+}
+
 export async function claimDirectShadowProfile(params: {
   kind: PendingProfileSearchKind;
   value: string;
   userId: string;
   db: DbClient;
 }) {
-  const shadow = await params.db.shadowProfile.findFirst({
+  const shadows = await params.db.shadowProfile.findMany({
     where: {
       kind: params.kind,
       value: params.value,
@@ -216,29 +292,19 @@ export async function claimDirectShadowProfile(params: {
     },
   });
 
-  if (!shadow) {
+  if (shadows.length === 0) {
     return null;
   }
 
-  await params.db.shadowProfile.update({
-    where: { id: shadow.id },
+  await params.db.shadowProfile.updateMany({
+    where: { id: { in: shadows.map((shadow) => shadow.id) } },
     data: { claimedByUserId: params.userId },
   });
 
-  await params.db.confession.updateMany({
-    where: {
-      shadowProfileId: shadow.id,
-      targetId: null,
-      status: "PENDING",
-      expiresAt: { gt: new Date() },
-    },
-    data: {
-      targetId: params.userId,
-      status: "DELIVERED",
-    },
-  });
-
-  return shadow;
+  return {
+    shadowIds: shadows.map((shadow) => shadow.id),
+    searchCount: shadows.reduce((sum, shadow) => sum + shadow.searchCount, 0),
+  };
 }
 
 export async function deleteShadowProfileIfEmpty(shadowProfileId: string, db: DbClient) {

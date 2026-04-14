@@ -376,7 +376,7 @@ export default function SendConfession({
     targetPhone,
   ]);
   const sendPriceLabel = selfConfessionCandidate
-    ? formatInr(currentPricing.sendConfession)
+    ? formatInr(currentPricing.selfConfession)
     : sentCount === 0
       ? "Free"
       : formatInr(currentPricing.sendConfession);
@@ -671,9 +671,6 @@ export default function SendConfession({
               />
             </div>
           </div>
-          <p className="text-xs mt-2" style={{ color: "#9b7c5d" }}>
-            First name is mandatory. Last name is optional but helps narrow the profile.
-          </p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -1156,11 +1153,11 @@ export default function SendConfession({
         title={selfConfessionCandidate ? "Pay To Send This To Yourself" : "Pay To Send This Confession"}
         description={
           selfConfessionCandidate
-            ? `Pay ${formatInr(currentPricing.sendConfession)} and submit the UTR. Your confession-to-yourself card is created now but only delivered after payment review.`
+            ? `Pay ${formatInr(currentPricing.selfConfession)} and submit the UTR. Your confession-to-yourself card is created now but only delivered after payment review.`
             : `Pay ${formatInr(currentPricing.sendConfession)} and submit the UTR. The confession will only be delivered after payment review.`
         }
-        amount={currentPricing.sendConfession}
-        qrCodeDataUrl={paymentCatalog.qrCodes.sendConfession}
+        amount={selfConfessionCandidate ? currentPricing.selfConfession : currentPricing.sendConfession}
+        qrCodeDataUrl={selfConfessionCandidate ? paymentCatalog.qrCodes.selfConfession : paymentCatalog.qrCodes.sendConfession}
         pending={loading}
         submitLabel="Submit Send Payment"
         onClose={() => setShowPaymentDialog(false)}

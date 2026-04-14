@@ -32,6 +32,9 @@ type Confession = {
   counterpartContext: string | null;
   paymentVerificationStatus?: PaymentStatus | null;
   canRetryPayment?: boolean;
+  selfConfessionPaymentStatus?: PaymentStatus | null;
+  requiresSelfConfessionPayment?: boolean;
+  billingState?: "FREE" | "PAID";
   resolutionCandidates?: Array<{
     id: string;
     name: string;
@@ -125,6 +128,7 @@ function ConfessionCard({
   onReply,
   onRevealConsent,
   onRetryPayment,
+  onPaySelfConfession,
   onResolveShadow,
 }: {
   confession: Confession;
@@ -134,6 +138,7 @@ function ConfessionCard({
   onReply: (id: string, reply: string) => Promise<void>;
   onRevealConsent: (id: string) => void;
   onRetryPayment: (confession: Confession) => void;
+  onPaySelfConfession: (confession: Confession) => void;
   onResolveShadow: (confessionId: string, targetUserId: string) => Promise<void>;
 }) {
   const [showReply, setShowReply] = useState(false);
@@ -336,6 +341,19 @@ function ConfessionCard({
           </div>
         )}
 
+        {isSent && confession.requiresSelfConfessionPayment && confession.selfConfessionPaymentStatus !== PaymentStatus.PENDING && (
+          <div className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() => onPaySelfConfession(confession)}
+              className="px-4 py-2 rounded-xl text-xs font-medium text-white"
+              style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
+            >
+              Pay Self-Confession Fee
+            </button>
+          </div>
+        )}
+
         {isSent && confession.canRetryPayment && confession.paymentVerificationStatus === PaymentStatus.FAILED && (
           <div className="mt-4 flex justify-center">
             <button
@@ -349,7 +367,10 @@ function ConfessionCard({
           </div>
         )}
 
-        {isSent && (confession.resolutionCandidates?.length ?? 0) > 0 && (
+        {isSent &&
+          !confession.requiresSelfConfessionPayment &&
+          (confession.billingState === "FREE" || confession.paymentVerificationStatus === PaymentStatus.SUCCESS) &&
+          (confession.resolutionCandidates?.length ?? 0) > 0 && (
           <div
             className="mt-4 rounded-xl px-4 py-4"
             style={{ background: "rgba(255,251,245,0.88)", border: "1px solid rgba(184,159,126,0.22)" }}
@@ -409,6 +430,7 @@ export default function ConfessionsInbox({
     | { kind: "page"; amount: number }
     | { kind: "card"; confessionId: string; amount: number }
     | { kind: "send"; confessionId: string; amount: number }
+    | { kind: "self"; confessionId: string; amount: number }
     | { kind: "reveal"; confessionId: string; amount: number; qrCodeDataUrl: string | null }
     | null
   >(null);
@@ -594,6 +616,14 @@ export default function ConfessionsInbox({
     });
   }
 
+  function requestSelfConfessionPayment(confession: Confession) {
+    setPaymentDialog({
+      kind: "self",
+      confessionId: confession.id,
+      amount: currentPricing.selfConfession,
+    });
+  }
+
   async function submitSendPayment(confessionId: string, transactionReference: string) {
     try {
       const res = await fetch("/api/payments/send-confession", {
@@ -613,6 +643,34 @@ export default function ConfessionsInbox({
         prev.map((item) =>
           item.id === confessionId
             ? { ...item, paymentVerificationStatus: PaymentStatus.PENDING, canRetryPayment: false }
+            : item
+        )
+      );
+      setPaymentDialog(null);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Payment request failed"));
+    }
+  }
+
+  async function submitSelfConfessionPayment(confessionId: string, transactionReference: string) {
+    try {
+      const res = await fetch("/api/payments/self-confession", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confessionId, transactionReference }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(getResponseErrorMessage(data, "Payment request failed"));
+      if (data.alreadyPending) {
+        toast.success("Your earlier self-confession payment is already pending review.");
+        setPaymentDialog(null);
+        return;
+      }
+      toast.success("Payment submitted for review.");
+      setSentItems((prev) =>
+        prev.map((item) =>
+          item.id === confessionId
+            ? { ...item, selfConfessionPaymentStatus: PaymentStatus.PENDING }
             : item
         )
       );
@@ -727,11 +785,15 @@ export default function ConfessionsInbox({
                 onReply={handleReply}
                 onRevealConsent={requestRevealConsent}
                 onRetryPayment={requestSendPayment}
+                onPaySelfConfession={requestSelfConfessionPayment}
                 onResolveShadow={handleResolveShadow}
               />
             ))}
           </AnimatePresence>
         </div>
+      )}
+
+      </>
       )}
 
       <AnimatePresence>
@@ -834,6 +896,19 @@ export default function ConfessionsInbox({
       />
 
       <ManualPaymentDialog
+        open={paymentDialog?.kind === "self"}
+        title="Pay Self-Confession Fee"
+        amount={paymentDialog?.kind === "self" ? paymentDialog.amount : currentPricing.selfConfession}
+        qrCodeDataUrl={paymentCatalog.qrCodes.selfConfession}
+        submitLabel="Submit Self-Confession Payment"
+        onClose={() => setPaymentDialog(null)}
+        onSubmit={async (transactionReference) => {
+          if (paymentDialog?.kind !== "self") return;
+          await submitSelfConfessionPayment(paymentDialog.confessionId, transactionReference);
+        }}
+      />
+
+      <ManualPaymentDialog
         open={paymentDialog?.kind === "reveal"}
         title="Reveal Identity"
         amount={paymentDialog?.kind === "reveal" ? paymentDialog.amount : currentPricing.identityRevealOnly}
@@ -909,8 +984,6 @@ export default function ConfessionsInbox({
           </motion.div>
         )}
       </AnimatePresence>
-      </>
-      )}
     </div>
   );
 }

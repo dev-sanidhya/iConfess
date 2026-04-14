@@ -8,6 +8,13 @@ import {
 import { normalizeSocialHandle } from "@/lib/auth";
 import { claimPendingProfileSearchCounts } from "@/lib/profile-search-count";
 import { claimDirectShadowProfile } from "@/lib/shadow-profiles";
+import {
+  buildSelfClaimSnapshot,
+  confessionMatchesSelfClaim,
+  convertConfessionToSelf,
+  getLatestPaymentStatusByConfessionIds,
+  isConfessionRecipientActive,
+} from "@/lib/confessions";
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -135,6 +142,8 @@ export async function acceptPendingSocialOwnershipRequest(requestId: string, db:
       user: {
         select: {
           id: true,
+          name: true,
+          phone: true,
           profileSearchCount: true,
         },
       },
@@ -198,8 +207,30 @@ export async function acceptPendingSocialOwnershipRequest(requestId: string, db:
 
   const matchingConfessions = await db.confession.findMany({
     where: {
+      shadowProfileId: {
+        in: claimedShadow?.shadowIds ?? [],
+      },
+      targetId: null,
+      status: "PENDING",
+      expiresAt: { gt: new Date() },
+    },
+    select: {
+      id: true,
+      senderId: true,
+      targetPhone: true,
+      location: true,
+      matchDetails: true,
+      billingState: true,
+      targetId: true,
+      isSelfConfession: true,
+    },
+  });
+
+  const extraMatchingConfessions = await db.confession.findMany({
+    where: {
       targetId: null,
       targetPhone: null,
+      shadowProfileId: null,
       status: "PENDING",
       expiresAt: { gt: new Date() },
       matchDetails: {
@@ -209,15 +240,46 @@ export async function acceptPendingSocialOwnershipRequest(requestId: string, db:
     },
     select: {
       id: true,
+      senderId: true,
+      targetPhone: true,
+      location: true,
       matchDetails: true,
+      billingState: true,
+      targetId: true,
+      isSelfConfession: true,
     },
   });
 
-  const confessionIdsToDeliver = matchingConfessions
+  const candidateConfessions = [...matchingConfessions, ...extraMatchingConfessions].filter((confession, index, collection) =>
+    collection.findIndex((entry) => entry.id === confession.id) === index
+  );
+  const sendPaymentStatuses = await getLatestPaymentStatusByConfessionIds(
+    candidateConfessions.map((confession) => confession.id),
+    "SEND_CONFESSION",
+    db
+  );
+  const selfClaimSnapshot = buildSelfClaimSnapshot({
+    id: request.userId,
+    name: request.user.name,
+    phone: request.user.phone,
+    instagramHandle: request.platform === SocialPlatform.INSTAGRAM ? request.normalizedHandle : null,
+    snapchatHandle: request.platform === SocialPlatform.SNAPCHAT ? request.normalizedHandle : null,
+    gender: "OTHER",
+  });
+
+  const confessionIdsToDeliver = candidateConfessions
+    .filter((confession) => isConfessionRecipientActive(confession, sendPaymentStatuses.get(confession.id)))
     .filter((confession) => {
       const matchDetails = confession.matchDetails as Record<string, unknown>;
       return normalizeSocialHandle(typeof matchDetails.handle === "string" ? matchDetails.handle : "") === request.normalizedHandle;
     })
+    .filter((confession) => !(confession.senderId === request.userId && confessionMatchesSelfClaim(confession, selfClaimSnapshot)))
+    .map((confession) => confession.id);
+
+  const confessionIdsToConvert = candidateConfessions
+    .filter((confession) => isConfessionRecipientActive(confession, sendPaymentStatuses.get(confession.id)))
+    .filter((confession) => confession.senderId === request.userId && confessionMatchesSelfClaim(confession, selfClaimSnapshot))
+    .filter((confession) => confession.billingState !== "FREE")
     .map((confession) => confession.id);
 
   if (confessionIdsToDeliver.length > 0) {
@@ -228,6 +290,10 @@ export async function acceptPendingSocialOwnershipRequest(requestId: string, db:
         status: "DELIVERED",
       },
     });
+  }
+
+  for (const confessionId of confessionIdsToConvert) {
+    await convertConfessionToSelf(confessionId, request.userId, db);
   }
 
   await markMutualForDeliveredTarget(request.userId, db);

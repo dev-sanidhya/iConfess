@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PaymentServiceKey, StaffPermission } from "@prisma/client";
+import { getAppSettings, updateAppSettings } from "@/lib/app-settings";
 import { getPaymentCatalog, upsertPaymentServiceConfig } from "@/lib/payment-catalog.server";
 import { getStaffSession, hasPermission } from "@/lib/staff-auth";
 
@@ -16,8 +17,11 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const catalog = await getPaymentCatalog();
-    return NextResponse.json(catalog);
+    const [catalog, appSettings] = await Promise.all([
+      getPaymentCatalog(),
+      getAppSettings(),
+    ]);
+    return NextResponse.json({ ...catalog, appSettings });
   } catch (error) {
     console.error("[Internal Payment Settings GET Error]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -32,6 +36,32 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
+    const appSettingsPayload = body.appSettings;
+
+    if (appSettingsPayload && typeof appSettingsPayload === "object" && !Array.isArray(appSettingsPayload)) {
+      const nextSettings = await updateAppSettings({
+        instagramId:
+          typeof appSettingsPayload.instagramId === "string"
+            ? appSettingsPayload.instagramId.trim().replace(/^@+/, "")
+            : undefined,
+        snapchatId:
+          typeof appSettingsPayload.snapchatId === "string"
+            ? appSettingsPayload.snapchatId.trim().replace(/^@+/, "")
+            : undefined,
+        contactEmail:
+          typeof appSettingsPayload.contactEmail === "string"
+            ? appSettingsPayload.contactEmail.trim()
+            : undefined,
+        feedbackEmail:
+          typeof appSettingsPayload.feedbackEmail === "string"
+            ? appSettingsPayload.feedbackEmail.trim()
+            : undefined,
+      });
+
+      const catalog = await getPaymentCatalog();
+      return NextResponse.json({ ...catalog, appSettings: nextSettings });
+    }
+
     const service = body.service;
     const amount = Number.parseInt(String(body.amount), 10);
     const qrCodeDataUrl =
@@ -59,8 +89,11 @@ export async function PATCH(req: NextRequest) {
       qrCodeDataUrl,
     });
 
-    const catalog = await getPaymentCatalog();
-    return NextResponse.json(catalog);
+    const [catalog, appSettings] = await Promise.all([
+      getPaymentCatalog(),
+      getAppSettings(),
+    ]);
+    return NextResponse.json({ ...catalog, appSettings });
   } catch (error) {
     console.error("[Internal Payment Settings PATCH Error]", error);
     return NextResponse.json(

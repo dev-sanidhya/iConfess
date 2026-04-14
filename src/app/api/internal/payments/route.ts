@@ -20,6 +20,15 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Invalid payment status" }, { status: 400 });
     }
 
+    const currentPayment = await prisma.payment.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
+    if (!currentPayment) {
+      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+    }
+
     await prisma.payment.update({
       where: { id },
       data: {
@@ -29,7 +38,18 @@ export async function PATCH(req: NextRequest) {
     });
 
     if (status === PaymentStatus.SUCCESS) {
-      await applySuccessfulPayment(id);
+      try {
+        await applySuccessfulPayment(id);
+      } catch (applyError) {
+        await prisma.payment.update({
+          where: { id },
+          data: {
+            status: currentPayment.status,
+            managedByStaffId: staff.id,
+          },
+        });
+        throw applyError;
+      }
     }
 
     return NextResponse.json({ success: true });

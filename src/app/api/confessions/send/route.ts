@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         }
 
         if (existingUser.id === user.id) {
-          const shouldCharge = !isFree;
+          const shouldCharge = true;
           const confession = await createAndCheckMutual(
             user.id,
             user.id,
@@ -106,11 +106,12 @@ export async function POST(req: NextRequest) {
           );
           const paymentResponse = await queueSendPaymentIfNeeded({
             userId: user.id,
-            isFree,
+            isFree: false,
             confessionId: confession.id,
             flow: "phone",
             transactionReference,
             deliverOnSuccess: true,
+            pricingKey: "selfConfession",
           });
           if (paymentResponse) return paymentResponse;
           return NextResponse.json({
@@ -158,24 +159,27 @@ export async function POST(req: NextRequest) {
       }
 
       // Unregistered — queue via phone
-      const shadowProfile = await findOrCreateDirectShadowProfile({
-        kind: "PHONE",
-        value: targetPhone,
-        matchDetails: {
-          ...confessionMatchDetails,
-          phone: targetPhone,
-        },
-        db: prisma,
-      });
+      const phoneMatchDetails = {
+        ...confessionMatchDetails,
+        phone: targetPhone,
+      };
+      const shadowProfile = isFree
+        ? await findOrCreateDirectShadowProfile({
+            kind: "PHONE",
+            value: targetPhone,
+            matchDetails: phoneMatchDetails,
+            db: prisma,
+          })
+        : null;
 
       const existingPhoneDuplicate = await findRecentDuplicateConfession({
         senderId: user.id,
         targetId: null,
         targetPhone,
-        shadowProfileId: shadowProfile.id,
+        shadowProfileId: shadowProfile?.id ?? null,
         location: "COLLEGE",
         message,
-        matchDetails: confessionMatchDetails,
+        matchDetails: phoneMatchDetails,
         isSelfConfession: false,
       });
       if (existingPhoneDuplicate) {
@@ -202,10 +206,10 @@ export async function POST(req: NextRequest) {
         data: {
           senderId: user.id,
           targetPhone,
-          shadowProfileId: shadowProfile.id,
+          shadowProfileId: shadowProfile?.id ?? null,
           message,
           location: "COLLEGE",
-          matchDetails: confessionMatchDetails as Prisma.InputJsonValue,
+          matchDetails: phoneMatchDetails as Prisma.InputJsonValue,
           status: "PENDING",
           expiresAt,
           billingCategory: "CONFESSION_TO_OTHERS",
@@ -257,17 +261,19 @@ export async function POST(req: NextRequest) {
           platform,
           handle: normalizedHandle,
         };
-        const shadowProfile = await findOrCreateDirectShadowProfile({
-          kind: platform === "instagram" ? "INSTAGRAM" : "SNAPCHAT",
-          value: normalizedHandle,
-          matchDetails: socialMatchDetails,
-          db: prisma,
-        });
+        const shadowProfile = isFree
+          ? await findOrCreateDirectShadowProfile({
+              kind: platform === "instagram" ? "INSTAGRAM" : "SNAPCHAT",
+              value: normalizedHandle,
+              matchDetails: socialMatchDetails,
+              db: prisma,
+            })
+          : null;
         const existingSocialDuplicate = await findRecentDuplicateConfession({
           senderId: user.id,
           targetId: null,
           targetPhone: null,
-          shadowProfileId: shadowProfile.id,
+          shadowProfileId: shadowProfile?.id ?? null,
           location: "COLLEGE",
           message,
           matchDetails: socialMatchDetails,
@@ -296,7 +302,7 @@ export async function POST(req: NextRequest) {
         const confession = await prisma.confession.create({
           data: {
             senderId: user.id,
-            shadowProfileId: shadowProfile.id,
+            shadowProfileId: shadowProfile?.id ?? null,
             message,
             location: "COLLEGE",
             matchDetails: socialMatchDetails as Prisma.InputJsonValue,
@@ -330,7 +336,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (existingUser.id === user.id) {
-        const shouldCharge = !isFree;
+        const shouldCharge = true;
         const confession = await createAndCheckMutual(
           user.id,
           user.id,
@@ -354,11 +360,12 @@ export async function POST(req: NextRequest) {
         );
         const paymentResponse = await queueSendPaymentIfNeeded({
           userId: user.id,
-          isFree,
+          isFree: false,
           confessionId: confession.id,
           flow: "social",
           transactionReference,
           deliverOnSuccess: true,
+          pricingKey: "selfConfession",
         });
         if (paymentResponse) return paymentResponse;
 
@@ -433,7 +440,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (target.id === user.id) {
-        const shouldCharge = !isFree;
+        const shouldCharge = true;
         const confession = await createAndCheckMutual(
           user.id,
           user.id,
@@ -453,11 +460,12 @@ export async function POST(req: NextRequest) {
         );
         const paymentResponse = await queueSendPaymentIfNeeded({
           userId: user.id,
-          isFree,
+          isFree: false,
           confessionId: confession.id,
           flow: "profile",
           transactionReference,
           deliverOnSuccess: true,
+          pricingKey: "selfConfession",
         });
         if (paymentResponse) return paymentResponse;
 
@@ -551,10 +559,13 @@ export async function POST(req: NextRequest) {
       const confession = await prisma.confession.create({
         data: {
           senderId: user.id,
-          shadowProfileId: targetShadow.id,
+          shadowProfileId: isFree ? targetShadow.id : null,
           message,
           location,
-          matchDetails: confessionMatchDetails as Prisma.InputJsonValue,
+          matchDetails: {
+            ...confessionMatchDetails,
+            selectedShadowProfileId: targetShadow.id,
+          } as Prisma.InputJsonValue,
           status: "PENDING",
           expiresAt,
           billingCategory: "CONFESSION_TO_OTHERS",
@@ -610,28 +621,31 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const carriedSearchCount = await claimCompatiblePendingDetailSearchCounts({
-      category: location as LocationCategory,
-      details: normalizedMatchDetails,
-      fullName: normalizedMatchDetails.fullName,
-      db: prisma,
-    });
+    let newShadowProfile: { id: string } | null = null;
+    if (isFree) {
+      const carriedSearchCount = await claimCompatiblePendingDetailSearchCounts({
+        category: location as LocationCategory,
+        details: normalizedMatchDetails,
+        fullName: normalizedMatchDetails.fullName,
+        db: prisma,
+      });
 
-    const newShadowProfile = await prisma.shadowProfile.create({
-      data: {
-        kind: getPendingKindForLocation(location as LocationCategory),
-        value: crypto.randomUUID(),
-        location: location as LocationCategory,
-        displayName: normalizedMatchDetails.fullName,
-        profileDetails: confessionMatchDetails as Prisma.InputJsonValue,
-        searchCount: carriedSearchCount,
-      },
-    });
+      newShadowProfile = await prisma.shadowProfile.create({
+        data: {
+          kind: getPendingKindForLocation(location as LocationCategory),
+          value: crypto.randomUUID(),
+          location: location as LocationCategory,
+          displayName: normalizedMatchDetails.fullName,
+          profileDetails: confessionMatchDetails as Prisma.InputJsonValue,
+          searchCount: carriedSearchCount,
+        },
+      });
+    }
 
     const confession = await prisma.confession.create({
       data: {
         senderId: user.id,
-        shadowProfileId: newShadowProfile.id,
+        shadowProfileId: newShadowProfile?.id ?? null,
         message,
         location,
         matchDetails: confessionMatchDetails as Prisma.InputJsonValue,
@@ -797,12 +811,14 @@ async function queueSendPaymentIfNeeded(params: {
   flow: "phone" | "social" | "profile";
   transactionReference?: string;
   deliverOnSuccess: boolean;
+  pricingKey?: "sendConfession" | "selfConfession";
 }) {
   if (params.isFree) {
     return null;
   }
 
-  const sendConfessionAmount = await getPaymentAmount("sendConfession");
+  const pricingKey = params.pricingKey ?? "sendConfession";
+  const sendConfessionAmount = await getPaymentAmount(pricingKey);
 
   if (!params.transactionReference || typeof params.transactionReference !== "string") {
     return NextResponse.json(
