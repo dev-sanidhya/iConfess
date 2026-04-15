@@ -149,13 +149,27 @@ function getRequestIp(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone } = await req.json();
+    const { phone, purpose } = await req.json();
 
     if (!phone || !/^\d{10}$/.test(phone)) {
       return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
     }
 
     const formattedPhone = formatPhone(phone);
+    if (purpose === "register") {
+      const existingUser = await prisma.user.findUnique({
+        where: { phone: formattedPhone },
+        select: { id: true },
+      });
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "This phone number already has an account. Sign in instead." },
+          { status: 409 }
+        );
+      }
+    }
+
     const requestIp = getRequestIp(req);
     const now = new Date();
     const window24hr = new Date(now.getTime() - 24 * 60 * 60 * 1000);

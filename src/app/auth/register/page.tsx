@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Phone, User, MapPin, LockKeyhole } from "lucide-react";
+import { ArrowRight, Phone, User, MapPin, LockKeyhole } from "lucide-react";
 import { locationCategories, locationFields, type LocationCategory } from "@/lib/matching";
 import type { Gender } from "@prisma/client";
 import PhoneNumberField from "@/components/PhoneNumberField";
@@ -106,7 +106,7 @@ function RegisterForm() {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, purpose: "register" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -168,7 +168,6 @@ function RegisterForm() {
       if (!res.ok) throw new Error(data.error);
       setAccountCreated(true);
       window.localStorage.setItem(PENDING_PROFILE_COMPLETION_KEY, "1");
-      toast.success("Account created. Add profile details now.");
       setStep("profile");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
@@ -360,9 +359,6 @@ function RegisterForm() {
                 <MapPin className="w-4 h-4" style={{ color: "#8f6a46" }} />
                 <h2 className="font-semibold" style={{ color: "#3f2c1d" }}>Where can people find you?</h2>
               </div>
-              <p className="text-xs mb-5" style={{ color: "#80664c" }}>
-                Account is created. Add profile details now.
-              </p>
 
               {/* Category selector */}
               <div className="grid grid-cols-1 gap-2 mb-5">
@@ -474,17 +470,20 @@ function RegisterForm() {
                       </div>
                     </div>
                   ))}
-                  <div className="flex gap-2 mt-2">
-                    <button type="button" onClick={handleSkipProfile}
-                      className="flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl text-sm border w-12 flex-shrink-0"
-                      style={{ borderColor: "rgba(179,148,111,0.24)", color: "#80664c", background: "rgba(255,251,245,0.84)" }}>
-                      <ArrowLeft className="w-4 h-4" />
-                    </button>
+                  <div className="flex flex-col gap-2 mt-2">
                     <button type="submit" disabled={loading || !accountCreated}
                       className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
                       style={{ background: "linear-gradient(135deg, #8f6a46 0%, #d7b892 100%)" }}>
                       {loading ? "Saving..." : "Save Profile"}
                       <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSkipProfile}
+                      className="text-xs text-center"
+                      style={{ color: "#80664c" }}
+                    >
+                      Skip for now
                     </button>
                   </div>
                 </form>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, ArrowRight, MessageSquare, AtSign, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import ManualPaymentDialog from "@/components/ManualPaymentDialog";
 import {
   getConciseCategorySummary,
@@ -197,8 +198,10 @@ export default function SendConfession({
   sharedProfileOptions: SharedProfileOption[];
   currentUser: CurrentUserSummary;
 }) {
+  const router = useRouter();
   const paymentCatalog = usePaymentCatalog();
   const currentPricing = paymentCatalog.pricing;
+  const [localSentCount, setLocalSentCount] = useState(sentCount);
   const [flow, setFlow] = useState<FlowType>("phone");
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | null>(null);
   const [matchDetails, setMatchDetails] = useState<Record<string, string>>({});
@@ -224,6 +227,10 @@ export default function SendConfession({
   const [selfPopupDismissed, setSelfPopupDismissed] = useState(false);
   const categoryFieldsRef = useRef<HTMLDivElement | null>(null);
   const submitInFlightRef = useRef(false);
+
+  useEffect(() => {
+    setLocalSentCount(sentCount);
+  }, [sentCount]);
 
   useEffect(() => {
     if (!selectedCategory) return;
@@ -377,7 +384,7 @@ export default function SendConfession({
   ]);
   const sendPriceLabel = selfConfessionCandidate
     ? formatInr(currentPricing.selfConfession)
-    : sentCount === 0
+    : localSentCount === 0
       ? "Free"
       : formatInr(currentPricing.sendConfession);
 
@@ -477,11 +484,17 @@ export default function SendConfession({
       if (!res.ok) {
         throw new Error(getResponseErrorMessage(data, "Failed to send confession"));
       } else if (data.pendingReview) {
+        if (!selfConfessionCandidate) {
+          setLocalSentCount((current) => current + 1);
+        }
         setShowPaymentDialog(false);
         setSentMessage("Your confession is queued. It will move forward after payment review.");
         setSent(true);
         toast.success("Payment submitted for review.");
       } else {
+        if (!selfConfessionCandidate) {
+          setLocalSentCount((current) => current + 1);
+        }
         const deliveryMode = (data.deliveryMode ?? (data.matchFound ? "delivered" : "pending_registration")) as DeliveryMode;
         setSentMessage(getDeliveryMessage(deliveryMode));
         setSent(true);
@@ -511,6 +524,7 @@ export default function SendConfession({
   }
 
   function resetForm() {
+    router.refresh();
     setSent(false);
     setSentMessage("We'll keep you updated on every step.");
     setMessage("");
