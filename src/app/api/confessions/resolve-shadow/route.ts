@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { deleteShadowProfileIfEmpty } from "@/lib/shadow-profiles";
 import { findMatches } from "@/lib/matching";
 import { prisma } from "@/lib/prisma";
 
@@ -34,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const target = await prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, profileSearchCount: true },
     });
     if (!target) {
       return NextResponse.json({ error: "Selected user no longer exists" }, { status: 400 });
@@ -48,16 +47,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Selected user no longer matches this confession" }, { status: 400 });
     }
 
-    await prisma.confession.update({
-      where: { id: confession.id },
-      data: {
-        targetId: target.id,
-        status: "DELIVERED",
-        shadowProfileId: null,
-      },
-    });
+    await prisma.$transaction(async (tx) => {
+      const shadowProfile = await tx.shadowProfile.findUnique({
+        where: { id: confession.shadowProfileId! },
+        select: {
+          id: true,
+          searchCount: true,
+          claimedByUserId: true,
+        },
+      });
 
-    await deleteShadowProfileIfEmpty(confession.shadowProfileId, prisma);
+      if (!shadowProfile) {
+        throw new Error("Shadow profile no longer exists");
+      }
+
+      if (shadowProfile.claimedByUserId && shadowProfile.claimedByUserId !== target.id) {
+        throw new Error("This shadow profile is already linked to another user");
+      }
+
+      if (!shadowProfile.claimedByUserId) {
+        await tx.shadowProfile.update({
+          where: { id: shadowProfile.id },
+          data: { claimedByUserId: target.id },
+        });
+
+        if (shadowProfile.searchCount > 0) {
+          await tx.user.update({
+            where: { id: target.id },
+            data: {
+              profileSearchCount: (target.profileSearchCount ?? 0) + shadowProfile.searchCount,
+            },
+          });
+        }
+      }
+
+      await tx.confession.update({
+        where: { id: confession.id },
+        data: {
+          targetId: target.id,
+          status: "DELIVERED",
+        },
+      });
+    });
 
     return NextResponse.json({
       success: true,

@@ -26,6 +26,8 @@ type Confession = {
   targetRevealConsent: boolean;
   revealedAt: string | null;
   isUnlocked: boolean;
+  cardUnlockPaymentStatus?: PaymentStatus | null;
+  revealPaymentStatus?: PaymentStatus | null;
   counterpartAnonymousId: string;
   counterpartName: string | null;
   counterpartGender: "MALE" | "FEMALE" | "OTHER" | null;
@@ -163,6 +165,8 @@ function ConfessionCard({
       : "Anonymous sender";
   const previewGender = isReceived && !confession.revealedAt ? formatGenderLabel(confession.counterpartGender) : null;
   const sentCardStatus = getSentCardStatus(confession);
+  const isCardPaymentVerifying = confession.cardUnlockPaymentStatus === PaymentStatus.PENDING;
+  const isRevealPaymentVerifying = confession.revealPaymentStatus === PaymentStatus.PENDING;
 
   async function submitReply(e: React.FormEvent) {
     e.preventDefault();
@@ -192,13 +196,22 @@ function ConfessionCard({
           <Sparkles className="w-4 h-4" style={{ color: "#8f6a46" }} />
           <span style={{ color: "#8f6a46" }}>Mutual Confession!</span>
           {!hasConsented && !confession.revealedAt && (
-            <button
-              onClick={() => onRevealConsent(confession.id)}
-              className="ml-auto text-xs px-3 py-1 rounded-lg font-medium"
-              style={{ background: "rgba(143,106,70,0.14)", color: "#8f6a46", border: "1px solid rgba(179,148,111,0.24)" }}
-            >
-              Reveal identity
-            </button>
+            isRevealPaymentVerifying ? (
+              <span
+                className="ml-auto text-xs px-3 py-1 rounded-lg font-medium"
+                style={{ background: "rgba(143,106,70,0.14)", color: "#8f6a46", border: "1px solid rgba(179,148,111,0.24)" }}
+              >
+                Verifying Payment
+              </span>
+            ) : (
+              <button
+                onClick={() => onRevealConsent(confession.id)}
+                className="ml-auto text-xs px-3 py-1 rounded-lg font-medium"
+                style={{ background: "rgba(143,106,70,0.14)", color: "#8f6a46", border: "1px solid rgba(179,148,111,0.24)" }}
+              >
+                Reveal identity
+              </button>
+            )
           )}
           {hasConsented && !confession.revealedAt && (
             <span className="ml-auto text-xs" style={{ color: "#9b7c5d" }}>
@@ -271,14 +284,23 @@ function ConfessionCard({
 
         {isReceived && !confession.isUnlocked && (
           <div className="flex justify-center">
-            <button
-              onClick={() => onUnlockCard(confession.id)}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-white w-full sm:w-auto"
-              style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
-            >
-              <Lock className="w-3.5 h-3.5" />
-              {`Unlock this card (${formatInr(unlockCardPrice)})`}
-            </button>
+            {isCardPaymentVerifying ? (
+              <span
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto"
+                style={{ background: "rgba(143,106,70,0.14)", color: "#8f6a46", border: "1px solid rgba(179,148,111,0.24)" }}
+              >
+                Verifying Payment
+              </span>
+            ) : (
+              <button
+                onClick={() => onUnlockCard(confession.id)}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-white w-full sm:w-auto"
+                style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
+              >
+                <Lock className="w-3.5 h-3.5" />
+                {`Unlock this card (${formatInr(unlockCardPrice)})`}
+              </button>
+            )}
           </div>
         )}
 
@@ -341,16 +363,25 @@ function ConfessionCard({
           </div>
         )}
 
-        {isSent && confession.requiresSelfConfessionPayment && confession.selfConfessionPaymentStatus !== PaymentStatus.PENDING && (
+        {isSent && confession.requiresSelfConfessionPayment && (
           <div className="mt-4 flex justify-center">
-            <button
-              type="button"
-              onClick={() => onPaySelfConfession(confession)}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-white"
-              style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
-            >
-              Pay Self-Confession Fee
-            </button>
+            {confession.selfConfessionPaymentStatus === PaymentStatus.PENDING ? (
+              <span
+                className="px-4 py-2 rounded-xl text-xs font-medium"
+                style={{ background: "rgba(143,106,70,0.14)", color: "#8f6a46", border: "1px solid rgba(179,148,111,0.24)" }}
+              >
+                Verifying Payment
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onPaySelfConfession(confession)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-white"
+                style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
+              >
+                Pay Self-Confession Fee
+              </button>
+            )}
           </div>
         )}
 
@@ -414,10 +445,12 @@ export default function ConfessionsInbox({
   receivedConfessions,
   sentConfessions,
   pageUnlocked,
+  pageUnlockPaymentStatus,
 }: {
   receivedConfessions: Confession[];
   sentConfessions: Confession[];
   pageUnlocked: boolean;
+  pageUnlockPaymentStatus: PaymentStatus | null;
 }) {
   const paymentCatalog = usePaymentCatalog();
   const currentPricing = paymentCatalog.pricing;
@@ -438,6 +471,7 @@ export default function ConfessionsInbox({
   const [unlockingCardId, setUnlockingCardId] = useState<string | null>(null);
   const [revealingConfessionId, setRevealingConfessionId] = useState<string | null>(null);
   const [currentPageUnlocked] = useState(pageUnlocked);
+  const [currentPageUnlockPaymentStatus, setCurrentPageUnlockPaymentStatus] = useState<PaymentStatus | null>(pageUnlockPaymentStatus);
   const revealPricing = pendingRevealConfession
     ? getIdentityRevealPricing(currentPageUnlocked, pendingRevealConfession.isUnlocked, currentPricing)
     : null;
@@ -472,10 +506,12 @@ export default function ConfessionsInbox({
       }
       if (data.alreadyPending) {
         toast.success("Your earlier page unlock payment is already pending review.");
+        setCurrentPageUnlockPaymentStatus(PaymentStatus.PENDING);
         setPaymentDialog(null);
         return;
       }
       toast.success("Payment submitted for review.");
+      setCurrentPageUnlockPaymentStatus(PaymentStatus.PENDING);
       setPaymentDialog(null);
     } catch (err) {
       toast.error(getErrorMessage(err, "Payment request failed"));
@@ -501,10 +537,24 @@ export default function ConfessionsInbox({
       }
       if (data.alreadyPending) {
         toast.success("Your earlier card unlock payment is already pending review.");
+        setReceivedItems((prev) =>
+          prev.map((item) =>
+            item.id === confessionId
+              ? { ...item, cardUnlockPaymentStatus: PaymentStatus.PENDING }
+              : item
+          )
+        );
         setPaymentDialog(null);
         return;
       }
       toast.success("Payment submitted for review.");
+      setReceivedItems((prev) =>
+        prev.map((item) =>
+          item.id === confessionId
+            ? { ...item, cardUnlockPaymentStatus: PaymentStatus.PENDING }
+            : item
+        )
+      );
       setPaymentDialog(null);
     } catch (err) {
       toast.error(getErrorMessage(err, "Payment request failed"));
@@ -572,10 +622,24 @@ export default function ConfessionsInbox({
       }
       if (data.alreadyPending) {
         toast.success("Your earlier identity reveal payment is already pending review.");
+        setReceivedItems((prev) =>
+          prev.map((item) =>
+            item.id === confessionId
+              ? { ...item, revealPaymentStatus: PaymentStatus.PENDING }
+              : item
+          )
+        );
         setPaymentDialog(null);
         return;
       }
       toast.success("Identity reveal payment submitted for review.");
+      setReceivedItems((prev) =>
+        prev.map((item) =>
+          item.id === confessionId
+            ? { ...item, revealPaymentStatus: PaymentStatus.PENDING }
+            : item
+        )
+      );
       setPaymentDialog(null);
     } catch (err) {
       toast.error(getErrorMessage(err, "Payment request failed"));
@@ -735,15 +799,24 @@ export default function ConfessionsInbox({
           <p className="text-sm mt-3 max-w-xl mx-auto leading-relaxed" style={{ color: "#735a43" }}>
             Unlock this page to access your sent and received confessions for next {currentPricing.unlockReceivedConfessionPageMonths} months. Each received card must be unlocked separately.
           </p>
-          <button
-            onClick={handleUnlockPage}
-            disabled={unlockingPage}
-            className="mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
-          >
-            <Lock className="w-4 h-4" />
-            {unlockingPage ? "Processing..." : `Unlock for ${currentPricing.unlockReceivedConfessionPageMonths} Months (${formatInr(currentPricing.unlockReceivedConfessionPage)})`}
-          </button>
+          {currentPageUnlockPaymentStatus === PaymentStatus.PENDING ? (
+            <span
+              className="mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium"
+              style={{ background: "rgba(143,106,70,0.14)", color: "#8f6a46", border: "1px solid rgba(179,148,111,0.24)" }}
+            >
+              Verifying Payment
+            </span>
+          ) : (
+            <button
+              onClick={handleUnlockPage}
+              disabled={unlockingPage}
+              className="mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #8f6a46, #d7b892)" }}
+            >
+              <Lock className="w-4 h-4" />
+              {unlockingPage ? "Processing..." : `Unlock for ${currentPricing.unlockReceivedConfessionPageMonths} Months (${formatInr(currentPricing.unlockReceivedConfessionPage)})`}
+            </button>
+          )}
         </div>
       ) : (
         <>

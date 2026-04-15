@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
             searchCount: phoneShadows.reduce((sum, shadow) => sum + shadow.searchCount, 0),
           }
         : null;
+      const deliveredSearchCount = carriedSearchCount + (phoneShadow?.searchCount ?? 0);
 
       const newUser = await tx.user.create({
         data: {
@@ -126,7 +127,10 @@ export async function POST(req: NextRequest) {
           dateOfBirth: parsedDateOfBirth,
           passwordHash,
           gender: gender as Gender,
-          profileSearchCount: createInitialProfileSearchCount(carriedSearchCount + (phoneShadow?.searchCount ?? 0)),
+          profileSearchCount:
+            deliveredSearchCount > 0
+              ? deliveredSearchCount
+              : createInitialProfileSearchCount(),
           primaryCategory: (chosenCategories.length > 0
             ? primaryCategory
             : "COLLEGE") as LocationCategory,

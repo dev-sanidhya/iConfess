@@ -16,6 +16,7 @@ import {
 import { formatInr } from "@/lib/pricing";
 import { usePaymentCatalog } from "@/lib/use-payment-catalog";
 import { getErrorMessage, getResponseErrorMessage } from "@/lib/utils";
+import { PaymentStatus } from "@prisma/client";
 
 type SearchMode = "profile" | "phone" | "social";
 
@@ -31,6 +32,7 @@ type SearchResult = {
   confessionPageUnlocked: boolean;
   confessionCount: number;
   hasUnlockedInsights: boolean;
+  insightPaymentStatus: PaymentStatus | null;
   unlockedInsightCount: number;
   lockedInsightCount: number;
   profileSections: SearchResultProfileSection[];
@@ -269,6 +271,11 @@ export default function SearchPage() {
   }
 
   async function handleInsightAccess(result: SearchResult) {
+    if (result.insightPaymentStatus === PaymentStatus.PENDING) {
+      toast.info("Payment verification is in progress for this insight unlock.");
+      return;
+    }
+
     if (result.hasUnlockedInsights) {
       try {
         await loadInsights(result.id);
@@ -316,12 +323,22 @@ export default function SearchPage() {
 
       if (unlockData.alreadyPending) {
         toast.success("Your earlier insight payment request is already pending review.");
+        setResults((current) => current.map((result) => (
+          result.id === pendingInsightUnlock.id
+            ? { ...result, insightPaymentStatus: PaymentStatus.PENDING }
+            : result
+        )));
         setShowInsightPaymentDialog(false);
         setPendingInsightUnlock(null);
         return;
       }
 
       toast.success("Payment submitted for review.");
+      setResults((current) => current.map((result) => (
+        result.id === pendingInsightUnlock.id
+          ? { ...result, insightPaymentStatus: PaymentStatus.PENDING }
+          : result
+      )));
       setShowInsightPaymentDialog(false);
       setPendingInsightUnlock(null);
     } catch (error) {
@@ -547,6 +564,7 @@ export default function SearchPage() {
                         ? `View insights (${result.lockedInsightCount} new locked)`
                         : "View insights"
                       : `View insights (${formatInr(currentPricing.viewInsights)})`;
+                  const isInsightPaymentVerifying = result.insightPaymentStatus === PaymentStatus.PENDING;
                   const shouldHideSelfConfessionCount = result.isCurrentUser && !result.confessionPageUnlocked;
 
                   return (
@@ -587,21 +605,34 @@ export default function SearchPage() {
                     </div>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                       {result.confessionCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => void handleInsightAccess(result)}
-                          disabled={loadingInsightsFor === result.id}
-                          className="px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto"
-                          style={{
-                            background: "rgba(198,145,85,0.12)",
-                            border: "1px solid rgba(198,145,85,0.18)",
-                            color: "#9f6c31",
-                          }}
-                        >
-                          {loadingInsightsFor === result.id
-                            ? "Loading..."
-                            : insightButtonLabel}
-                        </button>
+                        isInsightPaymentVerifying ? (
+                          <span
+                            className="px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto text-center"
+                            style={{
+                              background: "rgba(143,106,70,0.14)",
+                              border: "1px solid rgba(179,148,111,0.24)",
+                              color: "#8f6a46",
+                            }}
+                          >
+                            Verifying Payment
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => void handleInsightAccess(result)}
+                            disabled={loadingInsightsFor === result.id}
+                            className="px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-auto"
+                            style={{
+                              background: "rgba(198,145,85,0.12)",
+                              border: "1px solid rgba(198,145,85,0.18)",
+                              color: "#9f6c31",
+                            }}
+                          >
+                            {loadingInsightsFor === result.id
+                              ? "Loading..."
+                              : insightButtonLabel}
+                          </button>
+                        )
                       )}
                       <Link
                         href={`/dashboard/send?target=${result.id}&name=${encodeURIComponent(result.name)}`}
@@ -619,21 +650,34 @@ export default function SearchPage() {
                         Confession insights for {result.name}
                       </h3>
                       {result.lockedInsightCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setPendingInsightUnlock(result)}
-                          disabled={loadingInsightsFor === result.id}
-                          className="mb-3 px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-fit"
-                          style={{
-                            background: "rgba(198,145,85,0.12)",
-                            border: "1px solid rgba(198,145,85,0.18)",
-                            color: "#9f6c31",
-                          }}
-                        >
-                          {loadingInsightsFor === result.id
-                            ? "Loading..."
-                            : `Unlock all new insights (${formatInr(currentPricing.viewInsights)})`}
-                        </button>
+                        result.insightPaymentStatus === PaymentStatus.PENDING ? (
+                          <span
+                            className="mb-3 inline-flex px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-fit justify-center"
+                            style={{
+                              background: "rgba(143,106,70,0.14)",
+                              border: "1px solid rgba(179,148,111,0.24)",
+                              color: "#8f6a46",
+                            }}
+                          >
+                            Verifying Payment
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setPendingInsightUnlock(result)}
+                            disabled={loadingInsightsFor === result.id}
+                            className="mb-3 px-4 py-2 rounded-xl text-xs font-medium w-full sm:w-fit"
+                            style={{
+                              background: "rgba(198,145,85,0.12)",
+                              border: "1px solid rgba(198,145,85,0.18)",
+                              color: "#9f6c31",
+                            }}
+                          >
+                            {loadingInsightsFor === result.id
+                              ? "Loading..."
+                              : `Unlock all new insights (${formatInr(currentPricing.viewInsights)})`}
+                          </button>
+                        )
                       )}
                       {insights.length === 0 ? (
                         <p className="text-xs" style={{ color: "#9b7c5d" }}>

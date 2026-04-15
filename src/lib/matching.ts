@@ -1,4 +1,4 @@
-import { PendingProfileSearchKind } from "@prisma/client";
+import { PaymentStatus, PendingProfileSearchKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   getLatestPaymentStatusByConfessionIds,
@@ -155,6 +155,7 @@ export type SearchResult = {
   confessionPageUnlocked: boolean;
   confessionCount: number;
   hasUnlockedInsights: boolean;
+  insightPaymentStatus: PaymentStatus | null;
   unlockedInsightCount: number;
   lockedInsightCount: number;
   profileSections: SearchResultProfileSection[];
@@ -405,6 +406,7 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string,
         select: {
           id: true,
           createdAt: true,
+          shadowProfileId: true,
         },
         orderBy: { createdAt: "desc" },
       },
@@ -421,6 +423,55 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string,
     },
   });
 
+  const userIds = users.map((user) => user.id);
+  const userIdSet = new Set(userIds);
+  const shadowIds = [...new Set(
+    users.flatMap((user) =>
+      user.receivedConfessions
+        .map((confession) => confession.shadowProfileId)
+        .filter((shadowProfileId): shadowProfileId is string => Boolean(shadowProfileId))
+    )
+  )];
+  const shadowIdSet = new Set(shadowIds);
+  const latestTargetUserInsightPaymentStatus = new Map<string, PaymentStatus>();
+  const latestShadowInsightUnlockTimes = new Map<string, Date>();
+
+  const insightPayments = await prisma.payment.findMany({
+    where: {
+      userId: currentUserId,
+      type: "UNLOCK_PROFILE_INSIGHTS",
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      status: true,
+      createdAt: true,
+      metadata: true,
+    },
+  });
+
+  for (const payment of insightPayments) {
+    if (!payment.metadata || typeof payment.metadata !== "object" || Array.isArray(payment.metadata)) {
+      continue;
+    }
+
+    const metadata = payment.metadata as Record<string, unknown>;
+    const targetUserId = typeof metadata.targetUserId === "string" ? metadata.targetUserId : null;
+    if (targetUserId && userIdSet.has(targetUserId) && !latestTargetUserInsightPaymentStatus.has(targetUserId)) {
+      latestTargetUserInsightPaymentStatus.set(targetUserId, payment.status);
+    }
+
+    const targetShadowProfileId =
+      typeof metadata.targetShadowProfileId === "string" ? metadata.targetShadowProfileId : null;
+    if (
+      payment.status === PaymentStatus.SUCCESS &&
+      targetShadowProfileId &&
+      shadowIdSet.has(targetShadowProfileId) &&
+      !latestShadowInsightUnlockTimes.has(targetShadowProfileId)
+    ) {
+      latestShadowInsightUnlockTimes.set(targetShadowProfileId, payment.createdAt);
+    }
+  }
+
   const byId = new Map(users.map((user) => [user.id, user]));
 
   return ids
@@ -428,9 +479,19 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string,
     .filter((user): user is NonNullable<typeof user> => Boolean(user))
     .map((u) => {
       const latestInsightUnlock = u.profileInsightsOwned[0] ?? null;
-      const unlockedInsightCount = latestInsightUnlock
-        ? u.receivedConfessions.filter((confession) => confession.createdAt <= latestInsightUnlock.unlockedAt).length
-        : 0;
+      const directUnlockAt = latestInsightUnlock?.unlockedAt ?? null;
+      const unlockedInsightCount = u.receivedConfessions.filter((confession) => {
+        if (directUnlockAt && confession.createdAt <= directUnlockAt) {
+          return true;
+        }
+
+        if (!confession.shadowProfileId) {
+          return false;
+        }
+
+        const shadowUnlockAt = latestShadowInsightUnlockTimes.get(confession.shadowProfileId) ?? null;
+        return Boolean(shadowUnlockAt && confession.createdAt <= shadowUnlockAt);
+      }).length;
       const lockedInsightCount = u.receivedConfessions.length - unlockedInsightCount;
 
       return {
@@ -444,6 +505,7 @@ export async function getSearchResultByIds(ids: string[], currentUserId: string,
       confessionPageUnlocked: u.confessionPageUnlocked,
       confessionCount: u._count.receivedConfessions,
       hasUnlockedInsights: unlockedInsightCount > 0,
+      insightPaymentStatus: latestTargetUserInsightPaymentStatus.get(u.id) ?? null,
       unlockedInsightCount,
       lockedInsightCount,
       profileSections: [
@@ -560,6 +622,7 @@ async function getActiveShadowProfileAggregates(ids?: string[]) {
           billingState: true,
           targetId: true,
           isSelfConfession: true,
+          shadowProfileId: true,
         },
       },
     },
@@ -574,17 +637,20 @@ async function getActiveShadowProfileAggregates(ids?: string[]) {
   const shadowsWithActiveConfessions = shadows
     .map((shadow) => ({
       ...shadow,
-      activeConfessionCount: shadow.confessions.filter((confession) =>
+      activeConfessions: shadow.confessions.filter((confession) =>
         isConfessionRecipientActive(confession, paymentStatuses.get(confession.id))
-      ).length,
+      ),
     }))
-    .filter((shadow) => shadow.activeConfessionCount > 0);
+    .filter((shadow) => shadow.activeConfessions.length > 0);
 
   return aggregateShadowProfiles(shadowsWithActiveConfessions).map((shadow) => ({
     ...shadow,
+    activeConfessions: shadowsWithActiveConfessions
+      .filter((entry) => shadow.shadowIds.includes(entry.id))
+      .flatMap((entry) => entry.activeConfessions),
     activeConfessionCount: shadowsWithActiveConfessions
       .filter((entry) => shadow.shadowIds.includes(entry.id))
-      .reduce((sum, entry) => sum + entry.activeConfessionCount, 0),
+      .reduce((sum, entry) => sum + entry.activeConfessions.length, 0),
   }));
 }
 
@@ -625,7 +691,40 @@ export async function getSearchResultsByShadowIds(ids: string[], currentUserId: 
   if (ids.length === 0) return [];
 
   const shadows = await getActiveShadowProfileAggregates(ids);
-  const latestUnlockTimes = await getLatestShadowInsightUnlockTimesByShadowIds(ids, currentUserId, prisma);
+  const allShadowIds = [...new Set(shadows.flatMap((shadow) => shadow.shadowIds))];
+  const latestUnlockTimes = await getLatestShadowInsightUnlockTimesByShadowIds(allShadowIds, currentUserId, prisma);
+  const latestInsightPaymentByShadowId = new Map<string, { status: PaymentStatus; createdAt: Date }>();
+  const allShadowIdSet = new Set(allShadowIds);
+  const insightPayments = await prisma.payment.findMany({
+    where: {
+      userId: currentUserId,
+      type: "UNLOCK_PROFILE_INSIGHTS",
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      status: true,
+      createdAt: true,
+      metadata: true,
+    },
+  });
+
+  for (const payment of insightPayments) {
+    if (!payment.metadata || typeof payment.metadata !== "object" || Array.isArray(payment.metadata)) {
+      continue;
+    }
+
+    const shadowProfileId = (payment.metadata as Record<string, unknown>).targetShadowProfileId;
+    if (typeof shadowProfileId !== "string" || !allShadowIdSet.has(shadowProfileId)) {
+      continue;
+    }
+
+    if (!latestInsightPaymentByShadowId.has(shadowProfileId)) {
+      latestInsightPaymentByShadowId.set(shadowProfileId, {
+        status: payment.status,
+        createdAt: payment.createdAt,
+      });
+    }
+  }
 
   const byId = new Map(shadows.map((shadow) => [shadow.id, shadow]));
 
@@ -636,10 +735,24 @@ export async function getSearchResultsByShadowIds(ids: string[], currentUserId: 
       const category = shadow.location as LocationCategory | null;
       const profileDetails = shadow.profileDetails as Record<string, unknown>;
       const section = category ? buildShadowProfileSection(category, profileDetails) : null;
-      const latestUnlockTime = latestUnlockTimes.get(shadow.id) ?? null;
-      const unlockedInsightCount = latestUnlockTime
-        ? shadow.confessions.filter((confession) => confession.createdAt <= latestUnlockTime).length
-        : 0;
+      const latestInsightPayment = shadow.shadowIds
+        .map((shadowId) => latestInsightPaymentByShadowId.get(shadowId))
+        .filter((entry): entry is { status: PaymentStatus; createdAt: Date } => Boolean(entry))
+        .reduce<{ status: PaymentStatus; createdAt: Date } | null>(
+          (latest, current) => {
+            if (!latest || current.createdAt > latest.createdAt) return current;
+            return latest;
+          },
+          null
+        );
+      const unlockedInsightCount = shadow.activeConfessions.filter((confession) => {
+        if (!confession.shadowProfileId) {
+          return false;
+        }
+
+        const unlockTime = latestUnlockTimes.get(confession.shadowProfileId) ?? null;
+        return Boolean(unlockTime && confession.createdAt <= unlockTime);
+      }).length;
       const lockedInsightCount = shadow.activeConfessionCount - unlockedInsightCount;
 
       return {
@@ -659,6 +772,7 @@ export async function getSearchResultsByShadowIds(ids: string[], currentUserId: 
         confessionPageUnlocked: false,
         confessionCount: shadow.activeConfessionCount,
         hasUnlockedInsights: unlockedInsightCount > 0,
+        insightPaymentStatus: latestInsightPayment?.status ?? null,
         unlockedInsightCount,
         lockedInsightCount,
         profileSections: section ? [section] : [],

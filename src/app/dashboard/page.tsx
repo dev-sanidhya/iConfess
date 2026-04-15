@@ -3,6 +3,7 @@ import { getAppSettings } from "@/lib/app-settings";
 import { ensureProfileSearchCountSeeded } from "@/lib/profile-search-count";
 import { prisma } from "@/lib/prisma";
 import DashboardOverview from "@/components/DashboardOverview";
+import { PaymentStatus } from "@prisma/client";
 
 export default async function DashboardPage() {
   const user = await getSession();
@@ -13,7 +14,9 @@ export default async function DashboardPage() {
     profileSearchCount,
     receivedConfessionCount,
     lockedReceivedConfessionCount,
-    profileInsightUnlockCount,
+    directProfileInsightUnlockCount,
+    claimedShadowIds,
+    shadowInsightPayments,
   ] = await Promise.all([
     ensureProfileSearchCountSeeded(user.id, prisma),
     prisma.confession.count({ where: { targetId: user.id } }),
@@ -26,7 +29,31 @@ export default async function DashboardPage() {
       },
     }),
     prisma.unlockedProfileInsight.count({ where: { targetUserId: user.id } }),
+    prisma.shadowProfile.findMany({
+      where: { claimedByUserId: user.id },
+      select: { id: true },
+    }),
+    prisma.payment.findMany({
+      where: {
+        type: "UNLOCK_PROFILE_INSIGHTS",
+        status: PaymentStatus.SUCCESS,
+      },
+      select: {
+        metadata: true,
+      },
+    }),
   ]);
+
+  const claimedShadowIdSet = new Set(claimedShadowIds.map((shadow) => shadow.id));
+  const shadowProfileInsightUnlockCount = shadowInsightPayments.filter((payment) => {
+    if (!payment.metadata || typeof payment.metadata !== "object" || Array.isArray(payment.metadata)) {
+      return false;
+    }
+
+    const targetShadowProfileId = (payment.metadata as Record<string, unknown>).targetShadowProfileId;
+    return typeof targetShadowProfileId === "string" && claimedShadowIdSet.has(targetShadowProfileId);
+  }).length;
+  const profileInsightUnlockCount = directProfileInsightUnlockCount + shadowProfileInsightUnlockCount;
 
   return (
     <DashboardOverview

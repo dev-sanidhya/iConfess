@@ -30,10 +30,6 @@ export async function GET(req: NextRequest) {
         orderBy: { unlockedAt: "desc" },
       });
 
-      if (!unlocked) {
-        return NextResponse.json({ error: "Unlock profile insights first" }, { status: 403 });
-      }
-
       const confessions = await prisma.confession.findMany({
         where: {
           targetId: targetUserId,
@@ -46,12 +42,35 @@ export async function GET(req: NextRequest) {
         },
       });
 
+      const shadowIds = [...new Set(
+        confessions
+          .map((confession) => confession.shadowProfileId)
+          .filter((shadowProfileId): shadowProfileId is string => Boolean(shadowProfileId))
+      )];
+      const shadowUnlockTimes = await getLatestShadowInsightUnlockTimesByShadowIds(
+        shadowIds,
+        user.id,
+        prisma
+      );
+      const hasShadowUnlock = shadowIds.some((shadowId) => shadowUnlockTimes.has(shadowId));
+
+      if (!unlocked && !hasShadowUnlock) {
+        return NextResponse.json({ error: "Unlock profile insights first" }, { status: 403 });
+      }
+
+      const directUnlockAt = unlocked?.unlockedAt ?? null;
+
       const insights = confessions.map((confession) => {
           const sharedProfileSnapshot = getStoredSharedProfileSnapshot(confession.matchDetails as Record<string, unknown>);
+          const shadowUnlockAt = confession.shadowProfileId
+            ? (shadowUnlockTimes.get(confession.shadowProfileId) ?? null)
+            : null;
 
           return {
             id: confession.id,
-            isUnlocked: confession.createdAt <= unlocked.unlockedAt,
+            isUnlocked:
+              Boolean(directUnlockAt && confession.createdAt <= directUnlockAt) ||
+              Boolean(shadowUnlockAt && confession.createdAt <= shadowUnlockAt),
             sender: {
               category: sharedProfileSnapshot?.label ?? confession.sender.primaryCategory,
               details: sharedProfileSnapshot?.details ?? [],

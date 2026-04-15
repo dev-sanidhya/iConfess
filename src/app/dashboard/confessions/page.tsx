@@ -245,6 +245,40 @@ export default async function ConfessionsPage() {
       },
     }),
   ]);
+  const [pageUnlockPayments, cardUnlockPayments, revealPendingPayments] = await Promise.all([
+    prisma.payment.findMany({
+      where: {
+        userId: user.id,
+        type: "UNLOCK_CONFESSION_PAGE",
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        status: true,
+      },
+    }),
+    prisma.payment.findMany({
+      where: {
+        userId: user.id,
+        type: "UNLOCK_CONFESSION_CARD",
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        status: true,
+        metadata: true,
+      },
+    }),
+    prisma.payment.findMany({
+      where: {
+        userId: user.id,
+        type: "IDENTITY_REVEAL",
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        status: true,
+        metadata: true,
+      },
+    }),
+  ]);
   let revealPayments: Array<{ metadata: unknown }> = [];
   if (await dbSupportsIdentityRevealPaymentType()) {
     revealPayments = await prisma.payment.findMany({
@@ -321,6 +355,25 @@ export default async function ConfessionsPage() {
       approvedRevealByConfessionId.add(confessionId);
     }
   }
+  const pageUnlockPaymentStatus = pageUnlockPayments[0]?.status ?? null;
+  const latestCardUnlockPaymentByConfessionId = new Map<string, PaymentStatus>();
+  for (const payment of cardUnlockPayments) {
+    const confessionId = getPaymentConfessionId(payment.metadata);
+    if (!confessionId || latestCardUnlockPaymentByConfessionId.has(confessionId)) {
+      continue;
+    }
+
+    latestCardUnlockPaymentByConfessionId.set(confessionId, payment.status);
+  }
+  const latestRevealPaymentByConfessionId = new Map<string, PaymentStatus>();
+  for (const payment of revealPendingPayments) {
+    const confessionId = getPaymentConfessionId(payment.metadata);
+    if (!confessionId || latestRevealPaymentByConfessionId.has(confessionId)) {
+      continue;
+    }
+
+    latestRevealPaymentByConfessionId.set(confessionId, payment.status);
+  }
 
   const received = receivedConfessions.map((confession) => {
     const matchDetails = confession.matchDetails as Record<string, unknown>;
@@ -343,6 +396,8 @@ export default async function ConfessionsPage() {
         : confession.targetRevealConsent && approvedRevealByConfessionId.has(confession.id),
       revealedAt: confession.revealedAt?.toISOString() ?? null,
       isUnlocked: confession.unlockedBy.length > 0,
+      cardUnlockPaymentStatus: latestCardUnlockPaymentByConfessionId.get(confession.id) ?? null,
+      revealPaymentStatus: latestRevealPaymentByConfessionId.get(confession.id) ?? null,
       counterpartAnonymousId: confession.isSelfConfession
         ? buildTrashAnonymousId(confession.id)
         : buildAnonymousId(confession.sender.id),
@@ -415,6 +470,7 @@ export default async function ConfessionsPage() {
       receivedConfessions={received}
       sentConfessions={sent}
       pageUnlocked={user.confessionPageUnlocked}
+      pageUnlockPaymentStatus={pageUnlockPaymentStatus}
     />
   );
 }
