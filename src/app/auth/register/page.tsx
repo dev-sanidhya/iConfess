@@ -22,7 +22,8 @@ function RegisterForm() {
   const [step, setStep] = useState<Step>(prefillPhone ? "name" : "phone");
   const [phone, setPhone] = useState(prefillPhone);
   const [otp, setOtp] = useState("");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
   const [password, setPassword] = useState("");
@@ -145,6 +146,11 @@ function RegisterForm() {
 
   async function handleCreateAccount(e: React.FormEvent) {
     e.preventDefault();
+    const composedName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error("Enter both first name and last name");
+      return;
+    }
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     if (password !== confirmPassword) { toast.error("Passwords do not match"); return; }
     if (!gender) { toast.error("Select your gender"); return; }
@@ -155,7 +161,7 @@ function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone,
-          name,
+          name: composedName,
           dateOfBirth,
           password,
           gender,
@@ -311,10 +317,27 @@ function RegisterForm() {
                   </p>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium block" style={{ color: "#9b7c5d" }}>Full Name</label>
-                  <input type="text" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl text-sm border"
-                    style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }} required />
+                  <label className="text-xs font-medium block" style={{ color: "#9b7c5d" }}>Name</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="First name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                      style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Last name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm border"
+                      style={{ background: "rgba(255,251,245,0.84)", borderColor: "rgba(179,148,111,0.24)", color: "#3f2c1d" }}
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium block" style={{ color: "#9b7c5d" }}>Date Of Birth</label>
