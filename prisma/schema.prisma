@@ -44,6 +44,8 @@ model User {
   pendingSocialOwnershipRequests PendingSocialOwnershipRequest[]
   notificationAudienceCounters NotificationAudienceCounter[]
   claimedShadowProfiles ShadowProfile[]
+  marketingContacts MarketingContact[] @relation("MarketingContactUser")
+  marketingRevenueSnapshots MarketingRevenueSnapshot[] @relation("MarketingRevenueUser")
 }
 
 model PendingProfileSearchCount {
@@ -224,6 +226,7 @@ model StaffUser {
   updatedAt    DateTime          @updatedAt
 
   managedPayments Payment[] @relation("PaymentManager")
+  marketingAgentProfile MarketingAgentProfile?
 }
 
 model Payment {
@@ -240,11 +243,117 @@ model Payment {
   managedByStaff       StaffUser?    @relation("PaymentManager", fields: [managedByStaffId], references: [id], onDelete: SetNull)
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
+  marketingRevenueSnapshot MarketingRevenueSnapshot?
 
   @@index([userId, type, createdAt])
   @@index([userId, status, createdAt])
   @@index([status, createdAt])
   @@unique([gateway, gatewayTransactionId])
+}
+
+model MarketingAgentProfile {
+  id                   String   @id @default(cuid())
+  staffUserId          String   @unique
+  staffUser            StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  agentId              String   @unique
+  contactLimit         Int
+  revenueSharePercent  Float
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  contacts             MarketingContact[]
+  tags                 MarketingAgentTag[]
+  revenueSnapshots     MarketingRevenueSnapshot[]
+}
+
+model MarketingGlobalTag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  agentTags MarketingAgentTag[]
+}
+
+model MarketingAgentTag {
+  id             String   @id @default(cuid())
+  profileId      String
+  profile        MarketingAgentProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name           String
+  sourceGlobalTagId String?
+  sourceGlobalTag MarketingGlobalTag? @relation(fields: [sourceGlobalTagId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  contactTags    MarketingContactTag[]
+
+  @@unique([profileId, name])
+  @@index([profileId])
+}
+
+model MarketingContact {
+  id                          String   @id @default(cuid())
+  profileId                   String
+  profile                     MarketingAgentProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  userId                      String?
+  user                        User?    @relation("MarketingContactUser", fields: [userId], references: [id], onDelete: SetNull)
+  name                        String
+  countryCode                 String
+  phone                       String
+  phoneNormalized             String   @unique
+  notes                       String?
+  confessionsSent             Int      @default(0)
+  lockedReceivedConfessions   Int      @default(0)
+  isDeleted                   Boolean  @default(false)
+  deletedAt                   DateTime?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  tags                        MarketingContactTag[]
+  revenueSnapshots            MarketingRevenueSnapshot[]
+  editLogs                    MarketingContactEditLog[]
+
+  @@index([profileId, isDeleted])
+  @@index([userId])
+}
+
+model MarketingContactTag {
+  contactId String
+  tagId     String
+  contact   MarketingContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag       MarketingAgentTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+  @@index([tagId])
+}
+
+model MarketingContactEditLog {
+  id          String   @id @default(cuid())
+  contactId   String
+  contact     MarketingContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  changedAt   DateTime @default(now())
+  changedKeys String[]
+
+  @@index([contactId, changedAt])
+}
+
+model MarketingRevenueSnapshot {
+  id                    String   @id @default(cuid())
+  paymentId             String   @unique
+  payment               Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  profileId             String
+  profile               MarketingAgentProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  contactId             String
+  contact               MarketingContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  userId                String
+  user                  User @relation("MarketingRevenueUser", fields: [userId], references: [id], onDelete: Cascade)
+  grossAmount           Int
+  revenueSharePercent   Float
+  agentShareAmount      Float
+  purchaseType          PaymentType
+  purchaseCreatedAt     DateTime
+  monthKey              String
+  createdAt             DateTime @default(now())
+
+  @@index([profileId, purchaseCreatedAt])
+  @@index([profileId, monthKey])
+  @@index([contactId])
 }
 
 model PaymentServiceConfig {
@@ -388,6 +497,7 @@ enum PendingProfileSearchKind {
 enum StaffRole {
   ADMIN
   EMPLOYEE
+  MARKETING_AGENT
 }
 
 enum StaffStatus {

@@ -10,6 +10,7 @@ import {
 import { type LocationCategory } from "@/lib/matching";
 import { prisma } from "@/lib/prisma";
 import { applyIdentityRevealPayment } from "@/lib/reveal-identity";
+import { ensureMarketingRevenueSnapshotForPayment } from "@/lib/marketing";
 import {
   claimCompatiblePendingDetailSearchCounts,
   findOrCreateDirectShadowProfile,
@@ -61,7 +62,7 @@ export async function recordPayment(params: {
   gatewayTransactionId?: string | null;
   metadata?: PaymentMetadata;
 }) {
-  return prisma.payment.create({
+  const payment = await prisma.payment.create({
     data: {
       userId: params.userId,
       type: params.type,
@@ -72,6 +73,12 @@ export async function recordPayment(params: {
       metadata: params.metadata,
     },
   });
+
+  if ((params.status ?? PaymentStatus.SUCCESS) === PaymentStatus.SUCCESS) {
+    await ensureMarketingRevenueSnapshotForPayment(payment.id);
+  }
+
+  return payment;
 }
 
 export async function createManualPaymentRequest(params: {
@@ -604,6 +611,8 @@ export async function applySuccessfulPayment(paymentId: string) {
   if (!payment || payment.status !== PaymentStatus.SUCCESS) {
     return;
   }
+
+  await ensureMarketingRevenueSnapshotForPayment(payment.id);
 
   if (payment.type === PaymentType.UNLOCK_CONFESSION_PAGE) {
     await applyUnlockConfessionPage(payment);

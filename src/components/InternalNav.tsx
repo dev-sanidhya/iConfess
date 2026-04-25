@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { AtSign, BarChart3, Bell, CreditCard, LogOut, Menu, MessageSquare, Settings2, Shield, Users, X } from "lucide-react";
+import { AtSign, BarChart3, Bell, CreditCard, LogOut, Menu, MessageSquare, Settings2, Shield, Users, X, Megaphone } from "lucide-react";
 import { STAFF_PERMISSIONS, type StaffPermission, type StaffRole } from "@/lib/staff-types";
 
 type InternalNavProps = {
@@ -22,7 +22,7 @@ export default function InternalNav({ staff }: InternalNavProps) {
   const links = staff.role === "ADMIN"
     ? [
         { href: "/admin", label: "Analytics", icon: BarChart3 },
-        { href: "/admin/team", label: "Staff Access", icon: Shield },
+        { href: "/admin/team", label: "User Access", icon: Shield },
         { href: "/admin/users", label: "Users", icon: Users },
         { href: "/admin/notifications", label: "Notifications", icon: Bell },
         { href: "/admin/social-handles", label: "Social Ownership", icon: AtSign },
@@ -30,7 +30,11 @@ export default function InternalNav({ staff }: InternalNavProps) {
         { href: "/admin/payments", label: "Payments Management", icon: CreditCard },
         { href: "/admin/confessions", label: "Confessions", icon: MessageSquare },
       ]
-    : [
+    : staff.role === "MARKETING_AGENT"
+      ? [
+          { href: "/marketing", label: "Marketing Workspace", icon: Megaphone },
+        ]
+      : [
         ...(staff.permissions.includes(STAFF_PERMISSIONS[0])
           ? [
               { href: "/employee/users", label: "Users", icon: Users },
@@ -55,7 +59,7 @@ export default function InternalNav({ staff }: InternalNavProps) {
       <div className="px-3 mb-8">
         <span className="text-xl font-bold gradient-text">iConfess Internal</span>
         <p className="text-xs mt-1" style={{ color: "#9b7c5d" }}>
-          {staff.role === "ADMIN" ? "Admin panel" : "Employee panel"}
+          {staff.role === "ADMIN" ? "Admin panel" : staff.role === "MARKETING_AGENT" ? "Marketing panel" : "Employee panel"}
         </p>
       </div>
 

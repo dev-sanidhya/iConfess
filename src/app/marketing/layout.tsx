@@ -3,14 +3,14 @@ import DashboardBackground from "@/components/DashboardBackground";
 import InternalNav from "@/components/InternalNav";
 import { getStaffSession } from "@/lib/staff-auth";
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const staff = await getStaffSession();
   if (!staff) {
     redirect("/staff/login");
   }
 
-  if (staff.role !== "ADMIN") {
-    redirect(staff.role === "MARKETING_AGENT" ? "/marketing" : "/employee");
+  if (staff.role !== "MARKETING_AGENT") {
+    redirect(staff.role === "ADMIN" ? "/admin" : "/employee");
   }
 
   return (

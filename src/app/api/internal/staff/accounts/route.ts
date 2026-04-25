@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hashPassword, normalizeUsername } from "@/lib/auth";
+import { DEFAULT_MARKETING_CONTACT_LIMIT } from "@/lib/marketing";
 import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth";
 import {
@@ -25,6 +26,25 @@ function getNormalizedPermissions(role: StaffRole, permissions: unknown) {
   );
 }
 
+async function attachGlobalTagsToMarketingProfile(profileId: string) {
+  const globalTags = await prisma.marketingGlobalTag.findMany({
+    select: { id: true, name: true },
+  });
+
+  if (globalTags.length === 0) {
+    return;
+  }
+
+  await prisma.marketingAgentTag.createMany({
+    data: globalTags.map((globalTag) => ({
+      profileId,
+      name: globalTag.name,
+      sourceGlobalTagId: globalTag.id,
+    })),
+    skipDuplicates: true,
+  });
+}
+
 export async function GET() {
   try {
     const staff = await getStaffSession();
@@ -43,6 +63,13 @@ export async function GET() {
         permissions: true,
         createdAt: true,
         updatedAt: true,
+        marketingAgentProfile: {
+          select: {
+            agentId: true,
+            contactLimit: true,
+            revenueSharePercent: true,
+          },
+        },
       },
     });
 
@@ -60,7 +87,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { name, username, password, role, permissions } = await req.json();
+    const { name, username, password, role, permissions, contactLimit, revenueSharePercent } = await req.json();
     const normalizedUsername = normalizeUsername(username ?? "");
     const normalizedRole = STAFF_ROLES.includes(role as StaffRole)
       ? (role as StaffRole)
@@ -90,6 +117,13 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await hashPassword(password);
+    const parsedContactLimit = Number.isFinite(Number(contactLimit))
+      ? Math.max(1, Math.trunc(Number(contactLimit)))
+      : DEFAULT_MARKETING_CONTACT_LIMIT;
+    const parsedRevenueSharePercent = Number.isFinite(Number(revenueSharePercent))
+      ? Math.max(0, Math.min(100, Number(revenueSharePercent)))
+      : 0;
+
     const account = await prisma.staffUser.create({
       data: {
         name: name.trim(),
@@ -97,6 +131,17 @@ export async function POST(req: NextRequest) {
         passwordHash,
         role: normalizedRole,
         permissions: getNormalizedPermissions(normalizedRole, permissions),
+        ...(normalizedRole === "MARKETING_AGENT"
+          ? {
+              marketingAgentProfile: {
+                create: {
+                  agentId: crypto.randomUUID(),
+                  contactLimit: parsedContactLimit,
+                  revenueSharePercent: parsedRevenueSharePercent,
+                },
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -107,8 +152,25 @@ export async function POST(req: NextRequest) {
         permissions: true,
         createdAt: true,
         updatedAt: true,
+        marketingAgentProfile: {
+          select: {
+            agentId: true,
+            contactLimit: true,
+            revenueSharePercent: true,
+          },
+        },
       },
     });
+
+    if (normalizedRole === "MARKETING_AGENT" && account.marketingAgentProfile?.agentId) {
+      const profile = await prisma.marketingAgentProfile.findUnique({
+        where: { staffUserId: account.id },
+        select: { id: true },
+      });
+      if (profile) {
+        await attachGlobalTagsToMarketingProfile(profile.id);
+      }
+    }
 
     return NextResponse.json({ success: true, account });
   } catch (error) {
@@ -124,7 +186,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id, name, username, password, role, permissions, status } = await req.json();
+    const { id, name, username, password, role, permissions, status, contactLimit, revenueSharePercent } = await req.json();
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "Account id is required" }, { status: 400 });
     }
@@ -163,6 +225,19 @@ export async function PATCH(req: NextRequest) {
       permissions?: StaffPermission[];
       status?: StaffStatus;
       passwordHash?: string;
+      marketingAgentProfile?: {
+        upsert?: {
+          create: {
+            agentId: string;
+            contactLimit: number;
+            revenueSharePercent: number;
+          };
+          update: {
+            contactLimit: number;
+            revenueSharePercent: number;
+          };
+        };
+      };
     } = {
       name: typeof name === "string" && name.trim() ? name.trim() : existing.name,
       username: normalizedUsername,
@@ -170,6 +245,29 @@ export async function PATCH(req: NextRequest) {
       permissions: getNormalizedPermissions(normalizedRole, permissions ?? existing.permissions),
       status: normalizedStatus,
     };
+
+    if (normalizedRole === "MARKETING_AGENT") {
+      const parsedContactLimit = Number.isFinite(Number(contactLimit))
+        ? Math.max(1, Math.trunc(Number(contactLimit)))
+        : DEFAULT_MARKETING_CONTACT_LIMIT;
+      const parsedRevenueSharePercent = Number.isFinite(Number(revenueSharePercent))
+        ? Math.max(0, Math.min(100, Number(revenueSharePercent)))
+        : 0;
+
+      updateData.marketingAgentProfile = {
+        upsert: {
+          create: {
+            agentId: crypto.randomUUID(),
+            contactLimit: parsedContactLimit,
+            revenueSharePercent: parsedRevenueSharePercent,
+          },
+          update: {
+            contactLimit: parsedContactLimit,
+            revenueSharePercent: parsedRevenueSharePercent,
+          },
+        },
+      };
+    }
 
     if (typeof password === "string" && password.trim()) {
       if (password.length < 8) {
@@ -190,8 +288,25 @@ export async function PATCH(req: NextRequest) {
         permissions: true,
         createdAt: true,
         updatedAt: true,
+        marketingAgentProfile: {
+          select: {
+            agentId: true,
+            contactLimit: true,
+            revenueSharePercent: true,
+          },
+        },
       },
     });
+
+    if (normalizedRole === "MARKETING_AGENT") {
+      const profile = await prisma.marketingAgentProfile.findUnique({
+        where: { staffUserId: account.id },
+        select: { id: true },
+      });
+      if (profile) {
+        await attachGlobalTagsToMarketingProfile(profile.id);
+      }
+    }
 
     return NextResponse.json({ success: true, account });
   } catch (error) {

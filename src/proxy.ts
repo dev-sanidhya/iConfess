@@ -4,7 +4,7 @@ import { verifyStaffToken } from "@/lib/staff-auth";
 
 const protectedPrefixes = ["/dashboard"];
 const authRoutes = ["/auth/login", "/auth/register"];
-const staffProtectedPrefixes = ["/admin", "/employee"];
+const staffProtectedPrefixes = ["/admin", "/employee", "/marketing"];
 const staffAuthRoutes = ["/staff/login"];
 
 export function proxy(req: NextRequest) {
@@ -35,11 +35,26 @@ export function proxy(req: NextRequest) {
   }
 
   if (pathname.startsWith("/admin") && staffPayload?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/employee", req.url));
+    const fallback = staffPayload?.role === "MARKETING_AGENT" ? "/marketing" : "/employee";
+    return NextResponse.redirect(new URL(fallback, req.url));
+  }
+
+  if (pathname.startsWith("/marketing") && staffPayload?.role !== "MARKETING_AGENT") {
+    const fallback = staffPayload?.role === "ADMIN" ? "/admin" : "/employee";
+    return NextResponse.redirect(new URL(fallback, req.url));
+  }
+
+  if (pathname.startsWith("/employee") && staffPayload?.role !== "EMPLOYEE") {
+    const fallback = staffPayload?.role === "ADMIN" ? "/admin" : "/marketing";
+    return NextResponse.redirect(new URL(fallback, req.url));
   }
 
   if (isStaffAuthRoute && isStaffAuthenticated) {
-    const destination = staffPayload?.role === "ADMIN" ? "/admin" : "/employee";
+    const destination = staffPayload?.role === "ADMIN"
+      ? "/admin"
+      : staffPayload?.role === "MARKETING_AGENT"
+        ? "/marketing"
+        : "/employee";
     return NextResponse.redirect(new URL(destination, req.url));
   }
 

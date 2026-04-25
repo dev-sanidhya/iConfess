@@ -9,6 +9,10 @@ export default async function EmployeeLayout({ children }: { children: React.Rea
     redirect("/staff/login");
   }
 
+  if (staff.role !== "EMPLOYEE") {
+    redirect(staff.role === "ADMIN" ? "/admin" : "/marketing");
+  }
+
   return (
     <div className="flex min-h-screen">
       <DashboardBackground />

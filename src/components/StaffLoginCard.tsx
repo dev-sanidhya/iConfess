@@ -37,7 +37,13 @@ export default function StaffLoginCard({ hasAdmin }: StaffLoginCardProps) {
         throw new Error(data.error);
       }
 
-      router.push(data.role === "ADMIN" ? "/admin" : "/employee");
+      if (data.role === "ADMIN") {
+        router.push("/admin");
+      } else if (data.role === "MARKETING_AGENT") {
+        router.push("/marketing");
+      } else {
+        router.push("/employee");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to continue");
     } finally {

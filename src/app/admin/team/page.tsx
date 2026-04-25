@@ -13,6 +13,13 @@ export default async function AdminTeamPage() {
       permissions: true,
       createdAt: true,
       updatedAt: true,
+      marketingAgentProfile: {
+        select: {
+          agentId: true,
+          contactLimit: true,
+          revenueSharePercent: true,
+        },
+      },
     },
   });
 
