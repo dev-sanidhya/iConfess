@@ -117,3 +117,82 @@ input:focus, textarea:focus {
   outline: none !important;
   box-shadow: 0 0 0 2px rgba(143,106,70,0.15) !important;
 }
+
+/* Landing page motion */
+@keyframes lpFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lpFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lpFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.lp-fade-up {
+  opacity: 0;
+  animation: lpFadeUp 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.lp-fade-in {
+  opacity: 0;
+  animation: lpFadeIn 0.56s ease-out forwards;
+}
+
+.lp-feature-reveal {
+  opacity: 0;
+  animation: lpFadeUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.lp-card-float {
+  opacity: 0;
+  animation:
+    lpFadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.28s forwards,
+    lpFloat 3s ease-in-out 1.2s infinite;
+}
+
+.lp-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.lp-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.lp-delay-3 {
+  animation-delay: 0.3s;
+}
+
+.lp-delay-4 {
+  animation-delay: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-fade-up,
+  .lp-fade-in,
+  .lp-feature-reveal,
+  .lp-card-float {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}

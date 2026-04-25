@@ -17,16 +17,28 @@ function isMissingPaymentConfigTable(error: unknown) {
 }
 
 function isUnavailableDatasource(error: unknown) {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P6001";
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P6001" || error.code === "P1001")
+  );
+}
+
+function isTemporaryDatasourceFailure(error: unknown) {
+  return (
+    isUnavailableDatasource(error) ||
+    error instanceof Prisma.PrismaClientInitializationError ||
+    error instanceof Prisma.PrismaClientUnknownRequestError
+  );
 }
 
 export async function getPaymentCatalog(): Promise<PaymentCatalog> {
   const catalog = getDefaultPaymentCatalog();
   let configs: Awaited<ReturnType<typeof prisma.paymentServiceConfig.findMany>>;
+
   try {
     configs = await prisma.paymentServiceConfig.findMany();
   } catch (error) {
-    if (isMissingPaymentConfigTable(error) || isUnavailableDatasource(error)) {
+    if (isMissingPaymentConfigTable(error) || isTemporaryDatasourceFailure(error)) {
       return catalog;
     }
 
@@ -66,7 +78,7 @@ export async function getPaymentAmount(pricingKey: PaymentPricingKey) {
 
     return config?.amount ?? getDefaultPaymentCatalog().pricing[pricingKey];
   } catch (error) {
-    if (isMissingPaymentConfigTable(error) || isUnavailableDatasource(error)) {
+    if (isMissingPaymentConfigTable(error) || isTemporaryDatasourceFailure(error)) {
       return getDefaultPaymentCatalog().pricing[pricingKey];
     }
 
@@ -104,8 +116,12 @@ export async function upsertPaymentServiceConfig(params: {
       },
     });
   } catch (error) {
-    if (isMissingPaymentConfigTable(error) || isUnavailableDatasource(error)) {
+    if (isMissingPaymentConfigTable(error)) {
       throw new Error("Payment settings table is missing. Run the latest Prisma migration first.");
+    }
+
+    if (isTemporaryDatasourceFailure(error)) {
+      throw new Error("Payment settings are temporarily unavailable. Please try again in a moment.");
     }
 
     throw error;

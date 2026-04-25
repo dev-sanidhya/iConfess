@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import DashboardBackground from "@/components/DashboardBackground";
 import InternalNav from "@/components/InternalNav";
+import ActivityTracker from "@/components/ActivityTracker";
 import { getStaffSession } from "@/lib/staff-auth";
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
@@ -14,12 +15,15 @@ export default async function MarketingLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex min-h-screen">
-      <DashboardBackground />
-      <InternalNav staff={{ name: staff.name, role: staff.role, permissions: staff.permissions }} />
-      <main className="flex-1 md:ml-64 pt-20 md:pt-0 px-4 sm:px-6 md:px-8 pb-8 max-w-7xl relative z-10 w-full">
-        {children}
-      </main>
-    </div>
+    <>
+      <ActivityTracker />
+      <div className="flex min-h-screen">
+        <DashboardBackground />
+        <InternalNav staff={{ name: staff.name, role: staff.role, permissions: staff.permissions }} />
+        <main className="relative z-10 w-full max-w-7xl flex-1 px-4 pt-20 pb-8 sm:px-6 md:ml-64 md:px-8 md:pt-0">
+          {children}
+        </main>
+      </div>
+    </>
   );
 }

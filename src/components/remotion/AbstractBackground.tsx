@@ -27,6 +27,10 @@ export default function AbstractBackground({ variant = "dark" }: AbstractBackgro
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const isReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isSmallScreen = window.matchMedia("(max-width: 767px)").matches;
+    const shouldAnimate = !isReducedMotion && !isSmallScreen;
+
     function resize() {
       if (!canvas) return;
       canvas.width = window.innerWidth;
@@ -36,7 +40,7 @@ export default function AbstractBackground({ variant = "dark" }: AbstractBackgro
     window.addEventListener("resize", resize);
 
     // Seed orbs
-    const count = 18;
+    const count = shouldAnimate ? 18 : 8;
     orbsRef.current = Array.from({ length: count }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
@@ -59,15 +63,17 @@ export default function AbstractBackground({ variant = "dark" }: AbstractBackgro
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (const orb of orbsRef.current) {
-        // Move
-        orb.x += orb.vx;
-        orb.y += orb.vy;
+        if (shouldAnimate) {
+          // Move
+          orb.x += orb.vx;
+          orb.y += orb.vy;
 
-        // Bounce
-        if (orb.x < -orb.r) orb.x = canvas.width + orb.r;
-        if (orb.x > canvas.width + orb.r) orb.x = -orb.r;
-        if (orb.y < -orb.r) orb.y = canvas.height + orb.r;
-        if (orb.y > canvas.height + orb.r) orb.y = -orb.r;
+          // Wrap
+          if (orb.x < -orb.r) orb.x = canvas.width + orb.r;
+          if (orb.x > canvas.width + orb.r) orb.x = -orb.r;
+          if (orb.y < -orb.r) orb.y = canvas.height + orb.r;
+          if (orb.y > canvas.height + orb.r) orb.y = -orb.r;
+        }
 
         // Draw radial glow
         const grad = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, orb.r);
@@ -99,7 +105,9 @@ export default function AbstractBackground({ variant = "dark" }: AbstractBackgro
       }
       ctx.globalAlpha = 1;
 
-      frameRef.current = requestAnimationFrame(draw);
+      if (shouldAnimate) {
+        frameRef.current = requestAnimationFrame(draw);
+      }
     }
 
     draw();
